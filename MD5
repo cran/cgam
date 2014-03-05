@@ -1,0 +1,16 @@
+5f905dd8ec0801ada994ebbe16bda9e8 *DESCRIPTION
+1f14029eae2045858f6bd6ae65fadab5 *NAMESPACE
+e3dcd3b3e1a879489a67381b3018e5ee *R/cgam.R
+a0db33d4a416d9f938daadefe0e246d8 *data/cubic.rda
+c707d141ad6aa2d8e70ccd393355ba56 *man/cgam.Rd
+c14d65706ab44c5ecf210dbd9de9483e *man/conc.Rd
+a59dbf5677546fbc0bf7ccecbc2e0081 *man/conv.Rd
+6c2f09d25de34e3aeee15a6970ef91fe *man/cubic.Rd
+04ec40f6039159232db6002d3bab9355 *man/decr.Rd
+c8d3af5734a77c3b84f7dfb6b61b7a69 *man/decr.conc.Rd
+2d54022f985667126631f1d7a057fe28 *man/decr.conv.Rd
+4cd0e4af8cc5a76444872811a12369a1 *man/incr.Rd
+44bbb2b4028e7749c5eb13a4a1f40aaf *man/incr.conc.Rd
+f07c7414fa3762d0606084b21f1ac33d *man/incr.conv.Rd
+bdc3ac1512f8bb53383193bd2b5e43b9 *man/tree.Rd
+2bff58f64dd2ede7179960f77b0570ef *man/umbrella.Rd

@@ -1,0 +1,5 @@
+export("cgam", "incr", "decr", "conc", "conv", "incr.conc", "incr.conv", "decr.conc", "decr.conv", "tree", "umbrella")
+import("coneproj")
+S3method(summary, cgam)
+S3method(predict, cgam)
+S3method(print, summary.cgam)
