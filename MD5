@@ -1,8 +1,8 @@
-5f905dd8ec0801ada994ebbe16bda9e8 *DESCRIPTION
+264eaabb8e1f9ac15fcf414c74d3fa8d *DESCRIPTION
 1f14029eae2045858f6bd6ae65fadab5 *NAMESPACE
-e3dcd3b3e1a879489a67381b3018e5ee *R/cgam.R
+b79d2e68730ce237640a7ab7e355711d *R/cgam.R
 a0db33d4a416d9f938daadefe0e246d8 *data/cubic.rda
-c707d141ad6aa2d8e70ccd393355ba56 *man/cgam.Rd
+d5eafb08a6ffbf94a19eb200379cac15 *man/cgam.Rd
 c14d65706ab44c5ecf210dbd9de9483e *man/conc.Rd
 a59dbf5677546fbc0bf7ccecbc2e0081 *man/conv.Rd
 6c2f09d25de34e3aeee15a6970ef91fe *man/cubic.Rd

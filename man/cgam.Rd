@@ -8,7 +8,7 @@
   When the user provides a set of predictors with shape or order restriction, and a set of categorical covariates without any shape or order restriction, the cgam routine will return the maximum likelihood estimator for the constrained generalized additive model, using an iteratively re-weighted cone projection algorithm. The coneB routine in the R package coneproj is used in cgam to effect the hinge algorithm for one cone projection.
 }
 
-\usage{cgam(formula, nsim = 0, family = gaussian(), data = NULL, weights = NULL)}
+\usage{cgam(formula, nsim = 1e+2, family = gaussian(), data = NULL, weights = NULL)}
 
 \arguments{
   \item{formula}{
@@ -29,7 +29,7 @@
     }
 }
   \item{nsim}{
-  The number of simulations used to get the edf0 parameter. Note that when there is no shape-restricted or order-restricted predictor, nsim should be 0. The default is nsim = 0.
+  The number of simulations used to get the cic parameter. Note that when there is no shape-restricted or order-restricted predictor, nsim has the default 0. Otherwise, the default is nsim = 1e+2. 
 }
   \item{family}{
   A parameter indicating the error distribution and link function to be used in the model. It can be a character string naming a family function or the result of a call to a family function. This is borrowed from the glm routine in the stats package. There are three families used in cgam: gaussian, binomial and poisson.
@@ -99,12 +99,15 @@ See references cited in this section and the official manual for the R package c
   \item{capk}{The number of non-constant columns of zmat.}
   \item{capt}{The number of edges corresponding to the tree-ordering predictors.}
   \item{capu}{The number of edges corresponding to the umbrella-ordering predictors.}
-  \item{xid1}{A vector storing the indices keeping track of the beginning position of the set of edges for each shape-restricted predictor in xmat.}
-  \item{xid2}{A vector storing the indices keeping track of the end position of the set of edges for each shape-restricted predictor in xmat.}
-  \item{tid1}{A vector storing the indices keeping track of the beginning position of the set of edges for each tree-ordering factor in tr.}
-  \item{tid2}{A vector storing the indices keeping track of the end position of the set of edges for each tree-ordering factor in tr.}
-  \item{uid1}{A vector storing the indices keeping track of the beginning position of the set of edges for each umbrella-ordering factor in umb.}
-  \item{uid2}{A vector storing the indices keeping track of the end position of the set of edges for each umbrella-ordering factor in umb.}
+  \item{xid1}{A vector keeping track of the beginning position of the set of edges for each shape-restricted predictor in xmat.}
+  \item{xid2}{A vector keeping track of the end position of the set of edges for each shape-restricted predictor in xmat.}
+  \item{tid1}{A vector keeping track of the beginning position of the set of edges for each tree-ordering factor in tr.}
+  \item{tid2}{A vector keeping track of the end position of the set of edges for each tree-ordering factor in tr.}
+  \item{uid1}{A vector keeping track of the beginning position of the set of edges for each umbrella-ordering factor in umb.}
+  \item{uid2}{A vector keeping track of the end position of the set of edges for each umbrella-ordering factor in umb.}
+  \item{zid}{A vector keeping track of the positions of categorical variables in a cgam formula.}
+  \item{nzid}{A vector keeping track of the number of columns of the matrix formed by each categorical variable defined as a factor.}
+  \item{nsim}{The number of simulations used to get the cic parameter.}
   \item{call}{The matched call.}
 }
 
@@ -169,7 +172,7 @@ See references cited in this section and the official manual for the R package c
   # regress loss on hard and tens under the restrictions:
   # "decreasing" and "decreasing"
   fit.cgam <- cgam(loss ~ decr(hard) + decr(tens), data = Rubber)
-  n <- 10
+  n <- 20
   hard <-  Rubber$hard
   tens <- Rubber$tens
 
