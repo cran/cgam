@@ -5,27 +5,36 @@
 \title{Constrained Generalized Additive Model Fitting}
 
 \description{
-  When the user provides a set of predictors with shape or order restriction, and a set of categorical covariates without any shape or order restriction, the cgam routine will return the maximum likelihood estimator for the constrained generalized additive model, using an iteratively re-weighted cone projection algorithm. The coneB routine in the R package coneproj is used in cgam to effect the hinge algorithm for one cone projection.
+  The partial linear generalized additive model is fitted using the method of maximum likelihood, where shape or order restrictions can be imposed on the non-parametrically modelled predictors with optional smoothing, and no restrictions are imposed on the optional parametrically modelled categorical covariates. 
 }
 
 \usage{cgam(formula, nsim = 1e+2, family = gaussian(), data = NULL, weights = NULL)}
 
 \arguments{
   \item{formula}{
-  A formula object which gives a symbolic description of the model to be fitted. It has the form "response ~ predictor". The response is a vector of length \eqn{n}. The error distribution of the model can be one of the three exponential families: gaussian, binomial and poisson. A predictor can either be a non-parametrically modelled variable with a shape or order restriction, or a parametrically modelled unconstrained categorical covariate. The user can include both types of predictors in a cgam model. In terms of the shape or order restriction on a non-parametrically modelled predictor, the user is supposed to indicate the restriction by the following way:
+    A formula object which gives a symbolic description of the model to be fitted. It has the form "response ~ predictor". The response is a vector of length \eqn{n}. The specification of the model can be one of the three exponential families: gaussian, binomial and poisson. The systematic component \eqn{\eta} is \eqn{E(y)}, the log odds of \eqn{y = 1}, and the logarithm of \eqn{E(y)} respectively. A predictor can be a non-parametrically modelled variable with or without a shape or order restriction, or a parametrically modelled unconstrained categorical covariate. In terms of a non-parametrically modelled predictor, the user is supposed to indicate the relationship between the systematic component \eqn{\eta} and a predictor \eqn{x} in the following way:
 
-    Assume that y is the response and x is a predictor: 
+    Assume that \eqn{\eta} is the systematic component and \eqn{x} is a predictor: 
     \itemize{
-    \item{incr(x): }{y is increasing in x.}
-    \item{decr(x): }{y is decreasing in x.}
-    \item{conc(x): }{y is concave in x.}
-    \item{conv(x): }{y is convex in x.}
-    \item{incr.conc(x): }{y is increasing and concave in x.}
-    \item{decr.conc(x): }{y is decreasing and concave in x.}
-    \item{incr.conv(x): }{y is increasing and convex in x.}
-    \item{decr.conv(x): }{y is decreasing and convex in x.}
-    \item{tree(x): }{y has a tree-ordering in x.}
-    \item{umbrella(x): }{y has an umbrella-ordering in x.}
+    \item{incr(x): }{\eqn{\eta} is increasing in \eqn{x}. See \code{\link{incr}} for more details.}
+    \item{s.incr(x): }{\eqn{\eta} is smoothly increasing in \eqn{x}. See \code{\link{s.incr}} for more details.}
+    \item{decr(x): }{\eqn{\eta} is decreasing in \eqn{x}.  See \code{\link{decr}} for more details.}
+    \item{s.decr(x): }{\eqn{\eta} is smoothly decreasing in \eqn{x}.  See \code{\link{s.decr}} for more details.}
+    \item{conc(x): }{\eqn{\eta} is concave in \eqn{x}.  See \code{\link{conc}} for more details.}
+    \item{s.conc(x): }{\eqn{\eta} is smoothly concave in \eqn{x}.  See \code{\link{s.conc}} for more details.}
+    \item{conv(x): }{\eqn{\eta} is convex in \eqn{x}.  See \code{\link{conv}} for more details.}
+    \item{s.conv(x): }{\eqn{\eta} is smoothly convex in \eqn{x}.  See \code{\link{s.conv}} for more details.}
+    \item{incr.conc(x): }{\eqn{\eta} is increasing and concave in \eqn{x}.  See \code{\link{incr.conc}} for more details.}
+    \item{s.incr.conc(x): }{\eqn{\eta} is smoothly increasing and concave in \eqn{x}. See \code{\link{s.incr.conc}} for more details.}
+    \item{decr.conc(x): }{\eqn{\eta} is decreasing and concave in \eqn{x}. See \code{\link{decr.conc}} for more details.}
+    \item{s.decr.conc(x): }{\eqn{\eta} is smoothly decreasing and concave in \eqn{x}. See \code{\link{s.decr.conc}} for more details.}
+    \item{incr.conv(x): }{\eqn{\eta} is increasing and convex in \eqn{x}. See \code{\link{incr.conv}} for more details.}
+    \item{s.incr.conv(x): }{\eqn{\eta} is smoothly increasing and convex in \eqn{x}. See \code{\link{s.incr.conv}} for more details.}
+    \item{decr.conv(x): }{\eqn{\eta} is decreasing and convex in \eqn{x}. See \code{\link{decr.conv}} for more details.}
+    \item{s.decr.conv(x): }{\eqn{\eta} is smoothly decreasing and convex in \eqn{x}. See \code{\link{s.decr.conv}} for more details.}
+    \item{s(x): }{\eqn{\eta} is smooth in \eqn{x}. See \code{\link{s}} for more details.}
+    \item{tree(x): }{\eqn{\eta} has a tree-ordering in \eqn{x}. See \code{\link{tree}} for more details.}
+    \item{umbrella(x): }{\eqn{\eta} has an umbrella-ordering in \eqn{x}. See \code{\link{umbrella}} for more details.}
     }
 }
   \item{nsim}{
@@ -38,53 +47,53 @@
   An optional data frame, list or environment containing the variables in the model. The default is data = NULL.
   }
   \item{weights}{
-  An optional non-negative vector of "prior weights" which has the same length as the response vector. If weights is not given, all weights are taken to equal 1. The default is weights = NULL.
+  An optional non-negative vector of "replicate weights" which has the same length as the response vector. If weights are not given, all weights are taken to equal 1. The default is weights = NULL.
   }
 
 }
 
 \details{
-  We consider generalized partial linear models with independent observations from an exponential family of the form \eqn{p(y_i;\theta,\tau) = exp[\{y_i\theta_i - b(\theta_i)\}\tau - c(y_i, \tau)], i = 1,\ldots,n}, where the specifications of the functions \eqn{b} and \eqn{c} determine the sub-family of models. The mean vector \eqn{\mu = E(y)} has values \eqn{\mu_i = b'(\theta_i)}, and is related to a design matrix of predictor variables through a monotonically increasing link function \eqn{g(\mu_i) = \eta_i, i = 1,\ldots,n}, where \eqn{\eta} is the "systematic component" and 
+  We consider generalized partial linear models with independent observations from an exponential family of the form \eqn{p(y_i;\theta,\tau) = exp[\{y_i\theta_i - b(\theta_i)\}\tau - c(y_i, \tau)], i = 1,\ldots,n}, where the specifications of the functions \eqn{b} and \eqn{c} determine the sub-family of models. The mean vector \eqn{\mu = E(y)} has values \eqn{\mu_i = b'(\theta_i)}, and is related to a design matrix of predictor variables through a monotonically increasing link function \eqn{g(\mu_i) = \eta_i, i = 1,\ldots,n}, where \eqn{\eta} is the systematic component and 
 describes the relationship with the predictors. The relationship between \eqn{\eta} and \eqn{\theta} is determined by the link function \eqn{b}.
 
-For the additive model, the systematic component is specified for each observation by \eqn{\eta_i = f_1(x_{1i}) + \ldots + f_L(x_{Li}) + \beta ' z_i}, where the functions \eqn{f_l} describe the relationships of the non-parametrically modelled predictors \eqn{x_l}, \eqn{\beta} is a parameter vector, and \eqn{z_i} contains the values of variables to be modelled parametrically. The non-parametric components are modelled with shape or order assumptions, and the solution is obtained through an iteratively re-weighted cone projection, with no back-fitting of individual components.
+For the additive model, the systematic component is specified for each observation by \eqn{\eta_i = f_1(x_{1i}) + \ldots + f_L(x_{Li}) + \beta ' z_i}, where the functions \eqn{f_l} describe the relationships of the non-parametrically modelled predictors \eqn{x_l}, \eqn{\beta} is a parameter vector, and \eqn{z_i} contains the values of variables to be modelled parametrically. The non-parametric components are modelled with shape or order assumptions with optional smoothing, and the solution is obtained through an iteratively re-weighted cone projection, with no back-fitting of individual components.
 
-Suppose that \eqn{\eta} is a \eqn{n} by \eqn{1} vector. The matrix form of the systematic component and the predictor is \eqn{\eta = \phi_1 + \ldots + \phi_L + Z\beta}, where \eqn{\phi_l} is the individual component for the \eqn{l}th non-parametrically modelled predictor, \eqn{l = 1, \ldots, L}, and \eqn{Z} is an \eqn{n} by \eqn{p} design matrix for the parametically modelled predictors. 
+Suppose that \eqn{\eta} is a \eqn{n} by \eqn{1} vector. The matrix form of the systematic component and the predictor is \eqn{\eta = \phi_1 + \ldots + \phi_L + Z\beta}, where \eqn{\phi_l} is the individual component for the \eqn{l}th non-parametrically modelled predictor, \eqn{l = 1, \ldots, L}, and \eqn{Z} is an \eqn{n} by \eqn{p} design matrix for the parametrically modelled predictors. 
 
 The constraints for the component \eqn{\phi_l} are in \eqn{C_l}, where \eqn{C_l} = \eqn{\{\phi: A_l\phi \ge 0} and \eqn{B_l\phi = 0\}}, for matrices \eqn{A_l} and \eqn{B_l}. 
 
-The set \eqn{C_l} is a convex cone and the set \eqn{C = C_1 + \ldots + C_p + Z} is also a convex cone with a finite set of edges, where the edges are the generator of \eqn{C} and \eqn{Z} is the column space of the design matrix \eqn{Z} for the parametrically modelled predictors. 
+The set \eqn{C_l} is a convex cone and the set \eqn{C = C_1 + \ldots + C_p + Z} is also a convex cone with a finite set of edges, where the edges are the generators of \eqn{C}, and \eqn{Z} is the column space of the design matrix \eqn{Z} for the parametrically modelled predictors. 
 
 An iteratively re-weighted cone projection algorithm is used to fit the generalized regression model over the cone \eqn{C}. 
 
-See references cited in this section and the official manual for the R package coneproj for more details.
+See references cited in this section and the official manual(\url{http://cran.r-project.org/web/packages/coneproj/index.html})for the R package coneproj for more details.
 }
 
 \value{
-  \item{vhat}{The fitted value of the response on the null space of the constraint set.}
+  \item{vhat}{The fitted value of the systematic component \eqn{\eta} on the null space of the constraint set.}
   \item{etahat}{The fitted systematic component \eqn{\eta}.}
   \item{muhat}{The fitted mean value, obtained by transforming the systematic component \eqn{\eta} by the inverse of the link function.}
   \item{vcoefs}{The estimated coefficients for the basis spanning the null space of the constraint set.}
-  \item{xcoefs}{The estimated coefficients for the edges corresponding to the shape-restricted predictors.}
-  \item{zcoefs}{The estimated coefficients for zmat, i.e., the estimation for the vector \eqn{\beta}.}
+  \item{xcoefs}{The estimated coefficients for the edges corresponding to the smooth predictors with no shape constraint and shape-restricted predictors.}
+  \item{zcoefs}{The estimated coefficients for the parametrically modelled categorical covariates, i.e., the estimation for the vector \eqn{\beta}.}
   \item{ucoefs}{The estimated coefficients for the edges corresponding to the predictors with an umbrella-ordering constraint.}
   \item{tcoefs}{The estimated coefficients for the edges corresponding to the predictors with a tree-ordering constraint.}
-  \item{coefs}{The estimated coefficients for the basis spanning the null space of the constraint set and edges corresponding to the constrained predictors.}
+  \item{coefs}{The estimated coefficients for the basis spanning the null space of the constraint set and edges corresponding to the shape-restricted and order-restricted predictors.}
   \item{cic}{The cone information criterion proposed in Meyer(2013a). It uses the "null expected degrees of freedom" as a measure of the complexity of the model. See Meyer(2013a) for further details of cic.}
   \item{d0}{The dimension of the null space contained in the cone generated by all constraint conditions.}
   \item{edf0}{The estimated "null expected degrees of freedom". It is a measure of the complexity of the model. See Meyer (2013a) and Meyer (2013b) for further details.}
-  \item{etacomps}{The fitted mean value for the shape-restricted or order-restricted predictors. It is a matrix of which each row is the fitted mean value for a shape-restricted or order-restricted predictor. If there are more than one such predictor, the order of the rows is the same as the order that the user defines shape-restricted or order-restricted predictors in the formula argument of cgam.}
-  \item{xmat}{A matrix whose columns respresent the shape-restricted predictors.}
-  \item{zmat}{A matrix whose columns represent the unconstrained categorical covariates. The user can choose to include a constant vector in it or not. It must be of full column rank.}
-  \item{tr}{A matrix whose columns respresent the predictors with a tree-ordering constraint.}
-  \item{umb}{A matrix whose columns respresent  the predictors with an umbrella-ordering constraint.}
+  \item{etacomps}{The fitted systematic component value for non-parametrically modelled predictors. It is a matrix of which each row is the fitted systematic component value for a non-parametrically modelled predictor. If there are more than one such predictors, the order of the rows is the same as the order that the user defines such predictors in the formula argument of cgam.}
+  \item{xmat}{A matrix whose columns represent the shape-restricted predictors and smooth predictors with no shape constraint.}
+  \item{zmat}{A matrix whose columns represent the parametrically modelled categorical covariates. The user can choose to include a constant vector in it or not. It must be of full column rank.}
+  \item{tr}{A matrix whose columns represent the predictors with a tree-ordering constraint.}
+  \item{umb}{A matrix whose columns represent  the predictors with an umbrella-ordering constraint.}
   \item{tree.delta}{A matrix whose rows are the edges corresponding to the predictors with a tree-ordering constraint.}
   \item{umbrella.delta}{A matrix whose rows are the edges corresponding to the predictors with an umbrella-ordering constraint.}
-  \item{bigmat}{A matrix whose rows are the edges corresponding to the constrained predictors.}
+  \item{bigmat}{A matrix whose rows are the basis spanning the null space of the constraint set and the edges corresponding to the shape-restricted and order-restricted predictors.}
   \item{shapes}{A vector including the shape constraints in a cgam fit.}
   \item{wt}{The weights in the final iteration of the iteratively re-weighted cone projections.}
  \item{wt.iter}{A logical scalar indicating if or not iteratively re-weighted cone projections are used to get the fit. If the error distribution is gaussian, then wt.iter = FALSE; if the error distribution is binomial or poisson, then wt.iter = TRUE.}
-  \item{family}{The family parameter defined by the user in cgam. }
+  \item{family}{The family parameter defined in a cgam formula.}
   \item{SSE0}{The sum of squared residuals for the linear part.}
   \item{SSE1}{The sum of squared residuals for the full model.}
   \item{pvals.beta}{The approximate p-values for the estimation of the vector \eqn{\beta}. A t-distribution is used as the approximate distribution.}
@@ -94,21 +103,32 @@ See references cited in this section and the official manual for the R package c
   \item{resid_df_obs}{The observed degree of freedom for the residuals of a cgam fit.}
   \item{null_deviance}{The deviance for the null model of a cgam fit, i.e., the model only containing a constant vector.}
   \item{deviance}{The residual deviance of a cgam fit.}
-  \item{tms}{The terms objects extracted by the generic function \emph{terms} from a cgam fit. See the help page of the \emph{terms} function for more details.}
+  \item{tms}{The terms objects extracted by the generic function \emph{terms} from a cgam fit. See the official help page(\url{http://stat.ethz.ch/R-manual/R-patched/library/stats/html/terms.html})of the \emph{terms} function for more details.}
   \item{capm}{The number of edges corresponding to the shape-restricted predictors.}
+  \item{capms}{The number of edges corresponding to the smooth predictors with no shape constraint.}
   \item{capk}{The number of non-constant columns of zmat.}
   \item{capt}{The number of edges corresponding to the tree-ordering predictors.}
   \item{capu}{The number of edges corresponding to the umbrella-ordering predictors.}
-  \item{xid1}{A vector keeping track of the beginning position of the set of edges for each shape-restricted predictor in xmat.}
-  \item{xid2}{A vector keeping track of the end position of the set of edges for each shape-restricted predictor in xmat.}
-  \item{tid1}{A vector keeping track of the beginning position of the set of edges for each tree-ordering factor in tr.}
-  \item{tid2}{A vector keeping track of the end position of the set of edges for each tree-ordering factor in tr.}
-  \item{uid1}{A vector keeping track of the beginning position of the set of edges for each umbrella-ordering factor in umb.}
-  \item{uid2}{A vector keeping track of the end position of the set of edges for each umbrella-ordering factor in umb.}
+  \item{xid1}{A vector keeping track of the beginning position of the set of edges in bigmat for each shape-restricted predictor and smooth predictor with no shape constraint in xmat.}
+  \item{xid2}{A vector keeping track of the end position of the set of edges in bigmat for each shape-restricted predictor and smooth predictor with no shape constraint in xmat.}
+  \item{tid1}{A vector keeping track of the beginning position of the set of edges in bigmat for each tree-ordering factor in tr.}
+  \item{tid2}{A vector keeping track of the end position of the set of edges in bigmat for each tree-ordering factor in tr.}
+  \item{uid1}{A vector keeping track of the beginning position of the set of edges in bigmat for each umbrella-ordering factor in umb.}
+  \item{uid2}{A vector keeping track of the end position of the set of edges in bigmat for each umbrella-ordering factor in umb.}
   \item{zid}{A vector keeping track of the positions of categorical variables in a cgam formula.}
-  \item{nzid}{A vector keeping track of the number of columns of the matrix formed by each categorical variable defined as a factor.}
+  \item{vals}{A vector storing the smallest value of each categorical variable defined as a factor(matrix).}
+  \item{zid1}{A vector keeping track of the beginning position of the levels(columns) in bigmat for each categorical variable defined as a factor(matrix).}
+  \item{zid2}{A vector keeping track of the end position of the levels(columns) in bigmat for each categorical variable defined as a factor(matrix).}
   \item{nsim}{The number of simulations used to get the cic parameter.}
+  \item{xmatnms}{A vector storing the names of the shape-restricted predictors and the smooth predictors with no shape constraint in xmat.}
+  \item{ynm}{The name of the response variable.}
+  \item{znms}{A vector storing the names of the categorical variables.}
+  \item{is_fac}{A logical scalar showing if a categorical variable is a factor(matrix) or not.}
+  \item{knots}{A list storing the knots used for each shape-restricted predictor and smooth predictor with no shape constraint. For a smooth,  constrained and a smooth, unconstrainted predictor, \emph{knots} is a vector of more than \eqn{1} elements, and for a shape-restricted predictor without smoothing, \emph{knots} = \eqn{0}.}
+  \item{numknots}{A vector storing the number of knots for each shape-restricted predictor and smooth predictor with no shape constraint. For a smooth, constrained and a smooth, unconstrainted predictor, \emph{numknots} > \eqn{1}, and for a shape-restricted predictor without smoothing, \emph{numknots} = \eqn{0}.}
+  \item{sps}{A character vector storing the \emph{space} parameter to create knots for each shape-restricted predictor.}
   \item{call}{The matched call.}
+  \item{ms}{The centering terms used to make the C-spline or I-spline edges for shape-restricted predictors with smoothing and smooth, unconstrained predictors. See references cited in this section for more details.}
 }
 
 \references{
@@ -118,6 +138,8 @@ See references cited in this section and the official manual for the R package c
   Meyer, M. C. (2013b) A simple new algorithm for quadratic programming with applications in statistics. \emph{Communications in Statistics \bold{42(5)}}, 1126--1139.  
   
   Meyer, M. C. and M. Woodroofe (2000) On the degrees of freedom in shape-restricted regression. \emph{Annals of Statistics \bold{28}}, 1083--1104.
+
+  Meyer, M. C. (2008) Inference using shape-restricted regression splines. \emph{Annals of Applied Statistics \bold{2(3)}}, 1013--1033.
 
   Mammen, E. and K. Yu (2007) Additive isotonic regression. \emph{IMS Lecture  Notes-Monograph Series Asymptotics: Particles, Process, and Inverse Problems \bold{55}}, 179--195.
 
@@ -161,30 +183,25 @@ See references cited in this section and the official manual for the R package c
   
   # regress Kyphosis on Age, Number, and Start under the restrictions:
   # "concave", "increasing and concave", and "decreasing and concave" 
-  fit <- cgam(Kyphosis ~ conc(Age) + incr.conc(Number) + decr.conc(Start), family = binomial(), 
-  nsim = 1e+3, data = kyphosis) 
+  fit <- cgam(Kyphosis ~ conc(Age) + incr.conc(Number) + decr.conc(Start), 
+  family = binomial(), data = kyphosis) 
 }
 
-# Exampe 3.
+# Example 3.
   library(MASS)
   data(Rubber)
   
   # regress loss on hard and tens under the restrictions:
   # "decreasing" and "decreasing"
   fit.cgam <- cgam(loss ~ decr(hard) + decr(tens), data = Rubber)
-  n <- 20
+  # "smooth and decreasing" and "smooth and decreasing"
+  fit.cgam.s <- cgam(loss ~ s.decr(hard) + s.decr(tens), data = Rubber)
   hard <-  Rubber$hard
   tens <- Rubber$tens
 
-  # make a 3D plot based on fit.cgam 
-  x1grid <- seq(min(hard), max(hard), length = n)
-  x2grid <- seq(min(tens), max(tens), length = n)	
-  TwoDdata <- data.frame(hard = rep(x1grid, each = length(x2grid)), 
-  tens = rep(x2grid, length(x1grid)))
-  thint <- predict(fit.cgam, TwoDdata)$fit
-  A <- matrix(thint, length(x1grid), length(x2grid), byrow = TRUE) 
-  persp(A, xlab = "hard", ylab = "tens", zlab = "loss", theta = 120)
-  title("3D Plot of a Cgam Fit")
+  # make a 3D plot based on fit.cgam and fit.cgam.s
+  plotpersp(fit.cgam, hard, tens, th = 120, main = "3D Plot of a Cgam Fit")
+  plotpersp(fit.cgam.s, hard, tens, th = 120, main = "3D Plot of a Smooth Cgam Fit")
 }
 
 \keyword{cgam routine}

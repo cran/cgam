@@ -1,4 +1,4 @@
-export("cgam", "incr", "decr", "conc", "conv", "incr.conc", "incr.conv", "decr.conc", "decr.conv", "tree", "umbrella")
+export("cgam", "incr", "decr", "conc", "conv", "incr.conc", "incr.conv", "decr.conc", "decr.conv", "tree", "umbrella", "s", "s.incr", "s.decr", "s.conc", "s.conv", "s.incr.conc", "s.incr.conv", "s.decr.conc", "s.decr.conv", "plotpersp")
 import("coneproj")
 S3method(summary, cgam)
 S3method(predict, cgam)
