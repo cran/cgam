@@ -1,3 +1,6 @@
+######
+#cgam#
+######
 cgam <- function(formula, nsim = 1e+2, family = gaussian(), data = NULL, weights = NULL)
 {
   cl <- match.call()
@@ -68,13 +71,20 @@ cgam <- function(formula, nsim = 1e+2, family = gaussian(), data = NULL, weights
         zid <- c(zid, i)
         if (is.factor(mf[,i])) {
 	  is_fac <- c(is_fac, TRUE)
-	  vals <- c(vals, min(as.numeric(levels(mf[,i]))))
+	  #vals <- c(vals, min(as.numeric(levels(mf[,i]))))
+#new: check
+	  ch_char <- suppressWarnings(is.na(as.numeric(levels(mf[,i]))))
+          if (any(ch_char)) {
+            vals <- c(vals, unique(levels(mf[,i]))[2])
+          } else {
+	    vals <- c(vals, min(as.numeric(levels(mf[,i]))))
+	  }
           nlvs <- length(attributes(mf[,i])$levels)
           zid0 <- i + 0:(nlvs - 2) + dist
 	  zid1 <- c(zid1, i + dist)
 	  zid2 <- c(zid2, i + nlvs - 2 + dist)
           dist <- nlvs - 2
-	  zmat0 <- as.matrix(model.matrix(mt, mf)[,zid0], ncol = (length(zmat0) / length(y)))
+	  zmat0 <- as.matrix(model.matrix(mt, mf)[, zid0], ncol = (length(zmat0) / length(y)))
 	  mat_cols <- ncol(zmat0)
 	  mat_rm <- NULL
 	  rm_num <- 0
@@ -114,7 +124,7 @@ cgam <- function(formula, nsim = 1e+2, family = gaussian(), data = NULL, weights
 	  zid1 <- c(zid1, i + dist)
 	  zid2 <- c(zid2, i + ncol(mf[,i]) - 1 + dist - rm_num)
 	  zid <- c(zid, i)
-	  dist <- ncol(mf[,i])-1
+	  dist <- ncol(mf[, i]) - 1
     }
   }
  }
@@ -136,7 +146,7 @@ cgam <- function(formula, nsim = 1e+2, family = gaussian(), data = NULL, weights
   #  }
   #  zmat <- nzmat
   #}
-  if (family$family == "binomial"|family$family == "poisson") {
+  if (family$family == "binomial" | family$family == "poisson") {
      wt.iter = TRUE
   } else {wt.iter = FALSE}
   if (is.null(shapes1) & is.null(shapes2)) {
@@ -256,7 +266,9 @@ bmat.fun <- function(x)
 	bmat
 }
 
-
+##########
+#cgam.fit#
+##########
 cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family = gaussian(), wt.iter = FALSE, umbrella.delta = NULL, tree.delta = NULL, weights = NULL) {
         linkfun <- family$linkfun
 	cicfamily <- CicFamily(family)
@@ -291,7 +303,7 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
 #new:
 	capms <- 0
 	if (capl - capls > 0) {
-		del1_ans <- makedelta(xmat[,1], shapes[1], numknots[1], knots[[1]], space = space[1])
+		del1_ans <- makedelta(xmat[, 1], shapes[1], numknots[1], knots[[1]], space = space[1])
 		del1 <- del1_ans$amat
 		knotsuse[[1]] <- del1_ans$knots 
 		mslst[[1]] <- del1_ans$ms
@@ -344,7 +356,7 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
 			bigmat <- rbind(1:n*0 + 1, delta)
 			np <- 1 + capms
 		} else {
-			print ("error in capk,shapes!")
+			print ("error in capk, shapes!")
 		} 
 #new:
 	capm <- length(delta) / n - capms
@@ -456,7 +468,7 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
 						etahat <- t(bigmat) %*% ans$coefs
 						muhat <- muhat.fun(etahat, fml = family$family)
 						diff <- mean((muhat - oldmu)^2)	
-						mdiff <- abs(max(muhat)-1)
+						mdiff <- abs(max(muhat) - 1)
 						if (family$family == "binomial") {
 							mdiff <- abs(max(muhat) - 1) > sm	
 						} else {mdiff <- TRUE}
@@ -780,7 +792,12 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
 		for (i in 1:(capk + 1)) {
 			se.beta[i] <- sqrt(se2[i,i])
 			tstat[i] <- zcoefs[i] / se.beta[i]
-			pvals.beta[i] <- 2 * (1 - pt(abs(tstat[i]),  n - np - 1.5 * (df_obs - np))) 
+#new code: n - np - 1.5 * (df_obs - np) must be positive
+			if ((n - np - 1.5 * (df_obs - np)) <= 0) {
+				stop ("Degree of Freedom is non-positive! P-value(s) for Beta cannot be computed!")
+			} else {
+				pvals.beta[i] <- 2 * (1 - pt(abs(tstat[i]),  n - np - 1.5 * (df_obs - np))) 
+			}
 		}
 		rslt$se.beta <- se.beta
 		rslt$pvals.beta <- pvals.beta
@@ -805,6 +822,9 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
 }
 
 
+###########
+#CicFamily#
+###########
 CicFamily <- function(object,...)UseMethod("CicFamily")
 CicFamily <- function(object) {
   llh.fun <- function(y, muhat = NULL, etahat = NULL, n = NULL, weights = NULL, fml = object$family){
@@ -1884,9 +1904,9 @@ incconcave = function(xs, t, interp = FALSE) {
 }
 
 
-###################
-#summary functions#
-###################
+################
+#print.summary #
+################
 print.summary.cgam <- function(x,...) {
 	if (!is.null(x$zcoefs)) {
 	#if (!is.null(x$se.beta)) {
@@ -1927,6 +1947,9 @@ print.summary.cgam <- function(x,...) {
 	}
 }
 
+##############
+#summary.cgam#
+##############
 summary.cgam <- function(object,...) {
 	if (!is.null(object$zcoefs)) {
 		family <- object$family 
@@ -1978,7 +2001,12 @@ summary.cgam <- function(object,...) {
 							pos1 <- zid1[i]; pos2 <- zid2[i]; 
 lvals <- length(vals) 
 for(k in 1:lvals){vali <- vals[k]} 
-lvs <- vali+1
+#new: check!!
+if (is.numeric(vali)) {
+	lvs <- vali+1
+} else {
+	lvs <- vali 
+}
 #lvs <- 1 #lvs <- vals[i-1-length(shapes)] + 1# vali <- vals[pos1:pos2]; lvs <- vali + 1#lvs <- 1 #lvs <- 1:(pos2 - pos1 + 1)
 #print (vali)
 #print (c(pos1,pos2))
@@ -1994,7 +2022,7 @@ lvs <- vali+1
 									#rownames(rslt1)[j + 1] <- paste(attributes(tms)$term.labels[zid[i] - 1], dimnames(rslt1)[[1]][j + 1], sep = "")	
 								}	
 
-lvs <- lvs + 1
+#lvs <- lvs + 1
 							}
 						}
 					} else {
@@ -2023,8 +2051,13 @@ lvs <- lvs + 1
 							pos1 <- zid1[i]; pos2 <- zid2[i];
 lvals <- length(vals) 
 for(k in 1:lvals){vali <- vals[k]} 
-lvs <- vali+1
-
+#lvs <- vali+1
+#new: check!!
+if (is.numeric(vali)) {
+	lvs <- vali+1
+} else {
+	lvs <- vali 
+}
 # lvs <- 1 #lvs <- vals[i-1-length(shapes)] + 1 # vali <- vals[pos1:pos2]; lvs <- vali + 1# lvs <- 1
 #; lvs <- pos2 - pos1 + 1
 #print (lvs)
@@ -2040,7 +2073,7 @@ lvs <- vali+1
 									rownames(rslt1)[j + 1] <- paste(attributes(tms)$term.labels[zid[i] - 1], lvs, sep = "")
 									#rownames(rslt1)[j + 1] <- paste(attributes(tms)$term.labels[zid[i] - 1], dimnames(rslt1)[[1]][j + 1], sep = "")		
 								}	
-lvs <- lvs + 1
+#lvs <- lvs + 1
 							}
 						}
 					} else {
@@ -2089,7 +2122,7 @@ predict.cgam = function(object, newData,...) {
 	if (!inherits(object, "cgam")) { 
 	        warning("calling predict.cgam(<fake-cgam-object>) ...")
         }
-	if (missing(newData) || is.null(newData)) {
+	if (missing(newData) | is.null(newData)) {
 		etahat = object$etahat
 		muhat = muhat.fun(etahat, fml = family$family)
 		ans = list(fit = muhat, etahat = etahat, newbigmat = object$bigmat)
@@ -2602,7 +2635,7 @@ if (!is.null(shapes)) {
 ###################################
 #create a 3D plot for a cgam object:
 #################################### 
-plotpersp <- function(object, x1, x2, surface = "mu", categ = NULL, cols = NULL, random = FALSE, x_grid = 20, y_grid = 20, at = "median", xlim = range(x1), ylim = range(x2), zlim = NULL, xlab = NULL, ylab = NULL, zlab = NULL, main = NULL, sub = NULL, th = -40, phi = 15, r = sqrt(3), d = 1, scale = TRUE, expand = 1, border = NULL, ltheta = -135, lphi = 0, shade = NA, box = TRUE, axes = TRUE, nticks = 5, ticktype = "detailed") {
+plotpersp <- function(object, x1, x2, data = NULL, surface = "mu", categ = NULL, col = NULL, random = FALSE, x_grid = 20, y_grid = 20, at = "median", xlim = range(x1), ylim = range(x2), zlim = NULL, xlab = NULL, ylab = NULL, zlab = NULL, main = NULL, sub = NULL, th = NULL, phi = 15, r = sqrt(3), d = 1, scale = TRUE, expand = 1, border = NULL, ltheta = NULL, lphi = 0, shade = NA, box = TRUE, axes = TRUE, nticks = 5, ticktype = "detailed") {
 	if (!inherits(object, "cgam")) { 
 	        warning("calling plotpersp(<fake-cgam-object>) ...")
         }
@@ -2614,6 +2647,7 @@ plotpersp <- function(object, x1, x2, surface = "mu", categ = NULL, cols = NULL,
 	x2nm = nms[2]$x
 	x2nm = deparse(x2nm)
 	ynm = object$ynm
+	xmat = object$xmat
 	family = object$family
 	fml = family$family
 	cicfamily = CicFamily(family)
@@ -2641,15 +2675,50 @@ plotpersp <- function(object, x1, x2, surface = "mu", categ = NULL, cols = NULL,
 	knms = length(xmatnms)	
 	obs = 1:knms
 
-	if (!any(xmatnms == x1nm)) {
-		warning(paste(x1nm, "is not an exact character name defined in the cgam fit!"))
+	#if (!any(xmatnms == x1nm)) {
+	#	warning(paste(x1nm, "is not an exact character name defined in the cgam fit!"))
+	#}
+	#if (!any(xmatnms == x2nm)) {
+	#	warning(paste(x2nm, "is not an exact character name defined in the cgam fit!"))
+	#}
+	#x1id = obs[xmatnms == x1nm]
+	#x2id = obs[xmatnms == x2nm]
+	if (!is.null(data)) {
+		if (!is.data.frame(data)) {
+			stop ("User need to make the data argument a data frame with names for each variable!")
+		}
+		datnms = names(data)
+		if (!any(datnms == x1nm) | !any(datnms == x2nm)) {
+			stop ("Check the accuracy of the names of x1 and x2!")
+		}
+		x1 = data[ ,which(datnms == x1nm)]
+		x2 = data[ ,which(datnms == x2nm)]
+		bool = apply(xmat, 2, function(x) all(x1 == x))
+		if (any(bool)) {
+			x1id = obs[bool]
+		}
+		bool = apply(xmat, 2, function(x) all(x2 == x))
+		if (any(bool)) {
+			x2id = obs[bool]
+		}
+	} else {
+		if (any(xmatnms == x1nm)) {
+			x1id = obs[xmatnms == x1nm]
+		} else {
+			bool = apply(xmat, 2, function(x) all(x1 == x))
+			if (any(bool)) {
+				x1id = obs[bool]
+			}
+		}
+		if (any(xmatnms == x2nm)) {
+			x2id = obs[xmatnms == x2nm]
+		} else {
+			bool = apply(xmat, 2, function(x) all(x2 == x))
+			if (any(bool)) {
+				x2id = obs[bool]
+			}
+		}
 	}
-	if (!any(xmatnms == x2nm)) {
-		warning(paste(x2nm, "is not an exact character name defined in the cgam fit!"))
-	}
-	x1id = obs[xmatnms == x1nm]
-	x2id = obs[xmatnms == x2nm]
-	
 	xmat = cbind(x1, x2)
 	x1g = 0:x_grid / x_grid * .95 * (max(xmat[,1]) - min(xmat[,1])) + min(xmat[,1]) + .025 * (max(xmat[,1]) - min(xmat[,1]))
  	n1 = length(x1g)
@@ -2785,7 +2854,7 @@ plotpersp <- function(object, x1, x2, surface = "mu", categ = NULL, cols = NULL,
 	if (!is.null(categ) & surface == "mu") {
 		#palette = c("peachpuff", "lightblue", "grey", "wheat", "yellowgreen", "plum", "limegreen", "paleturqoise", "azure", "whitesmoke")
 		kxgm = length(xgmats)
-		if (is.null(cols)) {
+		if (is.null(col)) {
 			#if (kxgm == 2) {
 			#	col = c("peachpuff", "lightblue")
 			#} else if (kxgm == 3) { 
@@ -2810,36 +2879,78 @@ plotpersp <- function(object, x1, x2, surface = "mu", categ = NULL, cols = NULL,
 				}
 			} 
 		} else {
-			col = cols
+			if (length(col) < kxgm) {
+				rem = kxgm - length(col)
+				nrem = length(rem)
+				rem_col = palette[1:nrem]
+				col = c(col, rem_col)
+			} else if (length(col) > kxgm) {
+				col = col[1:kxgm]
+				print (paste("The first", kxgm, "colors are used!"))
+			}
+			if (random) {
+				print ("User defined colors are used!")
+			}
 		}
 		for (i in 1:kxgm) {
 			xgmat = xgmats[[i]]
+			if (is.null(th) | !is.numeric(th)) {
+				th = -40
+			}
+			if (is.null(ltheta) | !is.numeric(ltheta)) {
+				ltheta = -135
+			}
 			persp(x1g, x2g, xgmat, xlim = xlim, ylim = ylim, zlim = c(min(mins), max(maxs)), xlab = xlab, ylab = ylab, zlab = zlab, main = main, sub = sub, theta = th, phi = phi, r = r, d = d, scale = scale, expand = expand, col = col[i], border = border, ltheta = ltheta, lphi = lphi, shade = shade, box = box, axes = axes, nticks = nticks, ticktype = ticktype)
 			par(new = TRUE)
 		}
 	par(new = FALSE)
 	} else {
-		if (is.null(cols)) {
+		if (is.null(col)) {
 			if (random) {
 				col = sample(palette, size = 1, replace = FALSE)
 			} else {
 				col = "white"
 			}
-		} 
+		} else {
+			if (length(col) > 1) {
+				col = col[1]
+				print ("The first color is used!")
+			} 
+			if (random) {
+				print ("User defined color is used!")
+			}
+		}
+		if (is.null(th) | !is.numeric(th)) {
+			th = -40
+		}
+		if (is.null(ltheta) | !is.numeric(ltheta)) {
+			ltheta = -135
+		}
 		persp(x1g, x2g, xgmat, xlim = xlim, ylim = ylim, zlim = zlim, xlab = xlab, ylab = ylab, zlab = zlab, main = main, sub = sub, theta = th, phi = phi, r = r, d = d, scale = scale, expand = expand, col = col, border = border, ltheta = ltheta, lphi = lphi, shade = shade, box = box, axes = axes, nticks = nticks, ticktype = ticktype)
 	}
 }
 
+############################
+#new fitted method for cgam#
+############################
+fitted.cgam <- function(object, ...) {
+  if (!inherits(object, "cgam")) { 
+    warning("calling fitted.cgam(<fake-cgam-object>) ...")
+  }
+  ans <- object$muhat
+  ans
+}
 
-
-
-
-
-
-
-
-
-
+##########################
+#new coef method for cgam#
+##########################
+coef.cgam <- function(object, ...) {
+  if (!inherits(object, "cgam")) { 
+    warning("calling coef.cgam(<fake-cgam-object>) ...")
+  }
+  ans <- object$coefs
+  ans	
+}
 
 
 

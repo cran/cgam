@@ -10,21 +10,21 @@ If there is any categorical covariate and if the user specifies the argument cat
 
 This routine is an extension of the generic R graphics routine persp.}
 
-\usage{plotpersp(object, x1, x2, surface = "mu", categ = NULL, 
-cols = NULL, random = FALSE, x_grid = 20, y_grid = 20, at = "median", 
+\usage{plotpersp(object, x1, x2, data = NULL, surface = "mu", categ = NULL, 
+col = NULL, random = FALSE, x_grid = 20, y_grid = 20, at = "median", 
 xlim = range(x1), ylim = range(x2), zlim = NULL, xlab = NULL, ylab = NULL, 
-zlab = NULL, main = NULL, sub = NULL, th = -40, phi = 15, 
-r = sqrt(3), d = 1, scale = TRUE, expand = 1, border = NULL, 
-ltheta = -135, lphi = 0, shade = NA, box = TRUE, 
-axes = TRUE, nticks = 5, ticktype = "detailed")}
+zlab = NULL, main = NULL, sub = NULL, th = NULL, phi = 15, r = sqrt(3), 
+d = 1, scale = TRUE, expand = 1, border = NULL, ltheta = NULL, lphi = 0, 
+shade = NA, box = TRUE, axes = TRUE, nticks = 5, ticktype = "detailed")}
 
 \arguments{
   \item{object}{An object of the cgam class with at least two non-parametrically modelled predictors.}
   \item{x1}{A non-parametrically modelled predictor in a cgam fit.}
   \item{x2}{A non-parametrically modelled predictor in a cgam fit.}
+  \item{data}{The data frame based on which the user get a cgam fit.}
   \item{surface}{The type of the surface of a 3D plot. If surface == "mu", then the surface of the estimated mean value of a cgam fit will be plotted; if surface == "eta", then the surface of the estimated systematic component value of a cgam fit will be plotted. The default is surface = "mu".}
  \item{categ}{Optional categorical covariate(s) in a cgam fit. If there is any categorical covariate and if the user specifies the argument categ to be a character representing a categorical covariate in the formula, then a 3D plot with multiple parallel surfaces, which represent the levels of a categorical covariate in an ascending order, will be created; otherwise, a 3D plot with only one surface will be created. Each level of a categorical covariate will be evaluated at its mode. The default is categ = NULL.}
-  \item{cols}{The color(s) of a 3D plot created by plotpersp. If cols == NULL, "white" will be used when there is only one surface in the plot, and a sequence of colors will be used in a fixed order when there are multiple parallel surfaces in the plot. For example, when there are two surfaces, the lower surface will be in the color "peachpuff", and the higher surface will be in the color "lightblue". The default is cols =  NULL.}
+  \item{col}{The color(s) of a 3D plot created by plotpersp. If col == NULL, "white" will be used when there is only one surface in the plot, and a sequence of colors will be used in a fixed order when there are multiple parallel surfaces in the plot. For example, when there are two surfaces, the lower surface will be in the color "peachpuff", and the higher surface will be in the color "lightblue". The default is col =  NULL.}
   \item{random}{A logical scalar. If random == TRUE, color(s) for a 3D plot will be randomly chosen from ten colors, namely, "peachpuff", "lightblue", "limegreen", "grey", "wheat", "yellowgreen", "seagreen1", "palegreen", "azure", "whitesmoke"; otherwise, "white" will be used when there is only one surface in the plot, and a sequence of colors will be used in a fixed order when there are multiple parallel surfaces in the plot.}
   \item{x_grid}{This is a positive integer specifying how dense the \eqn{x} grid will be. The default is x_grid = \eqn{20}.}
   \item{y_grid}{This is a positive integer specifying how dense the \eqn{y} grid will be. The default is y_grid = \eqn{20}.}
@@ -100,6 +100,18 @@ axes = TRUE, nticks = 5, ticktype = "detailed")}
   plotpersp(fit, bmi, dietfat, x_grid = 10, y_grid = 10, th = 120, ylab = "log(dietfat)", 
 zlab = "est mean of log(plasma)", main = "Cgam Fit with the Plasma Data Set", 
 sub = "Categorical Variable: Vitamin Use", categ = "vituse")
+
+# Example 3.
+  data(plasma)
+  addl <- 1:314*0 + 1 
+  addl[runif(314) < .3] <- 2
+  addl[runif(314) > .8] <- 4
+  addl[runif(314) > .8] <- 3
+
+  ans <- cgam(logplasma ~ s.incr(betacaro, 5) + s.decr(bmi) + s.decr(dietfat) 
++ as.factor(addl), data = plasma)
+  plotpersp(ans, betacaro, dietfat, th = 240, random = TRUE, 
+categ = "as.factor(addl)", data = plasma)
 }
 
 \keyword{3D plot routine}

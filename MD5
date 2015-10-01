@@ -1,9 +1,9 @@
-acc7cfcde642ad3dcf26b87c6e8603bb *DESCRIPTION
-c58f7b601ee13644f4195770efdf8a61 *NAMESPACE
-aeb11d817ac9af60d4576cf25f4e3d47 *R/cgam.R
+3e597dd21b91891c4f0878152806d588 *DESCRIPTION
+779318af3db9788baf70c9ffa68a783e *NAMESPACE
+b9d4ad67f5d0ce73f561a00e7f016b7b *R/cgam.R
 a0db33d4a416d9f938daadefe0e246d8 *data/cubic.rda
 6ccf3a496f107718a0f0282d4540f99a *data/plasma.rda
-0a98c786d2717264be77c3c655344a0d *man/cgam.Rd
+75036536f615e2af9a47dc22020f3bc8 *man/cgam.Rd
 6a20b2016cd8b94ca90fc5e44e4c6f27 *man/conc.Rd
 019a4e5a103e411f6ac340b4341dde05 *man/conv.Rd
 6c2f09d25de34e3aeee15a6970ef91fe *man/cubic.Rd
@@ -14,7 +14,7 @@ c4bb6e0febae3e0e55a97394cae827c5 *man/incr.Rd
 67eb5e2bc2d022c8ff79d5dcc5a84e86 *man/incr.conc.Rd
 cd0cca7283a3cc0dd06dc7efb6da8019 *man/incr.conv.Rd
 28305d281068f4ac81cfb684c2c345a8 *man/plasma.Rd
-7372d1ef2fe3651b8f50512a2d8dcedf *man/plotpersp.Rd
+a42f2bfe955f8174a6ed0ce70a3a3318 *man/plotpersp.Rd
 aba7903e8f9650a8b69d151efc0fd055 *man/s.Rd
 8b85a780e3a69908b7fa56b1aa8c0200 *man/s.conc.Rd
 3703e861e02e3ca5f70d15d5bc662471 *man/s.conv.Rd

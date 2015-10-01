@@ -66,7 +66,7 @@ The set \eqn{C_l} is a convex cone and the set \eqn{C = C_1 + \ldots + C_p + Z} 
 
 An iteratively re-weighted cone projection algorithm is used to fit the generalized regression model over the cone \eqn{C}. 
 
-See references cited in this section and the official manual(\url{http://cran.r-project.org/web/packages/coneproj/index.html})for the R package coneproj for more details.
+See references cited in this section and the official manual(\url{https://cran.r-project.org/package=coneproj})for the R package coneproj for more details.
 }
 
 \value{
@@ -103,7 +103,7 @@ See references cited in this section and the official manual(\url{http://cran.r-
   \item{resid_df_obs}{The observed degree of freedom for the residuals of a cgam fit.}
   \item{null_deviance}{The deviance for the null model of a cgam fit, i.e., the model only containing a constant vector.}
   \item{deviance}{The residual deviance of a cgam fit.}
-  \item{tms}{The terms objects extracted by the generic function \emph{terms} from a cgam fit. See the official help page(\url{http://stat.ethz.ch/R-manual/R-patched/library/stats/html/terms.html})of the \emph{terms} function for more details.}
+  \item{tms}{The terms objects extracted by the generic function \emph{terms} from a cgam fit. See the official help page (\url{http://stat.ethz.ch/R-manual/R-patched/library/stats/html/terms.html}) of the \emph{terms} function for more details.}
   \item{capm}{The number of edges corresponding to the shape-restricted predictors.}
   \item{capms}{The number of edges corresponding to the smooth predictors with no shape constraint.}
   \item{capk}{The number of non-constant columns of zmat.}
