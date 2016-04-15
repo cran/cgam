@@ -11,16 +11,16 @@
 \arguments{
   \item{x}{A numeric predictor which has the same length as the response vector.}
  \item{numknots}{The number of knots used to constrain \eqn{x}. It will not be used if the user specifies the \emph{knots} argument. The default is numknots = \eqn{0}.}
-  \item{knots}{The knots used to constrain \eqn{x}. User defined knots will be used when given. Otherwise, \emph{numknots} and \emph{space} will be used to create knots. The default is knots = \eqn{0}.}
+  \item{knots}{The knots used to constrain \eqn{x}. User-defined knots will be used when given. Otherwise, \emph{numknots} and \emph{space} will be used to create knots. The default is knots = \eqn{0}.}
  \item{space}{A character specifying the method to create knots. It will not be used if the user specifies the \emph{knots} argument. If space == "E", then equally spaced knots will be created; if space == "Q", then a vector of equal \eqn{x} quantiles will be created based on \eqn{x} with duplicate elements removed. The number of knots is \emph{numknots} when \emph{numknots} \eqn{> 0}. Otherwise it is of the order \eqn{n^{1/7}}. The default is space = "Q".}
 }
 
-\value{The vector x with four attributes, i.e., name: the name of x; shape: 11("smooth and convex"); numknots: the numknots argument in "s.conv"; knots: the knots argument in "s.conv".}
+\value{The vector x with five attributes, i.e., name: the name of x; shape: 11("smooth and convex"); numknots: the numknots argument in "s.conv"; knots: the knots argument in "s.conv"; space: the space argument in "s.conv".}
 
 \details{
- "s.conv" returns the vector "x" and imposes on it four attributes: name, shape, numknots and knots.
+ "s.conv" returns the vector "x" and imposes on it five attributes: name, shape, numknots, knots and space.
 
-  The name attribute is used in the subroutines: predict.cgam and plotpersp; the numknots and knots attributes are the same as the numknots and knots arguments in "s.conv"; the shape attribute is 11("smooth and convex"). According to the value of the vector itself and its shape, numknots and knots attributes, the cone edges will be made by C-spline basis functions in Meyer (2008). The cone edges are a set of basis employed in the hinge algorithm. 
+  The name attribute is used in the subroutine plotpersp; the numknots, knots and space attributes are the same as the numknots, knots and space arguments in "s.conv"; the shape attribute is 11("smooth and convex"). According to the value of the vector itself and its shape, numknots, knots and space attributes, the cone edges will be made by C-spline basis functions in Meyer (2008). The cone edges are a set of basis employed in the hinge algorithm. 
 
 Note that "s.conv" does not make the corresponding cone edges itself. It sets things up to a subroutine called makedelta in cgam.
 

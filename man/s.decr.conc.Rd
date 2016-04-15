@@ -15,12 +15,12 @@
  \item{space}{A character specifying the method to create knots. It will not be used if the user specifies the \emph{knots} argument. If space == "E", then equally spaced knots will be created; if space == "Q", then a vector of equal \eqn{x} quantiles will be created based on \eqn{x} with duplicate elements removed. The number of knots is \emph{numknots} when \emph{numknots} \eqn{> 0}. Otherwise it is of the order \eqn{n^{1/7}}. The default is space = "Q".}
 }
 
-\value{The vector x with four attributes, i.e., name: the name of x; shape: 16("smooth, decreasing and concave"); numknots: the numknots argument in "s.decr.conc"; knots: the knots argument in "s.decr.conc".}
+\value{The vector x with five attributes, i.e., name: the name of x; shape: 16("smooth, decreasing and concave"); numknots: the numknots argument in "s.decr.conc"; knots: the knots argument in "s.decr.conc"; space: the space argument in "s.decr.conc".}
 
 \details{
-  "s.decr.conc" returns the vector "x" and imposes on it four attributes: name, shape, numknots and knots.
+  "s.decr.conc" returns the vector "x" and imposes on it five attributes: name, shape, numknots, knots and space.
 
-  The name attribute is used in the subroutines: predict.cgam and plotpersp; the numknots and knots attributes are the same as the numknots and knots arguments in "s.decr.conc"; the shape attribute is 16("smooth, decreasing and concave"). According to the value of the vector itself and its shape, numknots and knots attributes, the cone edges will be made by C-spline basis functions in Meyer (2008). The cone edges are a set of basis employed in the hinge algorithm.
+  The name attribute is used in the subroutine plotpersp; the numknots, knots and space attributes are the same as the numknots, knots and space arguments in "s.decr.conc"; the shape attribute is 16("smooth, decreasing and concave"). According to the value of the vector itself and its shape, numknots, knots and space attributes, the cone edges will be made by C-spline basis functions in Meyer (2008). The cone edges are a set of basis employed in the hinge algorithm.
 
   Note that "s.decr.conc" does not make the corresponding cone edges itself. It sets things up to a subroutine called makedelta in cgam.
 

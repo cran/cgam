@@ -5,14 +5,14 @@
 \title{Constrained Generalized Additive Model Fitting}
 
 \description{
-  The partial linear generalized additive model is fitted using the method of maximum likelihood, where shape or order restrictions can be imposed on the non-parametrically modelled predictors with optional smoothing, and no restrictions are imposed on the optional parametrically modelled categorical covariates. 
+  The partial linear generalized additive model is fitted using the method of maximum likelihood, where shape or order restrictions can be imposed on the non-parametrically modelled predictors with optional smoothing, and no restrictions are imposed on the optional parametrically modelled covariate. 
 }
 
 \usage{cgam(formula, nsim = 1e+2, family = gaussian(), data = NULL, weights = NULL)}
 
 \arguments{
   \item{formula}{
-    A formula object which gives a symbolic description of the model to be fitted. It has the form "response ~ predictor". The response is a vector of length \eqn{n}. The specification of the model can be one of the three exponential families: gaussian, binomial and poisson. The systematic component \eqn{\eta} is \eqn{E(y)}, the log odds of \eqn{y = 1}, and the logarithm of \eqn{E(y)} respectively. A predictor can be a non-parametrically modelled variable with or without a shape or order restriction, or a parametrically modelled unconstrained categorical covariate. In terms of a non-parametrically modelled predictor, the user is supposed to indicate the relationship between the systematic component \eqn{\eta} and a predictor \eqn{x} in the following way:
+    A formula object which gives a symbolic description of the model to be fitted. It has the form "response ~ predictor". The response is a vector of length \eqn{n}. The specification of the model can be one of the three exponential families: gaussian, binomial and poisson. The systematic component \eqn{\eta} is \eqn{E(y)}, the log odds of \eqn{y = 1}, and the logarithm of \eqn{E(y)} respectively. A predictor can be a non-parametrically modelled variable with or without a shape or order restriction, or a parametrically modelled unconstrained covariate. In terms of a non-parametrically modelled predictor, the user is supposed to indicate the relationship between the systematic component \eqn{\eta} and a predictor \eqn{x} in the following way:
 
     Assume that \eqn{\eta} is the systematic component and \eqn{x} is a predictor: 
     \itemize{
@@ -58,11 +58,11 @@ describes the relationship with the predictors. The relationship between \eqn{\e
 
 For the additive model, the systematic component is specified for each observation by \eqn{\eta_i = f_1(x_{1i}) + \ldots + f_L(x_{Li}) + \beta ' z_i}, where the functions \eqn{f_l} describe the relationships of the non-parametrically modelled predictors \eqn{x_l}, \eqn{\beta} is a parameter vector, and \eqn{z_i} contains the values of variables to be modelled parametrically. The non-parametric components are modelled with shape or order assumptions with optional smoothing, and the solution is obtained through an iteratively re-weighted cone projection, with no back-fitting of individual components.
 
-Suppose that \eqn{\eta} is a \eqn{n} by \eqn{1} vector. The matrix form of the systematic component and the predictor is \eqn{\eta = \phi_1 + \ldots + \phi_L + Z\beta}, where \eqn{\phi_l} is the individual component for the \eqn{l}th non-parametrically modelled predictor, \eqn{l = 1, \ldots, L}, and \eqn{Z} is an \eqn{n} by \eqn{p} design matrix for the parametrically modelled predictors. 
+Suppose that \eqn{\eta} is a \eqn{n} by \eqn{1} vector. The matrix form of the systematic component and the predictor is \eqn{\eta = \phi_1 + \ldots + \phi_L + Z\beta}, where \eqn{\phi_l} is the individual component for the \eqn{l}th non-parametrically modelled predictor, \eqn{l = 1, \ldots, L}, and \eqn{Z} is an \eqn{n} by \eqn{p} design matrix for the parametrically modelled covariate. 
 
 The constraints for the component \eqn{\phi_l} are in \eqn{C_l}, where \eqn{C_l} = \eqn{\{\phi: A_l\phi \ge 0} and \eqn{B_l\phi = 0\}}, for matrices \eqn{A_l} and \eqn{B_l}. 
 
-The set \eqn{C_l} is a convex cone and the set \eqn{C = C_1 + \ldots + C_p + Z} is also a convex cone with a finite set of edges, where the edges are the generators of \eqn{C}, and \eqn{Z} is the column space of the design matrix \eqn{Z} for the parametrically modelled predictors. 
+The set \eqn{C_l} is a convex cone and the set \eqn{C = C_1 + \ldots + C_p + Z} is also a convex cone with a finite set of edges, where the edges are the generators of \eqn{C}, and \eqn{Z} is the column space of the design matrix \eqn{Z} for the parametrically modelled covariate. 
 
 An iteratively re-weighted cone projection algorithm is used to fit the generalized regression model over the cone \eqn{C}. 
 
@@ -70,12 +70,12 @@ See references cited in this section and the official manual(\url{https://cran.r
 }
 
 \value{
-  \item{vhat}{The fitted value of the systematic component \eqn{\eta} on the null space of the constraint set.}
+  %\item{vhat}{The fitted value of the systematic component \eqn{\eta} on the null space of the constraint set.}
   \item{etahat}{The fitted systematic component \eqn{\eta}.}
   \item{muhat}{The fitted mean value, obtained by transforming the systematic component \eqn{\eta} by the inverse of the link function.}
   \item{vcoefs}{The estimated coefficients for the basis spanning the null space of the constraint set.}
   \item{xcoefs}{The estimated coefficients for the edges corresponding to the smooth predictors with no shape constraint and shape-restricted predictors.}
-  \item{zcoefs}{The estimated coefficients for the parametrically modelled categorical covariates, i.e., the estimation for the vector \eqn{\beta}.}
+  \item{zcoefs}{The estimated coefficients for the parametrically modelled covariate, i.e., the estimation for the vector \eqn{\beta}.}
   \item{ucoefs}{The estimated coefficients for the edges corresponding to the predictors with an umbrella-ordering constraint.}
   \item{tcoefs}{The estimated coefficients for the edges corresponding to the predictors with a tree-ordering constraint.}
   \item{coefs}{The estimated coefficients for the basis spanning the null space of the constraint set and edges corresponding to the shape-restricted and order-restricted predictors.}
@@ -84,7 +84,7 @@ See references cited in this section and the official manual(\url{https://cran.r
   \item{edf0}{The estimated "null expected degrees of freedom". It is a measure of the complexity of the model. See Meyer (2013a) and Meyer (2013b) for further details.}
   \item{etacomps}{The fitted systematic component value for non-parametrically modelled predictors. It is a matrix of which each row is the fitted systematic component value for a non-parametrically modelled predictor. If there are more than one such predictors, the order of the rows is the same as the order that the user defines such predictors in the formula argument of cgam.}
   \item{xmat}{A matrix whose columns represent the shape-restricted predictors and smooth predictors with no shape constraint.}
-  \item{zmat}{A matrix whose columns represent the parametrically modelled categorical covariates. The user can choose to include a constant vector in it or not. It must be of full column rank.}
+  \item{zmat}{A matrix whose columns represent the parametrically modelled covariate. The user can choose to include a constant vector in it or not. It must have full column rank.}
   \item{tr}{A matrix whose columns represent the predictors with a tree-ordering constraint.}
   \item{umb}{A matrix whose columns represent  the predictors with an umbrella-ordering constraint.}
   \item{tree.delta}{A matrix whose rows are the edges corresponding to the predictors with a tree-ordering constraint.}
@@ -92,7 +92,7 @@ See references cited in this section and the official manual(\url{https://cran.r
   \item{bigmat}{A matrix whose rows are the basis spanning the null space of the constraint set and the edges corresponding to the shape-restricted and order-restricted predictors.}
   \item{shapes}{A vector including the shape constraints in a cgam fit.}
   \item{wt}{The weights in the final iteration of the iteratively re-weighted cone projections.}
- \item{wt.iter}{A logical scalar indicating if or not iteratively re-weighted cone projections are used to get the fit. If the error distribution is gaussian, then wt.iter = FALSE; if the error distribution is binomial or poisson, then wt.iter = TRUE.}
+ \item{wt.iter}{Logical flag indicating if or not iteratively re-weighted cone projections may be used. If the response is gaussian, then wt.iter = FALSE; if the response is binomial or poisson, then wt.iter = TRUE.}
   \item{family}{The family parameter defined in a cgam formula.}
   \item{SSE0}{The sum of squared residuals for the linear part.}
   \item{SSE1}{The sum of squared residuals for the full model.}
@@ -115,20 +115,21 @@ See references cited in this section and the official manual(\url{https://cran.r
   \item{tid2}{A vector keeping track of the end position of the set of edges in bigmat for each tree-ordering factor in tr.}
   \item{uid1}{A vector keeping track of the beginning position of the set of edges in bigmat for each umbrella-ordering factor in umb.}
   \item{uid2}{A vector keeping track of the end position of the set of edges in bigmat for each umbrella-ordering factor in umb.}
-  \item{zid}{A vector keeping track of the positions of categorical variables in a cgam formula.}
-  \item{vals}{A vector storing the smallest value of each categorical variable defined as a factor(matrix).}
-  \item{zid1}{A vector keeping track of the beginning position of the levels(columns) in bigmat for each categorical variable defined as a factor(matrix).}
-  \item{zid2}{A vector keeping track of the end position of the levels(columns) in bigmat for each categorical variable defined as a factor(matrix).}
+  \item{zid}{A vector keeping track of the positions of the parametrically modelled covariate.}
+  \item{vals}{A vector storing the levels of each variable used as a factor.}
+  \item{zid1}{A vector keeping track of the beginning position of the levels of each variable used as a factor.}
+  \item{zid2}{A vector keeping track of the end position of the levels of each variable used as a factor.}
   \item{nsim}{The number of simulations used to get the cic parameter.}
   \item{xmatnms}{A vector storing the names of the shape-restricted predictors and the smooth predictors with no shape constraint in xmat.}
   \item{ynm}{The name of the response variable.}
-  \item{znms}{A vector storing the names of the categorical variables.}
-  \item{is_fac}{A logical scalar showing if a categorical variable is a factor(matrix) or not.}
+  \item{znms}{A vector storing the names of the parametrically modelled covariate.}
+  \item{is_param}{A logical scalar showing if or not a variable is a parametrically modelled covariate, which could be a linear term or a factor.}
+  \item{is_fac}{A logical scalar showing if or not a variable is a factor.}
   \item{knots}{A list storing the knots used for each shape-restricted predictor and smooth predictor with no shape constraint. For a smooth,  constrained and a smooth, unconstrainted predictor, \emph{knots} is a vector of more than \eqn{1} elements, and for a shape-restricted predictor without smoothing, \emph{knots} = \eqn{0}.}
   \item{numknots}{A vector storing the number of knots for each shape-restricted predictor and smooth predictor with no shape constraint. For a smooth, constrained and a smooth, unconstrainted predictor, \emph{numknots} > \eqn{1}, and for a shape-restricted predictor without smoothing, \emph{numknots} = \eqn{0}.}
   \item{sps}{A character vector storing the \emph{space} parameter to create knots for each shape-restricted predictor.}
-  \item{call}{The matched call.}
   \item{ms}{The centering terms used to make the C-spline or I-spline edges for shape-restricted predictors with smoothing and smooth, unconstrained predictors. See references cited in this section for more details.}
+  \item{call}{The matched call.}
 }
 
 \references{
