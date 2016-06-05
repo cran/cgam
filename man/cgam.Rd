@@ -8,7 +8,7 @@
   The partial linear generalized additive model is fitted using the method of maximum likelihood, where shape or order restrictions can be imposed on the non-parametrically modelled predictors with optional smoothing, and no restrictions are imposed on the optional parametrically modelled covariate. 
 }
 
-\usage{cgam(formula, nsim = 1e+2, family = gaussian(), data = NULL, weights = NULL)}
+\usage{cgam(formula, nsim = 1e+2, family = gaussian(), cpar = 1.2, data = NULL, weights = NULL)}
 
 \arguments{
   \item{formula}{
@@ -38,11 +38,14 @@
     }
 }
   \item{nsim}{
-  The number of simulations used to get the cic parameter. Note that when there is no shape-restricted or order-restricted predictor, nsim has the default 0. Otherwise, the default is nsim = 1e+2. 
+  The number of simulations used to get the cic parameter. The default is nsim = 1e+2. 
 }
   \item{family}{
   A parameter indicating the error distribution and link function to be used in the model. It can be a character string naming a family function or the result of a call to a family function. This is borrowed from the glm routine in the stats package. There are three families used in cgam: gaussian, binomial and poisson.
 }
+
+  \item{cpar}{A multiplier to estimate the model variance, which is defined as \eqn{\sigma^2 = SSR / (n - d_0 - cpar * edf)}. SSR is the sum of squared residuals for the full model, \eqn{d_0} is the dimension of the linear space in the cone, and edf is the effective degrees of freedom. The default is cpar = 1.2. See Meyer, M. C. and M. Woodroofe (2000) for more details.}
+
   \item{data}{
   An optional data frame, list or environment containing the variables in the model. The default is data = NULL.
   }
@@ -53,20 +56,19 @@
 }
 
 \details{
-  We consider generalized partial linear models with independent observations from an exponential family of the form \eqn{p(y_i;\theta,\tau) = exp[\{y_i\theta_i - b(\theta_i)\}\tau - c(y_i, \tau)], i = 1,\ldots,n}, where the specifications of the functions \eqn{b} and \eqn{c} determine the sub-family of models. The mean vector \eqn{\mu = E(y)} has values \eqn{\mu_i = b'(\theta_i)}, and is related to a design matrix of predictor variables through a monotonically increasing link function \eqn{g(\mu_i) = \eta_i, i = 1,\ldots,n}, where \eqn{\eta} is the systematic component and 
-describes the relationship with the predictors. The relationship between \eqn{\eta} and \eqn{\theta} is determined by the link function \eqn{b}.
+  We consider generalized partial linear models with independent observations from an exponential family of the form \eqn{p(y_i;\theta,\tau) = exp[\{y_i\theta_i - b(\theta_i)\}\tau - c(y_i, \tau)], i = 1,\ldots,n}, where the specifications of the functions \eqn{b} and \eqn{c} determine the sub-family of models. The mean vector \eqn{\mu = E(y)} has values \eqn{\mu_i = b'(\theta_i)}, and is related to a design matrix of predictor variables through a monotonically increasing link function \eqn{g(\mu_i) = \eta_i, i = 1,\ldots,n}, where \eqn{\eta} is the systematic component and describes the relationship with the predictors. The relationship between \eqn{\eta} and \eqn{\theta} is determined by the link function \eqn{b}.
 
-For the additive model, the systematic component is specified for each observation by \eqn{\eta_i = f_1(x_{1i}) + \ldots + f_L(x_{Li}) + \beta ' z_i}, where the functions \eqn{f_l} describe the relationships of the non-parametrically modelled predictors \eqn{x_l}, \eqn{\beta} is a parameter vector, and \eqn{z_i} contains the values of variables to be modelled parametrically. The non-parametric components are modelled with shape or order assumptions with optional smoothing, and the solution is obtained through an iteratively re-weighted cone projection, with no back-fitting of individual components.
+For the additive model, the systematic component is specified for each observation by \eqn{\eta_i = f_1(x_{1i}) + \ldots + f_L(x_{Li}) + z_i'\beta}, where the functions \eqn{f_l} describe the relationships of the non-parametrically modelled predictors \eqn{x_l}, \eqn{\beta} is a parameter vector, and \eqn{z_i} contains the values of variables to be modelled parametrically. The non-parametric components are modelled with shape or order assumptions with optional smoothing, and the solution is obtained through an iteratively re-weighted cone projection, with no back-fitting of individual components.
 
 Suppose that \eqn{\eta} is a \eqn{n} by \eqn{1} vector. The matrix form of the systematic component and the predictor is \eqn{\eta = \phi_1 + \ldots + \phi_L + Z\beta}, where \eqn{\phi_l} is the individual component for the \eqn{l}th non-parametrically modelled predictor, \eqn{l = 1, \ldots, L}, and \eqn{Z} is an \eqn{n} by \eqn{p} design matrix for the parametrically modelled covariate. 
 
-The constraints for the component \eqn{\phi_l} are in \eqn{C_l}, where \eqn{C_l} = \eqn{\{\phi: A_l\phi \ge 0} and \eqn{B_l\phi = 0\}}, for matrices \eqn{A_l} and \eqn{B_l}. 
+To model the component \eqn{\phi_l}, smooth regression splines or non-smooth ordinal basis functions can be used. The constraints for the component \eqn{\phi_l} are in \eqn{C_l}. In the first case, \eqn{C_l} = \eqn{\{\phi_l \in R^n: \phi_l = v_l+B_l\beta_l}, where \eqn{\beta_l \ge 0} and \eqn{v_l\in V_l \}}, where \eqn{B_l} has regression splines as columns and \eqn{V_l} is the linear space contained in \eqn{C_l}, and in the second case, \eqn{C_l} = \eqn{\{\phi \in R^n: A_l\phi \ge 0} and \eqn{B_l\phi = 0\}}, for inequality constraint matrix \eqn{A_l} and equality constraint matrix \eqn{B_l}. 
 
 The set \eqn{C_l} is a convex cone and the set \eqn{C = C_1 + \ldots + C_p + Z} is also a convex cone with a finite set of edges, where the edges are the generators of \eqn{C}, and \eqn{Z} is the column space of the design matrix \eqn{Z} for the parametrically modelled covariate. 
 
 An iteratively re-weighted cone projection algorithm is used to fit the generalized regression model over the cone \eqn{C}. 
 
-See references cited in this section and the official manual(\url{https://cran.r-project.org/package=coneproj})for the R package coneproj for more details.
+See references cited in this section and the official manual (\url{https://cran.r-project.org/package=coneproj}) for the R package coneproj for more details.
 }
 
 \value{
@@ -80,7 +82,7 @@ See references cited in this section and the official manual(\url{https://cran.r
   \item{tcoefs}{The estimated coefficients for the edges corresponding to the predictors with a tree-ordering constraint.}
   \item{coefs}{The estimated coefficients for the basis spanning the null space of the constraint set and edges corresponding to the shape-restricted and order-restricted predictors.}
   \item{cic}{The cone information criterion proposed in Meyer(2013a). It uses the "null expected degrees of freedom" as a measure of the complexity of the model. See Meyer(2013a) for further details of cic.}
-  \item{d0}{The dimension of the null space contained in the cone generated by all constraint conditions.}
+  \item{d0}{The dimension of the linear space contained in the cone generated by all constraint conditions.}
   \item{edf0}{The estimated "null expected degrees of freedom". It is a measure of the complexity of the model. See Meyer (2013a) and Meyer (2013b) for further details.}
   \item{etacomps}{The fitted systematic component value for non-parametrically modelled predictors. It is a matrix of which each row is the fitted systematic component value for a non-parametrically modelled predictor. If there are more than one such predictors, the order of the rows is the same as the order that the user defines such predictors in the formula argument of cgam.}
   \item{xmat}{A matrix whose columns represent the shape-restricted predictors and smooth predictors with no shape constraint.}
@@ -129,6 +131,7 @@ See references cited in this section and the official manual(\url{https://cran.r
   \item{numknots}{A vector storing the number of knots for each shape-restricted predictor and smooth predictor with no shape constraint. For a smooth, constrained and a smooth, unconstrainted predictor, \emph{numknots} > \eqn{1}, and for a shape-restricted predictor without smoothing, \emph{numknots} = \eqn{0}.}
   \item{sps}{A character vector storing the \emph{space} parameter to create knots for each shape-restricted predictor.}
   \item{ms}{The centering terms used to make the C-spline or I-spline edges for shape-restricted predictors with smoothing and smooth, unconstrained predictors. See references cited in this section for more details.}
+\item{cpar}{The cpar argument in the cgam formula}
   \item{call}{The matched call.}
 }
 
@@ -197,12 +200,10 @@ See references cited in this section and the official manual(\url{https://cran.r
   fit.cgam <- cgam(loss ~ decr(hard) + decr(tens), data = Rubber)
   # "smooth and decreasing" and "smooth and decreasing"
   fit.cgam.s <- cgam(loss ~ s.decr(hard) + s.decr(tens), data = Rubber)
-  hard <-  Rubber$hard
-  tens <- Rubber$tens
 
   # make a 3D plot based on fit.cgam and fit.cgam.s
-  plotpersp(fit.cgam, hard, tens, th = 120, main = "3D Plot of a Cgam Fit")
-  plotpersp(fit.cgam.s, hard, tens, th = 120, main = "3D Plot of a Smooth Cgam Fit")
+  plotpersp(fit.cgam, th = 120, main = "3D Plot of a Cgam Fit")
+  plotpersp(fit.cgam.s, tens, hard, data = Rubber, th = 120, main = "3D Plot of a Smooth Cgam Fit")
 }
 
 \keyword{cgam routine}

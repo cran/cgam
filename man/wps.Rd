@@ -10,8 +10,8 @@ Isotonic regression surface in two dimensions using warped-plane splines is fitt
 }
 
 \usage{
-wps(formula, family = gaussian(), data = NULL, weights = NULL, pnt = FALSE, 
-pen = 0, cpar = 1.5)
+wps(formula, family = gaussian(), data = NULL, weights = NULL, pnt = TRUE, 
+pen = 0, cpar = 1.2)
 }
 
 \arguments{
@@ -31,20 +31,17 @@ pen = 0, cpar = 1.5)
 
   \item{weights}{An optional non-negative vector of "replicate weights" which has the same length as the response vector. If weights are not given, all weights are taken to equal 1. The default is weights = NULL.}
 
-  \item{pnt}{Logical flag indicating if or not penalized warped-plane splines are used. When pnt is TRUE, penalized warped-plane splines are used; otherwise, unpenalized warped-plane splines are used. The default is pnt = FALSE. Note that if pnt is TRUE, the user must define a positive value for the argument pen.}
+  \item{pnt}{Logical flag indicating if or not penalized warped-plane splines are used. When pnt is TRUE, penalized warped-plane splines are used; otherwise, unpenalized warped-plane splines are used. The default is pnt = TRUE. Note that if pnt is TRUE and the user defines a positive value for the argument pen, then the user-defined penalty term will be used; otherwise, a penalty term will be determined by a pilot parametric fit.}
 
-  \item{pen}{The penalty term for penalized warped-plane splines. It can only be a non-negative real number. When the user chooses penalized warped-plane splines, a positive penalty term must be defined. If this term is zero, then unpenalized warped-plane splines are used. The default is pen = \eqn{0}.}
+  \item{pen}{The penalty term for penalized warped-plane splines. It can only be a non-negative real number. The default is pen = \eqn{0}.}
 
-  \item{cpar}{A multiplier to estimate the model variance, which is defined as \eqn{\sigma^2 = SSE / (n - cpar * edf)}. SSE is the sum of squared residuals for the full model and edf is the effective degrees of freedom. The default is cpar = 1.5. See Meyer, M. C. and M. Woodroofe (2000) for more details.}
+  \item{cpar}{A multiplier to estimate the model variance, which is defined as \eqn{\sigma^2 = SSR / (n - d_0 - cpar * edf)}. SSR is the sum of squared residuals for the full model, \eqn{d_0} is the dimension of the linear space in the cone, and edf is the effective degrees of freedom. The default is cpar = 1.2. See Meyer, M. C. and M. Woodroofe (2000) for more details.}
 }
 
 \details{
-  We consider the regression model  \eqn{y_i = f(t_{1i}, t_{2i}) + z_i'\beta +\varepsilon_{i}, i = 1,\ldots,n}, where \eqn{\beta} is a \eqn{p} by \eqn{1} parameter vector, and the \eqn{\varepsilon_i's} are mean-zero random errors. We know \emph{a priori} that \eqn{f} is continuous and isotonic in both dimensions; that is, for fixed \eqn{t_{1}} and \eqn{z} values, if \eqn{t_{2a} \leq t_{2b}}, then \eqn{f(t_{1}, t_{2a}) \leq f(t_{1}, t_{2a})}, and similarly for fixed \eqn{t_{2}} and \eqn{z} values, \eqn{f} is non-decreasing in \eqn{t_{1}}. For splines of degree two or higher, obtaining a finite set of linear inequality constraints that are necessary and sufficient for isotonicity in both dimensions does not seem to be feasible. However, if we use linear spline basis functions, then the necessary and sufficient constraints are straight-forward and the fitted surface can be described as a continuous piece-wise warped plane, called a "warped-plane spline" (WPS) surface. 
-
-The surface and covariate effects are estimated simultaneously with a single cone projection (no back-fitting). See references cited in this section and the official manual(\url{https://cran.r-project.org/package=coneproj})for the R package coneproj for more details.
+  We consider the regression model  \eqn{y_i = f(t_{1i}, t_{2i}) + z_i'\beta +\varepsilon_{i}, i = 1,\ldots,n}, where \eqn{\beta} is a \eqn{p} by \eqn{1} parameter vector, and the \eqn{\varepsilon_i's} are mean-zero random errors. We know \emph{a priori} that \eqn{f} is continuous and isotonic in both dimensions; that is, for fixed \eqn{t_{1}} and \eqn{z} values, if \eqn{t_{2a} \leq t_{2b}}, then \eqn{f(t_{1}, t_{2a}) \leq f(t_{1}, t_{2a})}, and similarly for fixed \eqn{t_{2}} and \eqn{z} values, \eqn{f} is non-decreasing in \eqn{t_{1}}. For splines of degree two or higher, obtaining a finite set of linear inequality constraints that are necessary and sufficient for isotonicity in both dimensions does not seem to be feasible. However, if we use linear spline basis functions, then the necessary and sufficient constraints are straight-forward and the fitted surface can be described as a continuous piece-wise warped plane, called a "warped-plane spline" (WPS) surface. The surface and covariate effects are estimated simultaneously with a single cone projection (no back-fitting). See references cited in this section and the official manual (\url{https://cran.r-project.org/package=coneproj}) for the R package coneproj for more details.
 
 A penalized spline version is also provided. Over each knot rectangle, the regression surface is a warped plane, and the slopes can change abruptly from one rectangle to the next. To obtain smoother fits, and to side-step the problem of knot choices, we can use large number of knots for both predictors and penalize these changes in slopes. The size of the penalty parameter will control the effective degrees of freedom of the fit. In practice, the penalty term can be chosen through generalized cross-validation, similar to the method in Meyer (2012).
-
 
 }
 
@@ -80,6 +77,9 @@ A penalized spline version is also provided. Over each knot rectangle, the regre
 \item{tms}{The terms objects extracted by the generic function \emph{terms} from a wps fit. See the official help page (\url{http://stat.ethz.ch/R-manual/R-patched/library/stats/html/terms.html}) of the \emph{terms} function for more details.}
 \item{is_param}{A logical scalar showing if or not a variable is a parametrically modelled covariate, which could be a linear term or a factor.}
 \item{is_fac}{A logical scalar showing if or not a variable is a factor.}
+\item{d0}{The dimension of the linear space contained in the cone generated by all constraint conditions.}
+\item{pen}{The penalty term used in the regression.}
+\item{cpar}{The cpar argument in the wps formula}
 \item{call}{The matched call.}
 }
 
@@ -107,7 +107,10 @@ Meyer, M. C. (2016) Estimation and inference for isotonic regression in two dime
   ans <- wps(loss ~ dd(hard, tens, numknots = c(13, 13)), data = Rubber, pen = 1)
 
   # make a 3D plot of the constrained surface
-  plotpersp(ans, hard, tens, data = Rubber)
+  plotpersp(ans)
+
+  # make a 3D plot of the unconstrained surface
+  plotpersp(ans, surface = "U")
 }
 
 \keyword{wps routine}

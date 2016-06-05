@@ -13,7 +13,7 @@
   \item{x2}{A numeric predictor which has the same length as the response vector.}
   \item{numknots}{A vector of the number of knots used to constrain \eqn{x_1} and \eqn{x_2}. It will not be used if the user specifies the \emph{knots} argument and each predictor is within the range of its knots. The default is numknots = c(0, 0).}
   \item{knots}{A list of two vectors of knots used to constrain \eqn{x_1} and \eqn{x_2}. User-defined knots will be used if each predictor is within the range of its knots. Otherwise, \emph{numknots} and \emph{space} will be used to create knots. The default is knots = list(k1 = 0, k2 = 0).}
-  \item{space}{A vector of the character specifying the method to create knots for \eqn{x_1} and \eqn{x_2}. It will not be used if the user specifies the \emph{knots} argument. If "E" is used, then equally spaced knots will be created; if "Q" is used, then a vector of equal quantiles will be created with duplicate elements removed. The number of knots is \emph{numknots} when \emph{numknots} \eqn{> 0}. Otherwise it is of the order \eqn{n^{1/6}}. The default is space = c("E", "E").}
+  \item{space}{A vector of the character specifying the method to create knots for \eqn{x_1} and \eqn{x_2}. It will not be used if the user specifies the \emph{knots} argument. If "E" is used, then equally spaced knots will be created; if "Q" is used, then a vector of equal quantiles will be created with duplicate elements removed. The number of knots is \emph{numknots} when \emph{numknots} is a positive integer \eqn{> 4}. Otherwise it is of the order \eqn{n^{1/6}}. The default is space = c("E", "E").}
 }
 
 
@@ -48,16 +48,16 @@ Meyer, M. C. (2016) Estimation and inference for isotonic regression in two dime
   # generate data
   n <- 100
   set.seed(123)
-  x1 <- sort(runif(n))
-  x2 <- sort(runif(n))
-  y <- -4 * (x1 + x2) + rnorm(n, sd = .5)
+  x1 <- runif(n)
+  x2 <- runif(n)
+  y <- -4 * (x1 + x2) + rnorm(n, sd = .2)
 
   # regress y on x1 and x2 under the shape-restriction: "doubly-decreasing" 
-  # with a penalty term = .1
-  ans <- wps(y ~ dd(x1, x2), pen = .1)
+  # using the penalized estimator
+  ans <- wps(y ~ dd(x1, x2), pnt = TRUE)
 
   # make a 3D plot of the constrained surface
-  plotpersp(ans, x1, x2)
+  plotpersp(ans)
 }
 
 \keyword{shape routine}

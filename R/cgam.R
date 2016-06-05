@@ -1,7 +1,7 @@
 ######
 #cgam#
 ######
-cgam <- function(formula, nsim = 1e+2, family = gaussian(), data = NULL, weights = NULL)
+cgam <- function(formula, nsim = 1e+2, family = gaussian(), cpar = 1.2, data = NULL, weights = NULL)
 {
   cl <- match.call()
   if (is.character(family)) 
@@ -150,7 +150,7 @@ cgam <- function(formula, nsim = 1e+2, family = gaussian(), data = NULL, weights
     xmat <- xmat0; nums <- nums0; ks <- ks0; sps <- sps0; xmatnms <- xmatnms0
   }
   shapes <- c(shapes1, shapes2)
-  ans <- cgam.fit(y = y, xmat = xmat0, zmat = zmat, shapes = shapes0, numknots = nums0, knots = ks0, space = sps0, nsim = nsim, family = family, wt.iter = wt.iter, umbrella.delta = umbrella.delta, tree.delta = tree.delta, weights = weights)
+  ans <- cgam.fit(y = y, xmat = xmat0, zmat = zmat, shapes = shapes0, numknots = nums0, knots = ks0, space = sps0, nsim = nsim, family = family, cpar = cpar, wt.iter = wt.iter, umbrella.delta = umbrella.delta, tree.delta = tree.delta, weights = weights)
   if (!is.null(uid1) & !is.null(uid2)) {
     uid1 <- uid1 + ans$d0 + ans$capm
     uid2 <- uid2 + ans$d0 + ans$capm
@@ -159,7 +159,7 @@ cgam <- function(formula, nsim = 1e+2, family = gaussian(), data = NULL, weights
     tid1 <- tid1 + ans$d0 + ans$capm + ans$capu
     tid2 <- tid2 + ans$d0 + ans$capm + ans$capu 
   }
-  rslt <- list(etahat = ans$etahat, muhat = ans$muhat, vcoefs = ans$vcoefs, xcoefs = ans$xcoefs, zcoefs = ans$zcoefs, ucoefs = ans$ucoefs, tcoefs = ans$tcoefs, coefs = ans$coefs, cic = ans$cic, d0 = ans$d0, edf0 = ans$edf0, etacomps = ans$etacomps, xmat = xmat, zmat = zmat, tr = tr, umb = umb, tree.delta = tree.delta, umbrella.delta = umbrella.delta, bigmat = ans$bigmat, shapes = shapes, wt = ans$wt, wt.iter = ans$wt.iter, family = ans$family, SSE0 = ans$sse0, SSE1 = ans$sse1, pvals.beta = ans$pvals.beta, se.beta = ans$se.beta, null_df = ans$df.null, df = ans$df, resid_df_obs = ans$resid_df_obs, null_deviance = ans$dev.null, deviance = ans$dev, tms = mt, capm = ans$capm, capms = ans$capms, capk = ans$capk, capt = ans$capt, capu = ans$capu, xid1 = ans$xid1, xid2 = ans$xid2, tid1 = tid1, tid2 = tid2, uid1 = uid1, uid2 = uid2, zid = zid, vals = vals, zid1 = zid1, zid2 = zid2, nsim = nsim, xmatnms = xmatnms,  ynm = ynm, znms = znms, is_param = is_param, is_fac = is_fac, knots = ans$knots, numknots = ans$numknots, sps = sps, ms = ans$ms)
+  rslt <- list(etahat = ans$etahat, muhat = ans$muhat, vcoefs = ans$vcoefs, xcoefs = ans$xcoefs, zcoefs = ans$zcoefs, ucoefs = ans$ucoefs, tcoefs = ans$tcoefs, coefs = ans$coefs, cic = ans$cic, d0 = ans$d0, edf0 = ans$edf0, etacomps = ans$etacomps, xmat = xmat, zmat = zmat, tr = tr, umb = umb, tree.delta = tree.delta, umbrella.delta = umbrella.delta, bigmat = ans$bigmat, shapes = shapes, wt = ans$wt, wt.iter = ans$wt.iter, family = ans$family, SSE0 = ans$sse0, SSE1 = ans$sse1, pvals.beta = ans$pvals.beta, se.beta = ans$se.beta, null_df = ans$df.null, df = ans$df, resid_df_obs = ans$resid_df_obs, null_deviance = ans$dev.null, deviance = ans$dev, tms = mt, capm = ans$capm, capms = ans$capms, capk = ans$capk, capt = ans$capt, capu = ans$capu, xid1 = ans$xid1, xid2 = ans$xid2, tid1 = tid1, tid2 = tid2, uid1 = uid1, uid2 = uid2, zid = zid, vals = vals, zid1 = zid1, zid2 = zid2, nsim = nsim, xmatnms = xmatnms,  ynm = ynm, znms = znms, is_param = is_param, is_fac = is_fac, knots = ans$knots, numknots = ans$numknots, sps = sps, ms = ans$ms, cpar = ans$cpar)
   rslt$call <- cl
   class(rslt) <- "cgam"
   return (rslt) 
@@ -243,7 +243,7 @@ bmat.fun <- function(x)
 ##########
 #cgam.fit#
 ##########
-cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family = gaussian(), wt.iter = FALSE, umbrella.delta = NULL, tree.delta = NULL, weights = NULL) {
+cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family = gaussian(), cpar = 1.2, wt.iter = FALSE, umbrella.delta = NULL, tree.delta = NULL, weights = NULL) {
 #print (weights)
         linkfun <- family$linkfun
 	cicfamily <- CicFamily(family)
@@ -276,6 +276,7 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
 	knotsuse <- list(); numknotsuse <- NULL
 	mslst <- list()
 #new:
+	capm <- 0
 	capms <- 0
 	if (capl - capls > 0) {
 		del1_ans <- makedelta(xmat[, 1], shapes[1], numknots[1], knots[[1]], space = space[1])
@@ -764,10 +765,18 @@ cvec <- NULL
 		sse1 <- sum(prior.w * (y - muhatkeep)^2)
 		sse0 <- sum(prior.w * (y - muvhat)^2)
 #new: use (df_obs - np) if (n - np - 1.5 * (df_obs - np)) <= 0
-		if ((n - np - 1.5 * (df_obs - np)) <= 0) {
-			sdhat2 <- sse1 / (df_obs - np)
+		#if ((n - np - 1.5 * (df_obs - np)) <= 0) {
+		#	sdhat2 <- sse1 / (df_obs - np)
+		#} else {
+		#	sdhat2 <- sse1 / (n - np - 1.5 * (df_obs - np))
+		#}
+#new: 
+		if ((n - np - cpar * df_obs) <= 0) {
+			#sdhat2 <- sse1 / (df_obs - np)
+			sdhat2 <- sse1 / df_obs
 		} else {
-			sdhat2 <- sse1 / (n - np - 1.5 * (df_obs - np))
+			#sdhat2 <- sse1 / (n - np - 1.5 * (df_obs - np))
+			sdhat2 <- sse1 / (n - np - cpar * df_obs)
 		}
 #debugged: vmat -> vmat and duse
 #new: coefskeep include zcoefs; bigmat include vmat
@@ -792,11 +801,11 @@ cvec <- NULL
 			se.beta[i] <- sqrt(se2[i,i])
 			tstat[i] <- zcoefs[i] / se.beta[i]
 #new code: n - np - 1.5 * (df_obs - np) must be positive
-			if ((n - np - 1.5 * (df_obs - np)) <= 0) {
-				pvals.beta[i] <- 2 * (1 - pt(abs(tstat[i]),  df_obs - np)) 
+			if ((n - np - cpar * df_obs) <= 0) {
+				pvals.beta[i] <- 2 * (1 - pt(abs(tstat[i]),  df_obs)) 
 				warning ('Effective degrees of freedom is close to the number of observations! Inference about parametric covariates is not reliable!')
 			} else {
-				pvals.beta[i] <- 2 * (1 - pt(abs(tstat[i]),  n - np - 1.5 * (df_obs - np))) 
+				pvals.beta[i] <- 2 * (1 - pt(abs(tstat[i]),  n - np - cpar * df_obs)) 
 			}
 		}
 		rslt$se.beta <- se.beta
@@ -807,7 +816,7 @@ cvec <- NULL
 		rslt$dev.null <- dev.fun(y, muhatkeep, etakeep, weights, fml = family$family)$dev.null
 		rslt$df <- n - np 
 		rslt$df.null <- n - 1
-		rslt$resid_df_obs <- n - np - 1.5 * (df_obs - np)
+		rslt$resid_df_obs <- n - np - cpar * df_obs
 		rslt$df_obs <- df_obs
 		rslt$vhat <- vhat
 		if (length(knotsuse) == 0) {
@@ -817,6 +826,7 @@ cvec <- NULL
 		rslt$numknots <- numknotsuse 
 		rslt$ms <- mslst
 		rslt$capms <- capms
+		rslt$cpar <- cpar 
 		return (rslt)
 	}
 }
@@ -1098,7 +1108,7 @@ CicFamily <- function(object) {
 #######################
 #eight shape functions#
 ####################### 
-incr <- function(x, numknots = 0, knots = 0, space = "Q") 
+incr <- function(x, numknots = 0, knots = 0, space = "E") 
 {
     cl <- match.call()
     pars <- match.call()[-1]
@@ -1110,7 +1120,7 @@ incr <- function(x, numknots = 0, knots = 0, space = "Q")
     x
 }
 
-decr <- function(x, numknots = 0, knots = 0, space = "Q") 
+decr <- function(x, numknots = 0, knots = 0, space = "E") 
 {
     cl <- match.call()
     pars <- match.call()[-1]
@@ -1122,7 +1132,7 @@ decr <- function(x, numknots = 0, knots = 0, space = "Q")
     x 
 } 
 
-conv <- function(x, numknots = 0, knots = 0, space = "Q") 
+conv <- function(x, numknots = 0, knots = 0, space = "E") 
 {
     cl <- match.call()
     pars <- match.call()[-1]
@@ -1134,7 +1144,7 @@ conv <- function(x, numknots = 0, knots = 0, space = "Q")
     x
 }
 
-conc <- function(x, numknots = 0, knots = 0, space = "Q") 
+conc <- function(x, numknots = 0, knots = 0, space = "E") 
 {
     cl <- match.call()
     pars <- match.call()[-1]
@@ -1146,7 +1156,7 @@ conc <- function(x, numknots = 0, knots = 0, space = "Q")
     x
 }
 
-incr.conv <- function(x, numknots = 0, knots = 0, space = "Q") 
+incr.conv <- function(x, numknots = 0, knots = 0, space = "E") 
 {
     cl <- match.call()
     pars <- match.call()[-1]
@@ -1158,7 +1168,7 @@ incr.conv <- function(x, numknots = 0, knots = 0, space = "Q")
     x
 }
 
-decr.conv <- function(x, numknots = 0, knots = 0, space = "Q") 
+decr.conv <- function(x, numknots = 0, knots = 0, space = "E") 
 {
     cl <- match.call()
     pars <- match.call()[-1]
@@ -1170,7 +1180,7 @@ decr.conv <- function(x, numknots = 0, knots = 0, space = "Q")
     x
 }
 
-incr.conc <- function(x, numknots = 0, knots = 0, space = "Q") 
+incr.conc <- function(x, numknots = 0, knots = 0, space = "E") 
 {
     cl <- match.call()
     pars <- match.call()[-1]
@@ -1182,7 +1192,7 @@ incr.conc <- function(x, numknots = 0, knots = 0, space = "Q")
     x
 }
 
-decr.conc <- function(x, numknots = 0, knots = 0, space = "Q") 
+decr.conc <- function(x, numknots = 0, knots = 0, space = "E") 
 {
     cl <- match.call()
     pars <- match.call()[-1]
@@ -1194,7 +1204,7 @@ decr.conc <- function(x, numknots = 0, knots = 0, space = "Q")
     x
 }
 
-s.incr <- function(x, numknots = 0, knots = 0, space = "Q")
+s.incr <- function(x, numknots = 0, knots = 0, space = "E")
 {
     cl <- match.call()
     pars <- match.call()[-1]
@@ -1206,7 +1216,7 @@ s.incr <- function(x, numknots = 0, knots = 0, space = "Q")
     x
 }
 
-s.decr <- function(x, numknots = 0, knots = 0, space = "Q") 
+s.decr <- function(x, numknots = 0, knots = 0, space = "E") 
 {
     cl <- match.call()
     pars <- match.call()[-1]
@@ -1218,7 +1228,7 @@ s.decr <- function(x, numknots = 0, knots = 0, space = "Q")
     x
 }
 
-s.conv <- function(x, numknots = 0, knots = 0, space = "Q") 
+s.conv <- function(x, numknots = 0, knots = 0, space = "E") 
 {
     cl <- match.call()
     pars <- match.call()[-1]
@@ -1230,7 +1240,7 @@ s.conv <- function(x, numknots = 0, knots = 0, space = "Q")
     x
 }
 
-s.conc <- function(x, numknots = 0, knots = 0, space = "Q") 
+s.conc <- function(x, numknots = 0, knots = 0, space = "E") 
 {
     cl <- match.call()
     pars <- match.call()[-1]
@@ -1242,7 +1252,7 @@ s.conc <- function(x, numknots = 0, knots = 0, space = "Q")
     x
 }
 
-s.incr.conv <- function(x, numknots = 0, knots = 0, space = "Q") 
+s.incr.conv <- function(x, numknots = 0, knots = 0, space = "E") 
 {
     cl <- match.call()
     pars <- match.call()[-1]
@@ -1254,7 +1264,7 @@ s.incr.conv <- function(x, numknots = 0, knots = 0, space = "Q")
     x
 }
 
-s.incr.conc <- function(x, numknots = 0, knots = 0, space = "Q") 
+s.incr.conc <- function(x, numknots = 0, knots = 0, space = "E") 
 {
     cl <- match.call()
     pars <- match.call()[-1]
@@ -1266,7 +1276,7 @@ s.incr.conc <- function(x, numknots = 0, knots = 0, space = "Q")
     x
 }
 
-s.decr.conv <- function(x, numknots = 0, knots = 0, space = "Q") 
+s.decr.conv <- function(x, numknots = 0, knots = 0, space = "E") 
 {
     cl <- match.call()
     pars <- match.call()[-1]
@@ -1278,7 +1288,7 @@ s.decr.conv <- function(x, numknots = 0, knots = 0, space = "Q")
     x
 }
 
-s.decr.conc <- function(x, numknots = 0, knots = 0, space = "Q") 
+s.decr.conc <- function(x, numknots = 0, knots = 0, space = "E") 
 {
    cl <- match.call()
    pars <- match.call()[-1]
@@ -1290,7 +1300,7 @@ s.decr.conc <- function(x, numknots = 0, knots = 0, space = "Q")
    x
 }
 
-s <- function(x, numknots = 0, knots = 0, space = "Q") 
+s <- function(x, numknots = 0, knots = 0, space = "E") 
 {
    cl <- match.call()
    pars <- match.call()[-1]
@@ -1398,14 +1408,17 @@ makedelta = function(x, sh, numknots = 0, knots = 0, space = "E", suppre = FALSE
 	} else if (sh == 3 | sh == 4) {
 #  convex or concave
 		amat = matrix(0, nrow = n1 - 2 ,ncol = n)
+		#for (i in 1: (n1 - 2)) {
+		#	amat[i, x > xu[i]] = x[x > xu[i]] - xu[i]
+		#}
 		for (i in 1: (n1 - 2)) {
-			amat[i, x > xu[i]] = x[x > xu[i]] - xu[i]
+			amat[i, x > xu[i+1]] = x[x > xu[i+1]] - xu[i+1]
 		}
 		if (sh == 4) {amat = -amat}
 		xm = cbind(1:n*0+1,x)
 		xpx = solve(t(xm) %*% xm)
 		pm = xm %*% xpx %*% t(xm)
-		dmat = amat - amat %*% t(pm)
+		amat = amat - amat %*% t(pm)
 	} else if (sh > 4 & sh < 9) {
 		amat = matrix(0, nrow = n1 - 1, ncol = n)
 		if (sh == 5) { ### increasing convex
@@ -1439,7 +1452,8 @@ makedelta = function(x, sh, numknots = 0, knots = 0, space = "E", suppre = FALSE
 				t = quantile(xu, probs = seq(0, 1, length = k), names = FALSE)
 			}
 			if (space == "E") {
-				t = 0:k / k * (max(x) - min(x)) + min(x)
+				#t = 0:k / k * (max(x) - min(x)) + min(x)
+				t = 0:(k-1) / (k-1) * (max(x) - min(x)) + min(x)
 			} 
 		#} else if (any(knots != 0) & numknots == 0) {
 		} else if (length(knots) >= 2 & numknots == 0) {
@@ -1450,7 +1464,9 @@ makedelta = function(x, sh, numknots = 0, knots = 0, space = "E", suppre = FALSE
 				t = quantile(xu, probs = seq(0, 1, length = numknots), names = FALSE)
 			} 
 			if (space == "E") {
-				k = numknots
+				#k = numknots
+#new: numknots should be the # of all knots
+				k = numknots - 1
 				#if (sh == 9 | sh == 10) {#1 2
 				#	k = trunc(n1^(1/5)) + 4
 				#} else {k = trunc(n1^(1/7) + 4)}
@@ -2658,28 +2674,42 @@ if (!is.null(shapes)) {
 ###########################################
 #create a 3D plot for a cgam or wps object#
 ###########################################
-plotpersp <- function(object, x1, x2,...)UseMethod("plotpersp")
+plotpersp <- function(object,...)UseMethod("plotpersp")
 
 ################
 #plotpersp.cgam#
 ################ 
-plotpersp.cgam <- function(object, x1 = NULL, x2 = NULL, data = NULL, surface = "mu", categ = NULL, col = NULL, random = FALSE, x_grid = 10, y_grid = 10, xlim = range(x1), ylim = range(x2), zlim = NULL, xlab = NULL, ylab = NULL, zlab = NULL, main = NULL, sub = NULL, th = NULL, phi = 15, r = sqrt(3), d = 1, scale = TRUE, expand = 1, border = NULL, ltheta = NULL, lphi = 0, shade = NA, box = TRUE, axes = TRUE, nticks = 5, ticktype = "detailed",...) {
+plotpersp.cgam <- function(object, x1 = NULL, x2 = NULL, data = NULL, surface = "mu", categ = NULL, col = NULL, random = FALSE, x_grid = 10, y_grid = 10, xlim = range(x1), ylim = range(x2), zlim = NULL, xlab = NULL, ylab = NULL, zlab = NULL, th = NULL, ltheta = NULL, main = NULL, ticktype = "detailed",...) {
 	if (!inherits(object, "cgam")) { 
 	        warning("calling plotpersp(<fake-cgam-object>) ...")
         }
-#new:
-#if (is.null(x1) | is.null(x2)) {
-#	stop ("x1 and x2 must be provided!")
-#}
-	cl <- match.call()
-	nms <- cl[-c(1, 2)]
+	#xmat <- object$xmat
+	#cl <- match.call()
+	#nms <- cl[-c(1, 2)]
 	#lnms <- length(nms)
-	x1nm <- nms[1]$x
-	x1nm <- deparse(x1nm)
-	x2nm <- nms[2]$x
-	x2nm <- deparse(x2nm)
-	ynm <- object$ynm
+	#x1nm <- nms[1]$x
+	#x1nm <- deparse(x1nm)
+	#x2nm <- nms[2]$x
+	#x2nm <- deparse(x2nm)
+#new: default is plotpersp(object)	
+	x1nm <- deparse(substitute(x1))
+	x2nm <- deparse(substitute(x2))
+#stop (print (x1nm))	
+	xmatnms <- object$xmatnms
 	xmat <- object$xmat
+	if (x1nm == "NULL" | x2nm == "NULL") {
+		if (length(xmatnms) >= 2) {
+			x1nm <- xmatnms[1]
+			x2nm <- xmatnms[2]	
+			x1id <- 1
+			x2id <- 2
+			x1 <- xmat[, 1]
+			x2 <- xmat[, 2]
+		} else {stop ("Number of non-parametric predictors must >= 2!")}
+	}
+	ynm <- object$ynm
+	#xmat <- object$xmat
+#print (dim(xmat))
 	is_fac <- object$is_fac
 	is_param <- object$is_param
 	family <- object$family
@@ -2688,22 +2718,21 @@ plotpersp.cgam <- function(object, x1 = NULL, x2 = NULL, data = NULL, surface = 
 	muhat.fun <- cicfamily$muhat.fun
 	znms <- object$znms
 	kznms <- length(znms)
-#print (class(categ))
 	if (!is.null(categ)) {
 		if (!is.character(categ)) {
 			warning("categ must be a character argument!")
 		} else if (!any(znms == categ)) {
 			warning(paste(categ, "is not an exact character name defined in the cgam fit!"))
+			categ = NULL
+		} else {
+			obsz = 1:kznms
+			zid = obsz[znms == categ]
+#linear term:
+			if (!(is_fac[zid])) {
+				categ = NULL
+			}
 		}
 	}
-#new: no layer for linear term
-if (!is.null(categ)) {
-	obsz = 1:kznms
-	zid = obsz[znms == categ]
-	if (!(is_fac[zid])) {
-		categ = NULL
-	}
-}
 	shapes <- object$shapes
 #new:	
 	#zid1 = object$zid1 - 1 - length(shapes)
@@ -2716,8 +2745,7 @@ if (!is.null(categ)) {
 	#zcoefs = object$zcoefs
 #new: exclude the coef for the one vector
 	zcoefs <- object$zcoefs[-1]
-	xmat0 <- object$xmat
-	xmatnms <- object$xmatnms
+	#xmatnms <- object$xmatnms
 	knms <- length(xmatnms)	
 	obs <- 1:knms
 
@@ -2739,14 +2767,20 @@ if (!is.null(categ)) {
 		}
 		x1 <- data[ ,which(datnms == x1nm)]
 		x2 <- data[ ,which(datnms == x2nm)]
-		bool <- apply(xmat, 2, function(x) all(x1 == x))
-		if (any(bool)) {
-			x1id <- obs[bool]
+		if (length(x1) != nrow(xmat)) {
+			warning ("Number of observations in the data set is not the same as the number of elements in x1!")
 		}
-		bool <- apply(xmat, 2, function(x) all(x2 == x))
-		if (any(bool)) {
-			x2id <- obs[bool]
+		#bool <- apply(xmat, 2, function(x) all(x1 == x))
+		#if (any(bool)) {
+			x1id <- obs[xmatnms == x1nm]
+		#}
+		if (length(x2) != nrow(xmat)) {
+			warning ("Number of observations in the data set is not the same as the number of elements in x2!")
 		}
+		#bool <- apply(xmat, 2, function(x) all(x2 == x))
+		#if (any(bool)) {
+			x2id <- obs[xmatnms == x2nm]
+		#}
 	} else {
 		#if (any(xmatnms == x1nm)) {
 		#	x1id <- obs[xmatnms == x1nm]
@@ -2766,6 +2800,9 @@ if (!is.null(categ)) {
 		#}
 #new: x1 and x2 are in .Globe, not in formula
 		if (all(xmatnms != x1nm)) {
+			if (length(x1) != nrow(xmat)) {
+				stop ("Number of observations in the data set is not the same as the number of elements in x1!")
+			}
 			bool <- apply(xmat, 2, function(x) all(x1 == x))
 			if (any(bool)) {
 				x1id <- obs[bool]
@@ -2778,6 +2815,9 @@ if (!is.null(categ)) {
 			x1id <- obs[xmatnms == x1nm]
 		}
 		if (all(xmatnms != x2nm)) {
+			if (length(x2) != nrow(xmat)) {
+				stop ("Number of observations in the data set is not the same as the number of elements in x2!")
+			}
 			bool <- apply(xmat, 2, function(x) all(x2 == x))
 			if (any(bool)) {
 				x2id <- obs[bool]
@@ -2789,10 +2829,16 @@ if (!is.null(categ)) {
 			x2id <- obs[xmatnms == x2nm]
 		}
 	}
-	xmat <- cbind(x1, x2)
-	x1g <- 0:x_grid / x_grid * .95 * (max(xmat[,1]) - min(xmat[,1])) + min(xmat[,1]) + .025 * (max(xmat[,1]) - min(xmat[,1]))
+#xmat is not the one in fit
+#print (length(x1))
+#print (length(x2))
+	#xm <- cbind(x1, x2)
+	xm <- xmat[, c(x1id, x2id)]
+#print (all(xm == cbind(x1, x2)))
+#print (head(cbind(x1, x2)))
+	x1g <- 0:x_grid / x_grid * .95 * (max(xm[,1]) - min(xm[,1])) + min(xm[,1]) + .025 * (max(xm[,1]) - min(xm[,1]))
  	n1 <- length(x1g)
-	x2g <- 0:y_grid / y_grid * .95 * (max(xmat[,2]) - min(xmat[,2])) + min(xmat[,2]) + .025 * (max(xmat[,2]) - min(xmat[,2]))
+	x2g <- 0:y_grid / y_grid * .95 * (max(xm[,2]) - min(xm[,2])) + min(xm[,2]) + .025 * (max(xm[,2]) - min(xm[,2]))
 	n2 <- length(x2g)	
 
 	xgmat <- matrix(nrow = n1, ncol = n2)
@@ -2800,16 +2846,16 @@ if (!is.null(categ)) {
 	thvecs <- object$etacomps
 	for (i2 in 1:n2) {
 		for (i1 in 1:n1) {
-			x1a <- max(xmat[xmat[,1] <= x1g[i1], 1])
-			x1b <- min(xmat[xmat[,1] > x1g[i1], 1])
-			v1a <- min(thvecs[x1id, xmat[,1] == x1a])
-			v1b <- min(thvecs[x1id, xmat[,1] == x1b])
+			x1a <- max(xm[xm[,1] <= x1g[i1], 1])
+			x1b <- min(xm[xm[,1] > x1g[i1], 1])
+			v1a <- min(thvecs[x1id, xm[,1] == x1a])
+			v1b <- min(thvecs[x1id, xm[,1] == x1b])
 			alp <- (x1g[i1] - x1a) / (x1b - x1a)
 			th1add <- (1 - alp) * v1a + alp * v1b
-			x2a <- max(xmat[xmat[,2] <= x2g[i2],2])
-			x2b <- min(xmat[xmat[,2] > x2g[i2],2])
-			v2a <- min(thvecs[x2id, xmat[,2] == x2a])
-			v2b <- min(thvecs[x2id, xmat[,2] == x2b])
+			x2a <- max(xm[xm[,2] <= x2g[i2],2])
+			x2b <- min(xm[xm[,2] > x2g[i2],2])
+			v2a <- min(thvecs[x2id, xm[,2] == x2a])
+			v2b <- min(thvecs[x2id, xm[,2] == x2b])
 			alp <- (x2g[i2] - x2a) / (x2b - x2a)
 			th2add <- (1 - alp) * v2a + alp * v2b	
 			xgmat[i1,i2] <- eta0 + th1add + th2add
@@ -2820,7 +2866,7 @@ if (!is.null(categ)) {
 		x3id <- obs[-c(x1id, x2id)]
 		kx3 <- length(x3id)
 		for (i in 1:kx3) {
-			x3i <- xmat0[, x3id[i]]
+			x3i <- xmat[, x3id[i]]
 			x3i_use <- max(x3i[x3i <= median(x3i)])
 			x3i_add <- min(thvecs[x3id[i], x3i == x3i_use])			
 			x3_add <- x3_add + x3i_add
@@ -2886,13 +2932,15 @@ if (!is.null(categ)) {
 #print (z_add)
 		for (iz in 1:kz_add) {
 			xgmats[[iz]] <- xgmat + as.numeric(x3_add) + z_add[iz]
-			mins <- c(mins, min(xgmats[[iz]]))
-			maxs <- c(maxs, max(xgmats[[iz]]))
+			#mins <- c(mins, min(xgmats[[iz]]))
+			#maxs <- c(maxs, max(xgmats[[iz]]))
 			for (i2 in 1:n2) {
 				for (i1 in 1:n1) {
 					xgmats[[iz]][i1, i2] <- muhat.fun(xgmats[[iz]][i1, i2], fml = fml)	
 				}
 			}
+			mins <- c(mins, min(xgmats[[iz]]))
+			maxs <- c(maxs, max(xgmats[[iz]]))
 
 		}
 	}
@@ -2980,6 +3028,8 @@ if (!is.null(categ)) {
 		}
 #print (kxgm)
 		for (i in 1:kxgm) {
+#i = 1
+#print (i)
 			xgmat <- xgmats[[i]]
 			if (is.null(th) | !is.numeric(th)) {
 				th <- -40
@@ -2987,7 +3037,10 @@ if (!is.null(categ)) {
 			if (is.null(ltheta) | !is.numeric(ltheta)) {
 				ltheta <- -135
 			}
-			persp(x1g, x2g, xgmat, xlim = xlim, ylim = ylim, zlim = c(min(mins), max(maxs)), xlab = xlab, ylab = ylab, zlab = zlab, main = main, sub = sub, theta = th, phi = phi, r = r, d = d, scale = scale, expand = expand, col = col[i], border = border, ltheta = ltheta, lphi = lphi, shade = shade, box = box, axes = axes, nticks = nticks, ticktype = ticktype)
+#persp(x1g, x2g, xgmat, xlim = xlim, ylim = ylim, theta = th)
+			persp(x1g, x2g, xgmat, xlim = xlim, ylim = ylim, zlim = c(min(mins), max(maxs)), xlab = xlab, ylab = ylab, zlab = zlab, col = col[i], main = main, theta = th, ltheta = ltheta, ticktype = ticktype,...)
+
+
 			par(new = TRUE)
 		}
 	par(new = FALSE)
@@ -3013,7 +3066,7 @@ if (!is.null(categ)) {
 		if (is.null(ltheta) | !is.numeric(ltheta)) {
 			ltheta <- -135
 		}
-		persp(x1g, x2g, xgmat, xlim = xlim, ylim = ylim, zlim = zlim, xlab = xlab, ylab = ylab, zlab = zlab, main = main, sub = sub, theta = th, phi = phi, r = r, d = d, scale = scale, expand = expand, col = col, border = border, ltheta = ltheta, lphi = lphi, shade = shade, box = box, axes = axes, nticks = nticks, ticktype = ticktype)
+		persp(x1g, x2g, xgmat, xlim = xlim, ylim = ylim, zlim = zlim, xlab = xlab, ylab = ylab, zlab = zlab, col = col, main = main, theta = th, ltheta = ltheta, ticktype = ticktype,...)
 	}
 #print (col)
 }
@@ -3021,7 +3074,7 @@ if (!is.null(categ)) {
 #################
 #plotpersp.wps#
 ################ 
-plotpersp.wps = function(object, x1 = NULL, x2 = NULL, data = NULL, surface = "C", categ = NULL, col = NULL, random = FALSE, xlim = range(x1), ylim = range(x2), zlim = NULL, xlab = NULL, ylab = NULL, zlab = NULL, main = NULL, sub = NULL, th = NULL, phi = 15, r = sqrt(3), d = 1, scale = TRUE, expand = 1, border = NULL, ltheta = NULL, lphi = 0, shade = NA, box = TRUE, axes = TRUE, nticks = 5, ticktype = "detailed",...) {
+plotpersp.wps = function(object, x1 = NULL, x2 = NULL, data = NULL, surface = "C", categ = NULL, col = NULL, random = FALSE, xlim = range(x1), ylim = range(x2), zlim = NULL, xlab = NULL, ylab = NULL, zlab = NULL, th = NULL, ltheta = NULL, main = NULL, ticktype = "detailed",...) {
 	if (!inherits(object, "wps")) { 
 	        warning("calling plotpersp(<fake-wps-object>) ...")
         }
@@ -3029,68 +3082,35 @@ plotpersp.wps = function(object, x1 = NULL, x2 = NULL, data = NULL, surface = "C
 #if (is.null(x1) | is.null(x2)) {
 #	stop ("x1 and x2 must be provided!")
 #}
-	cl = match.call()
-	nms = cl[-c(1, 2)]
-	#lnms = length(nms)
+#print (is.null(x1))
 	xnms = object$xnms
+	xmat = object$xmat
+#print (match.call())
+#print (length(match.call()))
+#print (class(match.call()[-c(1, 2)]))
+#if () { 
+#	cl = match.call()
+#	nms = cl[-c(1, 2)]
+	#lnms = length(nms)
+#	x1nm0 = nms[1]$x
+#	x1nm0 = deparse(x1nm0)
+#	x2nm0 = nms[2]$x
+#	x2nm0 = deparse(x2nm0)
+#} else {
+#new:
+	x1nm0 = xnms[1]
+	x2nm0 = xnms[2]
+	x1 = xmat[, 1]
+	x2 = xmat[, 2]
+#}
 	#knms = length(xnms)	
 	#obs = 1:knms
-	x1nm0 = nms[1]$x
-	x1nm0 = deparse(x1nm0)
-	x2nm0 = nms[2]$x
-	x2nm0 = deparse(x2nm0)
-	xmat = object$xmat
+	#x1nm0 = nms[1]$x
+	#x1nm0 = deparse(x1nm0)
+	#x2nm0 = nms[2]$x
+	#x2nm0 = deparse(x2nm0)
 	is_fac = object$is_fac
 	#is_param = object$is_param
-#new: switch xnms
-if (!is.null(data)) {
-	if (!is.data.frame(data)) {
-		stop ("User need to make the data argument a data frame with names for each variable!")
-	}
-	datnms = names(data)
-	if (!any(datnms == x1nm0) | !any(datnms == x2nm0)) {
-		stop ("Check the accuracy of the names of x1 and x2!")
-	}
-	x1 = data[ ,which(datnms == x1nm0)]
-	x2 = data[ ,which(datnms == x2nm0)]
-	#if (x1nm0 != xnms[1] & x2nm0 != xnms[2]) {
-	#	x1nm = x2nm0
-	#	x2nm = x1nm0
-	#	tmp = x1
-	#	x1 = x2
-	#	x2 = tmp
-	#} else {x1nm = x1nm0; x2nm = x2nm0}
-} else {
-	if (all(xnms != x1nm0)) {
-		#stop (paste(paste("'", x1nm0, "'", sep = ''), "is not an exact predictor name defined in the cgam fit!"))
-		bool = apply(xmat, 2, function(x) all(x1 == x))
-		if (any(bool)) {
-			#x1id = obs[bool]
-			x1nm0 = xnms[bool] 
-		} else {
-			stop (paste(paste("'", x1nm0, "'", sep = ''), "is not a predictor defined in the wps fit!"))
-		}
-	} 
-	if (all(xnms != x2nm0)) {
-		#stop (paste(paste("'", x2nm0, "'", sep = ''), "is not an exact predictor name defined in the cgam fit!"))
-		bool = apply(xmat, 2, function(x) all(x2 == x))
-		if (any(bool)) {
-			#x2id = obs[bool]
-			x2nm0 = xnms[bool] 
-		} else {
-			stop (paste(paste("'", x2nm0, "'", sep = ''), "is not a predictor defined in the wps fit!"))
-		}
-	} 
-} 
-if (x1nm0 != xnms[1] &  x2nm0 != xnms[2]) {
-	x1nm = x2nm0
-	x2nm = x1nm0
-	tmp = x1
-	x1 = x2
-	x2 = tmp
-} else {x1nm = x1nm0; x2nm = x2nm0}
-#print (x1nm0)
-#print (x2nm0)
 	ynm = object$ynm
 #xmat is delta
 	#delta = object$delta
@@ -3110,6 +3130,79 @@ if (x1nm0 != xnms[1] &  x2nm0 != xnms[2]) {
 	m1 = length(k1)
 	m2 = length(k2)
 	p = dim(zmat)[2]
+
+	if (!is.null(categ)) {
+		if (!is.character(categ)) {
+			warning("categ must be a character argument!")
+		} else if (!any(znms == categ)) {
+#print ('TRUE')	
+			warning(paste(categ, "is not an exact character name defined in the cgam fit!"))
+			categ = NULL
+		} else {
+			obsz = 1:kznms
+			zid = obsz[znms == categ]
+			if (!(is_fac[zid])) {
+				categ = NULL
+			}
+		}
+	}
+
+
+#new: switch xnms
+	if (!is.null(data)) {
+		if (!is.data.frame(data)) {
+			stop ("User need to make the data argument a data frame with names for each variable!")
+		}
+		datnms = names(data)
+		if (!any(datnms == x1nm0) | !any(datnms == x2nm0)) {
+			stop ("Check the accuracy of the names of x1 and x2!")
+		}
+		x1 = data[ ,which(datnms == x1nm0)]
+		x2 = data[ ,which(datnms == x2nm0)]
+		#if (x1nm0 != xnms[1] & x2nm0 != xnms[2]) {
+		#	x1nm = x2nm0
+		#	x2nm = x1nm0
+		#	tmp = x1
+		#	x1 = x2
+		#	x2 = tmp
+		#} else {x1nm = x1nm0; x2nm = x2nm0}
+	} else {
+		if (all(xnms != x1nm0)) {
+			#stop (paste(paste("'", x1nm0, "'", sep = ''), "is not an exact predictor name defined in the cgam fit!"))
+#new: in case of wrong data fame
+			if (length(x1) != nrow(xmat)) {
+				stop ("Number of observations in the data set is not the same as the number of elements in x1!")
+			}
+			bool = apply(xmat, 2, function(x) all.equal(x1, x))
+			if (any(bool)) {
+				#x1id = obs[bool]
+				x1nm0 = xnms[bool] 
+			} else {
+				stop (paste(paste("'", x1nm0, "'", sep = ''), "is not a predictor defined in the wps fit!"))
+			}
+		} 
+		if (all(xnms != x2nm0)) {
+			#stop (paste(paste("'", x2nm0, "'", sep = ''), "is not an exact predictor name defined in the cgam fit!"))
+			if (length(x2) != nrow(xmat)) {
+				stop ("Number of observations in the data set is not the same as the number of elements in x2!")
+			}
+			bool = apply(xmat, 2, function(x) all(x2 == x))
+			if (any(bool)) {
+				#x2id = obs[bool]
+				x2nm0 = xnms[bool] 
+			} else {
+				stop (paste(paste("'", x2nm0, "'", sep = ''), "is not a predictor defined in the wps fit!"))
+			}
+		} 
+	} 
+	if (x1nm0 != xnms[1] & x2nm0 != xnms[2]) {
+		x1nm = x2nm0
+		x2nm = x1nm0
+		tmp = x1
+		x1 = x2
+		x2 = tmp
+	} else {x1nm = x1nm0; x2nm = x2nm0}
+#print (dim(xmat))
 	apl = 1:(m1 + m2 - 1 + (m1 - 1) * (m2 - 1))
 	aplu = 1:(m1 + m2 - 1 + (m1 - 1) * (m2 - 1))
 	apl[1] = ah[1]
@@ -3133,7 +3226,7 @@ if (x1nm0 != xnms[1] &  x2nm0 != xnms[2]) {
 		}
 	}
 ## reverse transform for decreasing
-	if (is.null(th)) {
+	if (is.null(th) | !is.numeric(th)) {
 		ang = NULL
 		if (!decrs[1] & !decrs[2]) {
 			if (is.null(ang)) {
@@ -3159,15 +3252,9 @@ if (x1nm0 != xnms[1] &  x2nm0 != xnms[2]) {
 			}
 		}
 	} else {ang = th}
-#zmat: 
-#new: no layer for linear term
-if (!is.null(categ)) {
-	obsz = 1:kznms
-	zid = obsz[znms == categ]
-	if (!(is_fac[zid])) {
-		categ = NULL
+	if (is.null(ltheta) | !is.numeric(ltheta)) {
+		ltheta <- -135
 	}
-}
 	if (is.null(categ)) {
 		z_add = 0
 		if (!is.null(znms)) {
@@ -3244,8 +3331,7 @@ if (!is.null(categ)) {
 			}
 			zlim0 = c(min(minsu), max(maxsu))
 		}
-		persp(k1, k2, musurf, xlim = xlim, ylim = ylim, zlim = zlim0, xlab = x1nm, ylab = x2nm, zlab = ynm, main = main,
-sub = sub, theta = ang, phi = phi, r = r, d = d, scale = scale, col = col, border = border, ltheta = ltheta, lphi = lphi, shade = shade, box = box, axes = axes, nticks = nticks, ticktype = ticktype, cex.axis = .75, font.main = 1, expand = 1)
+		persp(k1, k2, musurf, xlim = xlim, ylim = ylim, zlim = zlim0, xlab = x1nm, ylab = x2nm, zlab = ynm, theta = ang, ltheta = ltheta, col = col, cex.axis = .75, main = main, ticktype = ticktype,...)
 	} else {
 		kxgm = length(mupls)
 		if (is.null(col)) {
@@ -3295,20 +3381,21 @@ sub = sub, theta = ang, phi = phi, r = r, d = d, scale = scale, col = col, borde
 				}				
 				zlim0 = c(min(minsu), max(maxsu))
 			}
-			par(mar = c(4, 2, 2, 2))
-			persp(k1, k2, musurf, xlim = xlim, ylim = ylim, zlim = zlim0, xlab = x1nm, ylab = x2nm, zlab = ynm, main = main,
-sub = sub, theta = ang, phi = phi, r = r, d = d, scale = scale, col = col[i], border = border, ltheta = ltheta, lphi = lphi, shade = shade, box = box, axes = axes, nticks = nticks, ticktype = ticktype, cex.axis = .75, font.main = 1, expand = 1)
+			#par(mar = c(4, 2, 2, 2))
+#print (sub)
+#persp(k1, k2, musurf,  sub = sub)
+			persp(k1, k2, musurf, xlim = xlim, ylim = ylim, zlim = zlim0, xlab = x1nm, ylab = x2nm, zlab = ynm, theta = ang, ltheta = ltheta, col = col[i], cex.axis = .75, main = main, ticktype = ticktype,...)
+
 			par(new = TRUE)
 		}
 		par(new = FALSE)
 	}
 }
 
-
 #####
 #wps#
 #####
-wps <- function(formula, family = gaussian(), data = NULL, weights = NULL, pnt = FALSE, pen = 0, cpar = 1.5)
+wps <- function(formula, family = gaussian(), data = NULL, weights = NULL, pnt = TRUE, pen = 0, cpar = 1.2)
 {
   cl <- match.call()
   if (is.character(family)) 
@@ -3399,14 +3486,14 @@ wps <- function(formula, family = gaussian(), data = NULL, weights = NULL, pnt =
     }
   }
   ans <- wps.fit(x1t = x1, x2t = x2, y = y, zmat = zmat, w = weights, pen = pen, pnt = pnt, cpar = cpar, decrs = dcs, delta = warp.delta, kts = ks)
-  rslt <- list(k1 = ans$k1, k2 = ans$k2, muhat = ans$muhat, muhatu = ans$muhatu, SSE1 = ans$sse1, SSE0 = ans$sse0, edf = ans$edf, edfu = ans$edfu, delta = ans$delta, zmat = ans$zmat, xmat = xmat, coefs = ans$coefs, coefsu = ans$coefsu, zcoefs = ans$zcoefs, pvals.beta = ans$pz, se.beta = ans$sez, gcv = ans$gcv, gcvu = ans$gcvu, xnms = xnms, znms = znms, zid = zid, vals = vals, zid1 = zid1, zid2 = zid2, ynm = ynm, decrs = dcs, tms = mt, is_param = is_param, is_fac = is_fac)
+  rslt <- list(k1 = ans$k1, k2 = ans$k2, muhat = ans$muhat, muhatu = ans$muhatu, SSE1 = ans$sse1, SSE0 = ans$sse0, edf = ans$edf, edfu = ans$edfu, delta = ans$delta, zmat = ans$zmat, xmat = xmat, coefs = ans$coefs, coefsu = ans$coefsu, zcoefs = ans$zcoefs, pvals.beta = ans$pz, se.beta = ans$sez, gcv = ans$gcv, gcvu = ans$gcvu, xnms = xnms, znms = znms, zid = zid, vals = vals, zid1 = zid1, zid2 = zid2, ynm = ynm, decrs = dcs, tms = mt, is_param = is_param, is_fac = is_fac, d0 = ans$d0, pen = ans$pen, cpar = ans$cpar)
   rslt$call <- cl
   class(rslt) <- "wps"
   return (rslt) 
 }
 
 #####
-wps.fit = function(x1t, x2t, y, zmat = NULL, w = NULL, pen = 0, pnt = FALSE, cpar = 1.5, decrs = c(FALSE, FALSE), delta = NULL, kts = NULL) {
+wps.fit = function(x1t, x2t, y, zmat = NULL, w = NULL, pen = 0, pnt = TRUE, cpar = 1.2, decrs = c(FALSE, FALSE), delta = NULL, kts = NULL) {
 	n = length(y)
 	if (length(x1t) != n) {
 		stop ("Error: length of x1 must equal length of y")
@@ -3572,7 +3659,17 @@ wps.fit = function(x1t, x2t, y, zmat = NULL, w = NULL, pen = 0, pnt = FALSE, cpa
 		}
 	}
 # transform to cone projection
-	ps = max(1e-6, pen)
+sc = 1
+if (round(pen, 6) > 1e-6) {
+	ps = pen 
+} else if (pnt & (round(pen, 6) == 0)) {
+	mat = cbind(1, x1, x2, x1*x2) 
+	mu_para = mat %*% solve(t(mat) %*% mat) %*% t(mat) %*% yw
+	ssr = sum((yw - mu_para)^2)
+	sc = ssr / (n-4)
+	ps = 1 * sc
+} else {ps = 1e-6} 
+#	ps = max(1e-6, pen)
 	qmat = t(xw) %*% xw + ps * t(dmat) %*% dmat	
 	qmat0 = t(xw0) %*% xw0 + ps * t(dmat0) %*% dmat0
 	umat = chol(qmat)
@@ -3636,10 +3733,10 @@ wps.fit = function(x1t, x2t, y, zmat = NULL, w = NULL, pen = 0, pnt = FALSE, cpa
 zcoefs = ahat[1:p]
 sse0 = sum((yw - zw %*% zcoefs)^2)
 #new use edf instead if (n - cpar * edf) < 0
-if ((n - cpar * edf) <= 0) {
+if ((n - p - cpar * edf) <= 0) {
 	sig2hat = sse1 / edf
 } else {
-	sig2hat = sse1 / (n - cpar * edf)
+	sig2hat = sse1 / (n - p - cpar * edf)
 }
 	if (p >= 1) {
 		pm = one %*% solve(crossprod(one)) %*% t(one)
@@ -3647,12 +3744,14 @@ if ((n - cpar * edf) <= 0) {
 		sez = sqrt(diag(covmat) * sig2hat)	
 		tz = zcoefs / sez
 #new use edf instead if (n - cpar * edf) < 0
-		if ((n - cpar * edf) <= 0) {
+		if ((n - p - cpar * edf) <= 0) {
 			pz = 2 * (1 - pt(abs(tz), edf))
-			warning ('Effective degrees of freedom is close to the number of observations! Inference about parametric covariates is not reliable!')
+			if (p > 1) {
+				warning ('Effective degrees of freedom is close to the number of observations! Inference about parametric covariates is not reliable!')
+			}
 #print ('Check pz!')
 		} else {
-			pz = 2 * (1 - pt(abs(tz), n - cpar * edf))
+			pz = 2 * (1 - pt(abs(tz), n - p - cpar * edf))
 		}
 	}
 # get unconstrained penalized estimator
@@ -3684,7 +3783,9 @@ if ((n - cpar * edf) <= 0) {
 	ans$zmat = zmat 	
 	ans$sighat = sig2hat
 	ans$delta = xmat
-	ans$pen = pen
+	ans$pen = ps	
+	ans$d0 = p
+	ans$cpar = cpar 
 	#ans$gcvus = gcvus
 	#ans$lambdas_pen = lambdas_pen
 	#if (p >= 2) {
@@ -3805,9 +3906,12 @@ makedelta_wps <- function(x1t, x2t, m1_0 = 0, m2_0 = 0, k1 = 0, k2 = 0, space = 
 	if (make1) {
 # new:
 #print (m1_0 == 12L)? !is.integer(m1_0) not work
+#print (m1_0)
 		if (m1_0  < 4 | round(m1_0, 0) != m1_0) {
 		#if (m1_0  < 4) {
-			warning ('At least four knots should be used! Number of knots is re-defined!')
+			if (m1_0 != 0) {
+				warning ('At least four knots should be used! Number of knots is re-defined!')
+			}
 			m1 = 2 * round(n^(1/6)) + 4 
 		} else {m1 = m1_0}
 		if (space[1] == "Q") {
@@ -3821,7 +3925,9 @@ makedelta_wps <- function(x1t, x2t, m1_0 = 0, m2_0 = 0, k1 = 0, k2 = 0, space = 
 	if (make2) {
 #new:
 		if (m2_0 < 4 | round(m2_0, 0) != m2_0) {
-			warning ('At least four knots should be used! Number of knots is re-defined!')
+			if (m2_0 != 0) {
+				warning ('At least four knots should be used! Number of knots is re-defined!')
+			}
 			m2 = 2 * round(n^(1/6)) + 4 
 		} else {m2 = m2_0}
 		if (space[2] == "Q") {
@@ -3896,10 +4002,6 @@ makedelta_wps <- function(x1t, x2t, m1_0 = 0, m2_0 = 0, k1 = 0, k2 = 0, space = 
 	#attr(delta, "shape") = "warp"
 	#delta
 }
-
-
-
-
 
 
 

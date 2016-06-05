@@ -6,13 +6,13 @@
 
 \description{A symbolic routine to define that the systematic component \eqn{\eta} is smooth and concave in a predictor in a formula argument to cgam. This is the smooth version.}
 
-\usage{s.conc(x, numknots = 0, knots = 0, space = "Q")}
+\usage{s.conc(x, numknots = 0, knots = 0, space = "E")}
 
 \arguments{
  \item{x}{A numeric predictor which has the same length as the response vector.}
  \item{numknots}{The number of knots used to constrain \eqn{x}. It will not be used if the user specifies the \emph{knots} argument. The default is numknots = \eqn{0}.}
   \item{knots}{The knots used to constrain \eqn{x}. User-defined knots will be used when given. Otherwise, \emph{numknots} and \emph{space} will be used to create knots. The default is knots = \eqn{0}.}
- \item{space}{A character specifying the method to create knots. It will not be used if the user specifies the \emph{knots} argument. If space == "E", then equally spaced knots will be created; if space == "Q", then a vector of equal \eqn{x} quantiles will be created based on \eqn{x} with duplicate elements removed. The number of knots is \emph{numknots} when \emph{numknots} \eqn{> 0}. Otherwise it is of the order \eqn{n^{1/7}}. The default is space = "Q".}
+ \item{space}{A character specifying the method to create knots. It will not be used if the user specifies the \emph{knots} argument. If space == "E", then equally spaced knots will be created; if space == "Q", then a vector of equal \eqn{x} quantiles will be created based on \eqn{x} with duplicate elements removed. The number of knots is \emph{numknots} when \emph{numknots} \eqn{> 0}. Otherwise it is of the order \eqn{n^{1/7}}. The default is space = "E".}
 }
 
 \value{The vector x with five attributes, i.e., name: the name of x; shape: 12("smooth and concave"); numknots: the numknots argument in "s.conc"; knots: the knots argument in "s.conc"; space: the space argument in "s.conc".}
