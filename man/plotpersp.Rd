@@ -68,9 +68,9 @@ Arguments to be passed to the S3 method for the cgam or wps class:
   fit.s <- cgam(y ~ s.incr(age) + s.incr(height) + factor(sex) + factor(smoke), nsim = 0)
 
   plotpersp(fit, age, height, x_grid = 10, y_grid = 10, main = "Cgam Increasing Fit", 
-  sub = "Categorical Variable: Sex", categ = "factor(sex)")
+  sub = "Categorical Variable: Sex", categ = "sex")
   plotpersp(fit.s, age, height, x_grid = 10, y_grid = 10, main = "Cgam Smooth Increasing Fit", 
-  sub = "Categorical Variable: Smoke", categ = "factor(smoke)")
+  sub = "Categorical Variable: Smoke", categ = "smoke")
 
 # Example 2.
   data(plasma)
@@ -91,7 +91,7 @@ Arguments to be passed to the S3 method for the cgam or wps class:
 
   plotpersp(fit, bmi, logdietfat, x_grid = 10, y_grid = 10, th = 120, ylab = "log(dietfat)", 
 zlab = "est mean of log(plasma)", main = "Cgam Fit with the Plasma Data Set", 
-sub = "Categorical Variable: Vitamin Use", categ = "factor(vituse)")
+sub = "Categorical Variable: Vitamin Use", categ = "vituse")
 
 # Example 3.
   data(plasma)
@@ -103,7 +103,7 @@ sub = "Categorical Variable: Vitamin Use", categ = "factor(vituse)")
   ans <- cgam(logplasma ~ s.incr(betacaro, 5) + s.decr(bmi) + s.decr(logdietfat) 
 + as.factor(addl), data = plasma)
   plotpersp(ans, betacaro, logdietfat, th = 240, random = TRUE, 
-categ = "as.factor(addl)", data = plasma)
+categ = "addl", data = plasma)
 
 # Example 4.
   n <- 100

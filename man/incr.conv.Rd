@@ -15,7 +15,7 @@
  \item{space}{A character specifying the method to create knots. It will not be used for a shape-restricted predictor without smoothing. The default value is "E".}
 }
 
-\value{The vector x with five attributes, i.e., name: the name of x; shape: 5("increasing and convex"); numknots: the numknots argument in "incr.conv"; knots: the knots argument in "incr.conv"; space: the space argument in "incr.conv".}
+\value{The vector x with five attributes, i.e., nm: the name of x; shape: 5 ("increasing and convex"); numknots: the numknots argument in "incr.conv"; knots: the knots argument in "incr.conv"; space: the space argument in "incr.conv".}
 
 \details{
   "incr.conv" returns the vector "x" and imposes on it five attributes: name, shape, numknots, knots and space. 

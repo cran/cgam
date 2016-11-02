@@ -6,13 +6,14 @@
 
 \description{A symbolic routine to define that the systematic component \eqn{\eta} has a tree-ordering in a predictor in a formula argument to cgam.}
 
-\usage{tree(x)}
+\usage{tree(x, pl = NULL)}
 
 \arguments{
-  \item{x}{A numeric vector which has the same length as the response vector. Note that the placebo level of x must be 0.}
+  \item{x}{A numeric vector which has the same length as the response vector.}
+\item{pl}{The placebo level of x. If x is a numeric vector, the default is 0 if x contains 0 and is otherwise the minimum of x, or the user can define it as any value of x. If x is a character vector, the default is the first character in x. }
 }
 
-\value{The vector x with two attributes, i.e., name: the name of x; shape: "tree".}
+\value{The vector x with two attributes, i.e., nm: the name of x; shape: "tree".}
 
 \details{
   "tree" returns the vector "x" and imposes on it two attributes: name and shape. 

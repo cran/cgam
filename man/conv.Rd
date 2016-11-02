@@ -16,7 +16,7 @@
 
 }
 
-\value{The vector x with five attributes, i.e., name: the name of x; shape: 3("convex"); numknots: the numknots argument in "conv"; knots: the knots argument in "conv"
+\value{The vector x with five attributes, i.e., nm: the name of x; shape: 3 ("convex"); numknots: the numknots argument in "conv"; knots: the knots argument in "conv"
 ; space: the space argument in "conv".}
 
 \details{

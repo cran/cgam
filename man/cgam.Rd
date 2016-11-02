@@ -8,7 +8,8 @@
   The partial linear generalized additive model is fitted using the method of maximum likelihood, where shape or order restrictions can be imposed on the non-parametrically modelled predictors with optional smoothing, and no restrictions are imposed on the optional parametrically modelled covariate. 
 }
 
-\usage{cgam(formula, nsim = 1e+2, family = gaussian(), cpar = 1.2, data = NULL, weights = NULL)}
+\usage{cgam(formula, nsim = 1e+2, family = gaussian(), cpar = 1.2, data = NULL, weights = NULL,
+sc_x = FALSE, sc_y = FALSE)}
 
 \arguments{
   \item{formula}{
@@ -52,7 +53,9 @@
   \item{weights}{
   An optional non-negative vector of "replicate weights" which has the same length as the response vector. If weights are not given, all weights are taken to equal 1. The default is weights = NULL.
   }
+\item{sc_x}{A logical scalar showing if or not non-parametrically modelled predictors will be scaled. The default is sc_x = FALSE.}
 
+\item{sc_y}{A logical scalar showing if or not the response will be scaled. The default is sc_y = FALSE.}
 }
 
 \details{
@@ -86,15 +89,17 @@ See references cited in this section and the official manual (\url{https://cran.
   \item{edf0}{The estimated "null expected degrees of freedom". It is a measure of the complexity of the model. See Meyer (2013a) and Meyer (2013b) for further details.}
   \item{etacomps}{The fitted systematic component value for non-parametrically modelled predictors. It is a matrix of which each row is the fitted systematic component value for a non-parametrically modelled predictor. If there are more than one such predictors, the order of the rows is the same as the order that the user defines such predictors in the formula argument of cgam.}
   \item{xmat}{A matrix whose columns represent the shape-restricted predictors and smooth predictors with no shape constraint.}
-  \item{zmat}{A matrix whose columns represent the parametrically modelled covariate. The user can choose to include a constant vector in it or not. It must have full column rank.}
+  \item{zmat}{A matrix whose columns represent the basis for the parametrically modelled covariate. The user can choose to include a constant vector in it or not. It must have full column rank.}
+  \item{ztb}{A list keeping track of the order of the parametrically modelled covariate.}
   \item{tr}{A matrix whose columns represent the predictors with a tree-ordering constraint.}
   \item{umb}{A matrix whose columns represent  the predictors with an umbrella-ordering constraint.}
   \item{tree.delta}{A matrix whose rows are the edges corresponding to the predictors with a tree-ordering constraint.}
   \item{umbrella.delta}{A matrix whose rows are the edges corresponding to the predictors with an umbrella-ordering constraint.}
   \item{bigmat}{A matrix whose rows are the basis spanning the null space of the constraint set and the edges corresponding to the shape-restricted and order-restricted predictors.}
-  \item{shapes}{A vector including the shape constraints in a cgam fit.}
+  \item{shapes}{A vector including the shape and partial-ordering constraints in a cgam fit.}
+  \item{shapesx}{A vector including the shape constraints in a cgam fit.}
   \item{wt}{The weights in the final iteration of the iteratively re-weighted cone projections.}
- \item{wt.iter}{Logical flag indicating if or not iteratively re-weighted cone projections may be used. If the response is gaussian, then wt.iter = FALSE; if the response is binomial or poisson, then wt.iter = TRUE.}
+ \item{wt.iter}{A logical scalar indicating if or not iteratively re-weighted cone projections may be used. If the response is gaussian, then wt.iter = FALSE; if the response is binomial or poisson, then wt.iter = TRUE.}
   \item{family}{The family parameter defined in a cgam formula.}
   \item{SSE0}{The sum of squared residuals for the linear part.}
   \item{SSE1}{The sum of squared residuals for the full model.}
@@ -122,16 +127,17 @@ See references cited in this section and the official manual (\url{https://cran.
   \item{zid1}{A vector keeping track of the beginning position of the levels of each variable used as a factor.}
   \item{zid2}{A vector keeping track of the end position of the levels of each variable used as a factor.}
   \item{nsim}{The number of simulations used to get the cic parameter.}
-  \item{xmatnms}{A vector storing the names of the shape-restricted predictors and the smooth predictors with no shape constraint in xmat.}
+  \item{xnms}{A vector storing the name of the shape-restricted predictor and the smooth predictor with no shape constraint in xmat.}
   \item{ynm}{The name of the response variable.}
-  \item{znms}{A vector storing the names of the parametrically modelled covariate.}
+  \item{znms}{A vector storing the name of the parametrically modelled covariate.}
   \item{is_param}{A logical scalar showing if or not a variable is a parametrically modelled covariate, which could be a linear term or a factor.}
   \item{is_fac}{A logical scalar showing if or not a variable is a factor.}
   \item{knots}{A list storing the knots used for each shape-restricted predictor and smooth predictor with no shape constraint. For a smooth,  constrained and a smooth, unconstrainted predictor, \emph{knots} is a vector of more than \eqn{1} elements, and for a shape-restricted predictor without smoothing, \emph{knots} = \eqn{0}.}
   \item{numknots}{A vector storing the number of knots for each shape-restricted predictor and smooth predictor with no shape constraint. For a smooth, constrained and a smooth, unconstrainted predictor, \emph{numknots} > \eqn{1}, and for a shape-restricted predictor without smoothing, \emph{numknots} = \eqn{0}.}
   \item{sps}{A character vector storing the \emph{space} parameter to create knots for each shape-restricted predictor.}
-  \item{ms}{The centering terms used to make the C-spline or I-spline edges for shape-restricted predictors with smoothing and smooth, unconstrained predictors. See references cited in this section for more details.}
+  \item{ms}{The centering terms used to make edges for shape-restricted predictors.}
 \item{cpar}{The cpar argument in the cgam formula}
+\item{pl}{A vector of the placebo values for the non-parametrically modelled covariates with a tree-ordering constraint.}
   \item{call}{The matched call.}
 }
 

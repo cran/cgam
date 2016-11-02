@@ -15,7 +15,7 @@
  \item{space}{A character specifying the method to create knots. It will not be used if the user specifies the \emph{knots} argument. If space == "E", then equally spaced knots will be created; if space == "Q", then a vector of equal \eqn{x} quantiles will be created based on \eqn{x} with duplicate elements removed. The number of knots is \emph{numknots} when \emph{numknots} \eqn{> 0}. Otherwise it is of the order \eqn{n^{1/7}}. The default is space = "E".}
 }
 
-\value{The vector x with five attributes, i.e, name: the name of x; shape: 10("smooth and decreasing"); numknots: the numknots argument in "s.decr"; knots: the knots argument in "s.decr"; space: the space argument in "s.decr".}
+\value{The vector x with five attributes, i.e, nm: the name of x; shape: 10 ("smooth and decreasing"); numknots: the numknots argument in "s.decr"; knots: the knots argument in "s.decr"; space: the space argument in "s.decr".}
 
 \details{
   "s.decr" returns the vector "x" and imposes on it five attributes: name, shape, numknots, knots and space.

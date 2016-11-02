@@ -1,15 +1,15 @@
 Package: cgam
 Type: Package
 Title: Constrained Generalized Additive Model
-Version: 1.5
-Date: 2016-06-06
+Version: 1.6
+Date: 2016-11-02
 Author: Mary C. Meyer and Xiyue Liao 
 Maintainer: Xiyue Liao <xiyue@rams.colostate.edu>
-Description: A constrained generalized additive model is fitted by the cgam routine. Given a set of predictors with or without shape or order restrictions, the maximum likelihood estimator for the constrained generalized additive model is found using an iteratively re-weighted cone projection algorithm. The cone information criterion (CIC) may be used to select the best combination of variables and shapes. One extension of this package is isotonic regression in two dimensions using warped-plane splines without using additivity assumptions, which is implemented by the wps routine. 
+Description: A constrained generalized additive model is fitted by the cgam routine. Given a set of predictors, each of which may have a shape or order restrictions, the maximum likelihood estimator for the constrained generalized additive model is found using an iteratively re-weighted cone projection algorithm. The ShapeSelect routine chooses a subset of predictor variables and describes the component relationships with the response. For each predictor, the user need only specify a set of possible shape or order restrictions. A model selection method chooses the shapes and orderings of the relationships as well as the variables. The cone information criterion (CIC) is used to select the best combination of variables and shapes. A genetic algorithm may be used when the set of possible models is large. In addition, the wps routine implements a two-dimensional isotonic regression without additivity assumptions. 
 License: GPL (>= 2)
-Depends: coneproj(>= 1.3), R(>= 3.0.2)
+Depends: coneproj(>= 1.11), svDialogs (>= 0.9-57), R(>= 3.0.2)
 NeedsCompilation: no
-Suggests: stats, MASS, graphics, grDevices, utils
-Packaged: 2016-06-05 16:22:35 UTC; xiyue
+Suggests: stats, MASS, graphics, grDevices, utils, SemiPar
+Packaged: 2016-11-02 18:07:01 UTC; xiyue
 Repository: CRAN
-Date/Publication: 2016-06-05 18:41:15
+Date/Publication: 2016-11-02 19:52:38
