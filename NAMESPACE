@@ -1,9 +1,12 @@
-export("cgam", "incr", "decr", "conc", "conv", "incr.conc", "incr.conv", "decr.conc", "decr.conv", "tree", "umbrella", "s", "s.incr", "s.decr", "s.conc", "s.conv", "s.incr.conc", "s.incr.conv", "s.decr.conc", "s.decr.conv", "plotpersp", "wps", "ii", "dd", "di", "ShapeSelect", "shapes", "in.or.out", "best.fit")
+export("cgam", "incr", "decr", "conc", "conv", "incr.conc", "incr.conv", "decr.conc", "decr.conv", "tree", "umbrella", "s", "s.incr", "s.decr", "s.conc", "s.conv", "s.incr.conc", "s.incr.conv", "s.decr.conc", "s.decr.conv", "plotpersp", "s.incr.incr", "s.decr.decr", "s.decr.incr", "s.incr.decr", "s.conv.conv", "s.conc.conc", "ShapeSelect", "shapes", "in.or.out", "best.fit", "Ord", "predict.cgam")
 import("coneproj", "svDialogs")
-importFrom("stats", "delete.response", "gaussian", "median", "model.frame", "model.matrix", "model.response", "pchisq", "printCoefmat", "pt", "quantile", "rnorm", "rpois", "runif", "as.formula", "sd")
+importFrom("stats", "delete.response", "gaussian", "median", "model.frame", "model.matrix", "model.response", "pchisq", "printCoefmat", "pt", "quantile", "rnorm", "rpois", "runif", "as.formula", "sd", "Gamma", "binomial", "coef", "make.link", "rgamma",
+"rlogis", "optim")
 importFrom("utils", "head")
+importFrom("Matrix", bdiag)
 importFrom("graphics", "par", "persp", "grid", "legend", "plot", "points", "segments")
-importFrom("grDevices", "topo.colors")
+importFrom("grDevices", "topo.colors", "cm.colors", "heat.colors", "terrain.colors")
+
 S3method(summary, cgam)
 S3method(print, summary.cgam)
 S3method(predict, cgam)
@@ -14,6 +17,22 @@ S3method(plotpersp, cgam)
 S3method(summary, wps)
 S3method(print, summary.wps)
 S3method(fitted, wps)
+S3method(coef, wps)
 S3method(plotpersp, wps)
 
+#S3method(summary, tri)
+#S3method(print, summary.tri)
+S3method(fitted, trispl)
+S3method(coef, trispl)
+S3method(plotpersp, trispl)
+
 S3method(plot, shapeselect)
+
+S3method(fitted, cgam.polr)
+S3method(coef, cgam.polr)
+
+S3method(predict, cgam)
+#S3method(predict, cgam.polr)
+
+S3method(summary, cgam.polr)
+S3method(print, summary.cgam.polr)

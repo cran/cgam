@@ -9,11 +9,11 @@
 \usage{tree(x, pl = NULL)}
 
 \arguments{
-  \item{x}{A numeric vector which has the same length as the response vector.}
-\item{pl}{The placebo level of x. If x is a numeric vector, the default is 0 if x contains 0 and is otherwise the minimum of x, or the user can define it as any value of x. If x is a character vector, the default is the first character in x. }
+  \item{x}{A numeric vector which has the same length as the response vector. Note that the placebo level of x must be 0.}
+  \item{pl}{The placebo level.}
 }
 
-\value{The vector x with two attributes, i.e., nm: the name of x; shape: "tree".}
+\value{The vector x with two attributes, i.e., name: the name of x; shape: "tree".}
 
 \details{
   "tree" returns the vector "x" and imposes on it two attributes: name and shape. 
@@ -46,7 +46,7 @@
   fit.tree <- cgam(y ~ tree(x) + factor(z)) 
 
   # make a plot
-  plot(x, y, cex = .7, ylab = "y", main = "(a)", cex.main = 1.4)
+  plot(x, y, cex = .7)
   mua = unique(fit.tree$muhat)[unique(z) == "a"]
   points(xu, unique(fit.tree$muhat)[unique(z) == "a"], pch = '+', col = 4, cex = 3)
   legend(0,7.5, bty = "n", "tree-ordering fit: z = 'a'", col = 4, pch = '+', cex = 1.3)

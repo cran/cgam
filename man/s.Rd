@@ -15,7 +15,7 @@
 }
 
 
-\value{The vector x with five attributes, i.e., nm: the name of x; shape: 17 ("smooth"); numknots: the numknots argument in "s"; knots: the knots argument in "s";
+\value{The vector x with five attributes, i.e., name: the name of x; shape: 17("smooth"); numknots: the numknots argument in "s"; knots: the knots argument in "s";
  space: the space argument in "s".}
 
 \details{

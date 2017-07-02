@@ -12,7 +12,7 @@
   \item{x}{A numeric vector which has the same length as the response vector.}
 }
 
-\value{The vector x with two attributes, i.e., nm: the name of x; shape: "umbrella".}
+\value{The vector x with two attributes, i.e., name: the name of x; shape: "umbrella".}
 
 \details{
   "umbrella" returns the vector "x" and imposes on it two attributes: name and shape.

@@ -1,14 +1,5 @@
 1.6
 
 * S3 methods predict.cgam is registered in 'NAMESPACE' 
-* new routine ShapeSelect is included, which does variable and shape selection
-* new routines in.or.out and select are included
-* S3 methods plot.shapeselect is registered in 'NAMESPACE' 
-* debug in wps, ps = max(1e-6, 1 * sc)
-* change all diag(w) in matrix production in cgam.fit in order to avoid memory allocation problems
-* change categ = factor(z) in plotpersp.cgam
-* change tree.fun to make 0 as default and allow characters
-* debug null dev in poisson 
-* add sc_x and sc_y in cgam to scale x or y
-* add best.fit(fit) for the ShapeSelect routine
-* arrange x's into the original order if some shape is 17
+
+

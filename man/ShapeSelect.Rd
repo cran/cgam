@@ -7,7 +7,7 @@
 The partial linear generalized additive model is considered, where the goal is to choose a subset of predictor variables and describe the component relationships with the response, in the case where there is very little \emph{a priori} information. For each predictor, the user need only specify a set of possible shape or order restrictions. A model selection method chooses the shapes and orderings of the relationships as well as the variables.  For each possible combination of shapes and orders for the predictors, the maximum likelihood estimator for the constrained generalized additive model is found using iteratively re-weighted cone projections.  The cone information criterion is used to select the best combination of variables and shapes.  
 }
 
-\usage{ShapeSelect(formula, family = gaussian(), cpar = 1.2, data = NULL, weights = NULL, 
+\usage{ShapeSelect(formula, family = gaussian, cpar = 1.2, data = NULL, weights = NULL, 
 genetic = FALSE)}
 
 \arguments{

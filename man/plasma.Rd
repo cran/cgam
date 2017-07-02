@@ -24,7 +24,12 @@
   }
 }
 
-\source{\url{http://axon.cs.byu.edu/data/statlib/numeric/plasma_retinol.arff}}
+%\source{\url{http://axon.cs.byu.edu/data/statlib/numeric/plasma_retinol.arff}}
+\references{
+	Nierenberg, D.,Stukel, T.,Baron, J.,Dain, B.,and Greenberg, E. (1989) Determinants of plasma levels of beta-carotene and retinol. \emph{American Journal of Epidemiology \bold{130}}, 511--521.
+	
+}
+
 
 \examples{data(plasma)}
 
