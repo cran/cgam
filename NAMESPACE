@@ -1,7 +1,7 @@
 export("cgam", "incr", "decr", "conc", "conv", "incr.conc", "incr.conv", "decr.conc", "decr.conv", "tree", "umbrella", "s", "s.incr", "s.decr", "s.conc", "s.conv", "s.incr.conc", "s.incr.conv", "s.decr.conc", "s.decr.conv", "plotpersp", "s.incr.incr", "s.decr.decr", "s.decr.incr", "s.incr.decr", "s.conv.conv", "s.conc.conc", "ShapeSelect", "shapes", "in.or.out", "best.fit", "Ord", "predict.cgam")
 import("coneproj", "svDialogs")
 importFrom("stats", "delete.response", "gaussian", "median", "model.frame", "model.matrix", "model.response", "pchisq", "printCoefmat", "pt", "quantile", "rnorm", "rpois", "runif", "as.formula", "sd", "Gamma", "binomial", "coef", "make.link", "rgamma",
-"rlogis", "optim")
+"rlogis", "optim", "qnorm", "pbeta")
 importFrom("utils", "head")
 importFrom("Matrix", bdiag)
 importFrom("graphics", "par", "persp", "grid", "legend", "plot", "points", "segments")

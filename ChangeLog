@@ -1,5 +1,9 @@
 1.6
 
 * S3 methods predict.cgam is registered in 'NAMESPACE' 
+ 
+1.8
 
+* Add p-value for each non-parametrically modeled component
+* coneB uses columns of "delta" as edges
 

@@ -210,7 +210,8 @@ See references cited in this section and the official manual (\url{https://cran.
   fit.cgam <- cgam(loss ~ decr(hard) + decr(tens), data = Rubber)
   # "smooth and decreasing" and "smooth and decreasing"
   fit.cgam.s <- cgam(loss ~ s.decr(hard) + s.decr(tens), data = Rubber)
-
+  summary(fit.cgam.s)
+  
   # make a 3D plot based on fit.cgam and fit.cgam.s
   plotpersp(fit.cgam, th = 120, main = "3D Plot of a Cgam Fit")
   plotpersp(fit.cgam.s, tens, hard, data = Rubber, th = 120, main = "3D Plot of a Smooth Cgam Fit")

@@ -36,6 +36,7 @@ Xiyue Liao
 }
 
 \examples{
+\dontrun{
 	# Example 1. 
 	# generate the predictor and the latenet variable
 	n <- 500
@@ -74,7 +75,8 @@ Xiyue Liao
 	lines(sort(x), (ans$muhat)[order(x)], col = 2, lty = 2, lwd = 2)
 	legend("topleft", bty = "n", col = c(1, 2), lty = c(1, 2), 
 	c("true latent variable", "increasing-convex fit"), lwd = c(1, 1))
-	
+}	
+\dontrun{
 	# Example 2. mental impairment data set 
 	# mental impairment is an ordinal response with 4 categories recorded as 1, 2, 3, and 4
 	# two covariates are life event index and socio-economic status (high = 1, low = 0)
@@ -88,7 +90,7 @@ Xiyue Liao
 	# check the estimated probabilities P(mental = k), k = 1, 2, 3, 4
 	probs.incr <- fitted(fit.incr)
 	head(probs.incr)
-
+}
 
 }
 

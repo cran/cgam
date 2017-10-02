@@ -267,7 +267,7 @@ cgam <- function(formula, nsim = 1e+2, family = gaussian, cpar = 1.2, data = NUL
   			if (length(knots_add) > 0) {
     			names(knots_add) <- xnms_add
   			}
-  			rslt <- list(etahat = ans$etahat, muhat = ans$muhat, vcoefs = ans$vcoefs, xcoefs = ans$xcoefs, zcoefs = ans$zcoefs, ucoefs = ans$ucoefs, tcoefs = ans$tcoefs, coefs = ans$coefs, cic = ans$cic, d0 = ans$d0, edf0 = ans$edf0, etacomps = ans$etacomps, y = y, xmat_add = xmat_add, zmat = zmat, ztb = ztb, tr = tr, umb = umb, tree.delta = tree.delta, umbrella.delta = umbrella.delta, bigmat = ans$bigmat, shapes = shapes_add, shapesx = shapes1_add, shapesx0 = shapes0_add, prior.w = weights, wt = ans$wt, wt.iter = ans$wt.iter, family = family, SSE0 = ans$sse0, SSE1 = ans$sse1, pvals.beta = ans$pvals.beta, se.beta = ans$se.beta, null_df = ans$df.null, df = ans$df, resid_df_obs = ans$resid_df_obs, edf = ans$df_obs, null_deviance = ans$dev.null, deviance = ans$dev, tms = mt, capm = ans$capm, capms = ans$capms, capk = ans$capk, capt = ans$capt, capu = ans$capu, xid1 = ans$xid1, xid2 = ans$xid2, tid1 = tid1, tid2 = tid2, uid1 = uid1, uid2 = uid2, zid = zid, vals = vals, zid1 = zid1, zid2 = zid2, nsim = nsim, xnms_add = xnms_add, xnms = xnms, ynm = ynm, znms = znms, is_param = is_param, is_fac = is_fac, knots = knots_add, numknots = numknots_add, sps = sps_add, ms = ans$ms, cpar = ans$cpar, pl = pl, idx_s = idx_s, idx = idx, xmat0 = ans$xmat2, knots0 = ans$knots2, numknots0 = ans$numknots2, sps0 = ans$sps2, ms0 = ans$ms2, phihat = ans$phihat)
+  			rslt <- list(etahat = ans$etahat, muhat = ans$muhat, vcoefs = ans$vcoefs, xcoefs = ans$xcoefs, zcoefs = ans$zcoefs, ucoefs = ans$ucoefs, tcoefs = ans$tcoefs, coefs = ans$coefs, cic = ans$cic, d0 = ans$d0, edf0 = ans$edf0, etacomps = ans$etacomps, y = y, xmat_add = xmat_add, zmat = zmat, ztb = ztb, tr = tr, umb = umb, tree.delta = tree.delta, umbrella.delta = umbrella.delta, bigmat = ans$bigmat, shapes = shapes_add, shapesx = shapes1_add, shapesx0 = shapes0_add, prior.w = weights, wt = ans$wt, wt.iter = ans$wt.iter, family = family, SSE0 = ans$sse0, SSE1 = ans$sse1, pvals.beta = ans$pvals.beta, se.beta = ans$se.beta, null_df = ans$df.null, df = ans$df, resid_df_obs = ans$resid_df_obs, edf = ans$df_obs, null_deviance = ans$dev.null, deviance = ans$dev, tms = mt, capm = ans$capm, capms = ans$capms, capk = ans$capk, capt = ans$capt, capu = ans$capu, xid1 = ans$xid1, xid2 = ans$xid2, tid1 = tid1, tid2 = tid2, uid1 = uid1, uid2 = uid2, zid = zid, vals = vals, zid1 = zid1, zid2 = zid2, nsim = nsim, xnms_add = xnms_add, xnms = xnms, ynm = ynm, znms = znms, is_param = is_param, is_fac = is_fac, knots = knots_add, numknots = numknots_add, sps = sps_add, ms = ans$ms, cpar = ans$cpar, pl = pl, idx_s = idx_s, idx = idx, xmat0 = ans$xmat2, knots0 = ans$knots2, numknots0 = ans$numknots2, sps0 = ans$sps2, ms0 = ans$ms2, phihat = ans$phihat, pvs = ans$pvs, s.edf = ans$s.edf, bstats = ans$bstats)
   			rslt$call <- cl
   			class(rslt) <- "cgam"
 		} else if (any(grepl("warp", labels, fixed = TRUE)) & !any(grepl("tri", labels, fixed = TRUE))) {
@@ -614,6 +614,8 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
 		if (capl - capls + capu + capt > 0) {
 #new:initialize cvec
 			cvec <- NULL
+#new: initialize face
+            face <- NULL
 			if (wt.iter) {
 				etahat <- etahat.fun(n, y, fml = family$family)
 				gr <- gr.fun(y, etahat, weights, fml = family$family)  
@@ -627,7 +629,9 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
 				for (i in 1:n) {gmat[i,] <- bigmat[,i] * sqrt(wt[i])}
 			  	dsend <- gmat[, (np + 1):(np + capm + capu + capt), drop = FALSE]
                 zsend <- gmat[, 1:np, drop = FALSE] 
-				ans <- coneB(zvec, t(dsend), zsend)
+                #ans <- coneB(zvec, t(dsend), zsend)
+                ans <- coneB(zvec, dsend, zsend)
+                face <- ans$face
 			  	etahat <- t(bigmat) %*% ans$coefs
 			  	if (wt.iter) {
 					muhat <- muhat.fun(etahat, fml = family$family)
@@ -652,7 +656,8 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
 						for (i in 1:n) {gmat[i,] <- bigmat[,i] * sqrt(wt[i])}
 						dsend <- gmat[, (np + 1):(np + capm + capu + capt), drop = FALSE]
         	  			zsend <- gmat[, 1:np, drop = FALSE]
-						ans <- coneB(zvec, t(dsend), zsend)
+                        #ans <- coneB(zvec, t(dsend), zsend)
+                        ans <- coneB(zvec, dsend, zsend, face = face)
 						etahat <- t(bigmat) %*% ans$coefs
 						muhat <- muhat.fun(etahat, fml = family$family)
 						diff <- mean((muhat - oldmu)^2)	
@@ -767,7 +772,24 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
 					mu0 <- mean(y)
 					eta0 <- log(mu0)
 				} else {mu0 <- NULL}
-		} else if (capk + capls > 0 & capl - capls + capt + capu == 0) {
+                #new: get p-values for smooth components
+                    pvs = NULL
+                    s.edf = NULL
+                    bstats = NULL
+                    if (is.numeric(shapes)) {
+                        if (all(shapes >= 9 & shapes < 17)) {
+                            for (i in 1:capl) {
+                                ansi = cgam.pv(y, xmat, zmat, shapes, delta, np, capms, numknotsuse, varlist, family=family, weights=weights, test_id=i, nsims=1000)
+                                pvi = ansi$pv
+                                edfi = 1.5*sum(xcoefs[varlist == i] > 1e-8)
+                                bstati = ansi$bstat
+                                pvs = c(pvs, pvi)
+                                s.edf = c(s.edf, edfi)
+                                bstats = c(bstats, bstati)
+                            }
+                        }
+                    }
+                } else if (capk + capls > 0 & capl - capls + capt + capu == 0) {
 			if (is.null(weights)) {
 				weights <- 1:n*0 + 1
 			}
@@ -901,6 +923,8 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
 ##########
 		  if (capl - capls + capu + capt > 0 & nsim > 0) {
 	  		dfs <- 1:nsim
+#new: initialize face
+            face <- NULL
 	  		for (isim in 1:nsim) {
 				#set.seed(123)
 	    		ysim <- ysim.fun(n, mu0, fml = family$family)
@@ -916,7 +940,9 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
 					for (i in 1:n) {gmat[i,] <- bigmat[,i] * sqrt(wt[i])}
            			dsend <- gmat[, (np + 1):(np + capm + capu + capt), drop = FALSE]
             		zsend <- gmat[, 1:np, drop = FALSE]
-					ans <- try(coneB(zvec, t(dsend), zsend))
+                    #ans <- try(coneB(zvec, t(dsend), zsend))
+                    ans <- try(coneB(zvec, dsend, zsend))
+                    face <- ans$face
 					if (class(ans) == "try-error") next 
 					if (wt.iter) {
 						etahat <- t(bigmat) %*% ans$coefs
@@ -942,7 +968,8 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
 							for (i in 1:n) {gmat[i,] <- bigmat[,i] * sqrt(wt[i])}
 							dsend <- gmat[, (np + 1):(np + capm + capu + capt), drop = FALSE]
 							zsend <- gmat[, 1:np, drop = FALSE]
-							ans <- try(coneB(zvec, t(dsend), zsend))
+                            #ans <- try(coneB(zvec, t(dsend), zsend))
+                            ans <- try(coneB(zvec, dsend, zsend, face=face))
 							if (class(ans) == "try-error") next 
 							etahat <- t(bigmat) %*% ans$coefs
 							muhat <- muhat.fun(etahat, fml = family$family)
@@ -1127,7 +1154,10 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
 		rslt$numknots <- numknotsuse 
 		rslt$ms <- mslst
 		rslt$capms <- capms
-		rslt$cpar <- cpar 
+		rslt$cpar <- cpar
+        rslt$pvs <- pvs
+        rslt$s.edf <- s.edf
+        rslt$bstats <- bstats
 		#rslt$sdhat2 <- sdhat2
 		return (rslt)
 	}
@@ -1298,14 +1328,18 @@ CicFamily <- function(object) {
     }
     if (fml == "binomial") {
       muhat <- 1:n*0
+      id1 = which(etahat > 100)
+      id2 = which(etahat <= 100)
+      muhat[id1] = 1
+      muhat[id2] = exp(etahat[id2]) / (1 + exp(etahat[id2]))
       #muhat[wt == 0] <- 1
-      for (i in 1:n) {
-        if (etahat[i] > 100) {
-	  muhat[i] <- 1
- 	} else {
-          muhat[i] <- exp(etahat[i]) / (1 + exp(etahat[i]))
-        }
-      }
+      #for (i in 1:n) {
+      #  if (etahat[i] > 100) {
+      #      muhat[i] <- 1
+      #  } else {
+      #    muhat[i] <- exp(etahat[i]) / (1 + exp(etahat[i]))
+      #  }
+      #}
     }
     if (fml == "gaussian") {
       muhat <- etahat
@@ -2494,89 +2528,100 @@ incconcave = function(xs, t, interp = FALSE) {
 #summary.cgam#
 ##############
 summary.cgam <- function(object,...) {
-	if (!is.null(object$zcoefs)) {
-		family <- object$family 
-		resid_df_obs <- object$resid_df_obs
-		wt.iter <- object$wt.iter
-		coefs <- object$zcoefs
-		se <- object$se.beta
-		tval <- coefs / se
-		pvalbeta <- object$pvals.beta
-		n <- length(coefs)
-		sse0 <- object$SSE0
-		sse1 <- object$SSE1
-		cic <- object$cic
-		deviance <- object$deviance
-		null_deviance <- object$null_deviance
-		df <- object$df
-		null_df <- object$null_df
-		zid <- object$zid
-		#zid1 <- object$zid1 - 1 - length(shapes)
-		#zid2 <- object$zid2 - 1 - length(shapes)
-#new: zid1, zid2 just index zmat not bigmat
-		zid1 <- object$zid1
-		zid2 <- object$zid2
-		tms <- object$tms
-		is_param <- object$is_param
-		is_fac <- object$is_fac
-		vals <- object$vals
-		if (wt.iter) {
-			rslt1 <- data.frame("Estimate" = round(coefs, 4), "StdErr" = round(se, 4), "z.value" = round(tval, 4), "p.value" = round(pvalbeta, 4))			
-			rownames(rslt1)[1] <- "(Intercept)"
-			if (n > 1) {
-				lzid <- length(zid1)
-				for (i in 1:lzid) {
-					pos1 <- zid1[i]; pos2 <- zid2[i]
-					for (j in pos1:pos2) {
-						if (!is_param[i]) {
-							rownames(rslt1)[j + 1] <- paste(attributes(tms)$term.labels[zid[i] - 1], rownames(rslt1)[j + 1], sep = "")						
-						} else {
-							rownames(rslt1)[j + 1] <- paste(attributes(tms)$term.labels[zid[i] - 1], vals[j], sep = "")						
-						}	
-					}
-				}
-			}
-			rslt1 <- as.matrix(rslt1)
-		} else {
-			rslt1 <- data.frame("Estimate" = round(coefs, 4), "StdErr" = round(se, 4), "t.value" = round(tval, 4), "p.value" = round(pvalbeta, 4))
-			rownames(rslt1)[1] <- "(Intercept)"
-			if (n > 1) {
-				lzid <- length(zid1)
-				for (i in 1:lzid) {
-					pos1 <- zid1[i]; pos2 <- zid2[i]; 
-					for (j in pos1:pos2) {
-						if (!is_param[i]) {
-							rownames(rslt1)[j + 1] <- paste(attributes(tms)$term.labels[zid[i] - 1], rownames(rslt1)[j + 1], sep = "")						
-						} else {
-							rownames(rslt1)[j + 1] <- paste(attributes(tms)$term.labels[zid[i] - 1], vals[j], sep = "")						
-						}	
-					}
-				}
-			}
-			rslt1 <- as.matrix(rslt1)
-		}
-		#if (!is.null(sse0) & !is.null(sse1)) {
-			#rslt2 <- cbind(SSE.Linear = sse0, SSE.Full = sse1)
-#new:
-		#	rslt2 <- data.frame("SSE.Linear" = sse0, "SSE.Full" = sse1)
-		#	rownames(rslt2)[1] <- ""
-		#	ans <- list(call = object$call, coefficients = rslt1, residuals = rslt2, zcoefs = coefs, cic = cic, null_deviance = null_deviance, null_df = null_df, deviance = deviance, df = df, resid_df_obs = resid_df_obs, family = family) 
-		#	class(ans) <- "summary.cgam"
-		#	ans
-		#} else {
-			phihat <- NULL
-			if (family$family == "Gamma") {
-				phihat <- object$phihat
-			}
-			ans <- list(call = object$call, coefficients = rslt1, zcoefs = coefs, cic = cic, null_deviance = null_deviance, null_df = null_df, deviance = deviance, df = df, resid_df_obs = resid_df_obs, family = family, phihat = phihat)
-			class(ans) <- "summary.cgam"
-			ans
-		#}
-	} else {
-		ans <- list(zcoefs = object$zcoefs)
-		class(ans) <- "summary.cgam"
-		ans
-	}
+    if (!is.null(object$zcoefs)) {
+        family <- object$family
+        resid_df_obs <- object$resid_df_obs
+        wt.iter <- object$wt.iter
+        coefs <- object$zcoefs
+        se <- object$se.beta
+        tval <- coefs / se
+        pvalbeta <- object$pvals.beta
+        n <- length(coefs)
+        sse0 <- object$SSE0
+        sse1 <- object$SSE1
+        cic <- object$cic
+        deviance <- object$deviance
+        null_deviance <- object$null_deviance
+        df <- object$df
+        null_df <- object$null_df
+        zid <- object$zid
+        #zid1 <- object$zid1 - 1 - length(shapes)
+        #zid2 <- object$zid2 - 1 - length(shapes)
+        #new: zid1, zid2 just index zmat not bigmat
+        zid1 <- object$zid1
+        zid2 <- object$zid2
+        tms <- object$tms
+        is_param <- object$is_param
+        is_fac <- object$is_fac
+        vals <- object$vals
+        pvs <- object$pvs
+        s.edf <- object$s.edf
+        bstats <- object$bstats
+        if (wt.iter) {
+            rslt1 <- data.frame("Estimate" = round(coefs, 4), "StdErr" = round(se, 4), "z.value" = round(tval, 4), "p.value" = round(pvalbeta, 4))
+            rownames(rslt1)[1] <- "(Intercept)"
+            if (n > 1) {
+                lzid <- length(zid1)
+                for (i in 1:lzid) {
+                    pos1 <- zid1[i]; pos2 <- zid2[i]
+                    for (j in pos1:pos2) {
+                        if (!is_param[i]) {
+                            rownames(rslt1)[j + 1] <- paste(attributes(tms)$term.labels[zid[i] - 1], rownames(rslt1)[j + 1], sep = "")
+                        } else {
+                            rownames(rslt1)[j + 1] <- paste(attributes(tms)$term.labels[zid[i] - 1], vals[j], sep = "")
+                        }
+                    }
+                }
+            }
+            rslt1 <- as.matrix(rslt1)
+            #new:
+            rslt2 <- NULL
+            if (!is.null(pvs)) {
+                rslt2 <- data.frame("edf" = round(s.edf, 4), "mixture of Beta" = round(bstats, 4), "p.value" = round(pvs, 4))
+                rownames(rslt2) <- attributes(tms)$term.labels
+            }
+            
+        } else {
+            rslt1 <- data.frame("Estimate" = round(coefs, 4), "StdErr" = round(se, 4), "t.value" = round(tval, 4), "p.value" = round(pvalbeta, 4))
+            rownames(rslt1)[1] <- "(Intercept)"
+            if (n > 1) {
+                lzid <- length(zid1)
+                for (i in 1:lzid) {
+                    pos1 <- zid1[i]; pos2 <- zid2[i];
+                    for (j in pos1:pos2) {
+                        if (!is_param[i]) {
+                            rownames(rslt1)[j + 1] <- paste(attributes(tms)$term.labels[zid[i] - 1], rownames(rslt1)[j + 1], sep = "")
+                        } else {
+                            rownames(rslt1)[j + 1] <- paste(attributes(tms)$term.labels[zid[i] - 1], vals[j], sep = "")
+                        }
+                    }
+                }
+            }
+            rslt1 <- as.matrix(rslt1)
+            rslt2 <- NULL
+            if (!is.null(pvs)) {
+                rslt2 <- data.frame("edf" = round(s.edf, 4), "mixture of Beta" = round(bstats, 4), "p.value" = round(pvs, 4))
+                rownames(rslt2) <- attributes(tms)$term.labels
+            }
+        }
+        #if (!is.null(sse0) & !is.null(sse1)) {
+        #rslt2 <- cbind(SSE.Linear = sse0, SSE.Full = sse1)
+        #new:
+        #	rslt2 <- data.frame("SSE.Linear" = sse0, "SSE.Full" = sse1)
+        #	rownames(rslt2)[1] <- ""
+        #	ans <- list(call = object$call, coefficients = rslt1, residuals = rslt2, zcoefs = coefs, cic = cic, null_deviance = null_deviance, null_df = null_df, deviance = deviance, df = df, resid_df_obs = resid_df_obs, family = family)
+        #	class(ans) <- "summary.cgam"
+        #	ans
+        #} else {
+        ans <- list(call = object$call, coefficients = rslt1, coefficients2 = rslt2, zcoefs = coefs, cic = cic, null_deviance = null_deviance, null_df = null_df, deviance = deviance, df = df, resid_df_obs = resid_df_obs, family = family)
+        class(ans) <- "summary.cgam"
+        ans
+        #}
+    } else {
+        ans <- list(zcoefs = object$zcoefs)
+        class(ans) <- "summary.cgam"
+        ans
+    }
 }
 
 #############
@@ -2646,47 +2691,49 @@ summary.wps <- function(object,...) {
 #print.summary.cgam #
 #####################
 print.summary.cgam <- function(x,...) {
-	if (!is.null(x$zcoefs)) {
-	#if (!is.null(x$se.beta)) {
-		cat("Call:\n")
-		print(x$call)
-		cat("\n")
-		cat("Coefficients:")
-		cat("\n")
-		printCoefmat(x$coefficients, P.values = TRUE, has.Pvalue = TRUE)
-		cat("\n")
-		if (x$family$family == "binomial") {
-			cat("(Dispersion parameter for binomial family taken to be 1)",  sep="", "\n")
-		}
-		if (x$family$family == "poisson") {
-			cat("(Dispersion parameter for poisson family taken to be 1)",  sep="", "\n")
-		} 
-		if (x$family$family == "Gamma") {
-			cat("(Dispersion parameter for Gamma family taken to be ", round(x$phihat,7), ")", sep="", "\n")
-		} 
-		if (x$family$family == "gaussian") {
-			cat("(Dispersion parameter for gaussian family taken to be ", round(x$deviance/x$df,7), ")",  sep="", "\n")
-		} 
-		cat("\n")
-		cat("Null deviance: ", round(x$null_deviance,4), " ", "on ", x$null_df, " ", "degrees of freedom", sep="", "\n")
-		cat("Residual deviance: ", round(x$deviance,4), " ", "on ", x$resid_df_obs, " ", "observed degrees of freedom", sep="", "\n")
-		#if (is.null(x$cic)) {
-		#	message("CIC value is not available when there is no shape-restricted predictor")
-		#} else {message("CIC: ", round(x$cic,4))}
-		if (!is.null(x$cic)) {
-			cat("CIC: ", round(x$cic,4))
-		}
-		#if (!is.null(x$residuals)) {
-		#	cat("==============================================================", "\n")
-		#	cat("Call:\n")
-		#	print(x$call)
-		#	cat("\n")
-		#	printCoefmat(x$residuals, P.values = TRUE, has.Pvalue = TRUE)
-		#}
-	} else {
-		print ("No linear predictor is defined")	
-		#print ("Residual degree of freedom is negative!")
-	}
+    if (!is.null(x$zcoefs)) {
+        #if (!is.null(x$se.beta)) {
+        cat("Call:\n")
+        print(x$call)
+        cat("\n")
+        cat("Coefficients:")
+        cat("\n")
+        printCoefmat(x$coefficients, P.values = TRUE, has.Pvalue = TRUE)
+        cat("\n")
+        if (x$family$family == "binomial") {
+            cat("(Dispersion parameter for binomial family taken to be 1)", "\n")
+        }
+        if (x$family$family == "poisson") {
+            cat("(Dispersion parameter for poisson family taken to be 1)", "\n")
+        }
+        if (x$family$family == "gaussian") {
+            cat("(Dispersion parameter for gaussian family taken to be ", round(x$deviance/x$df,4),")","\n")
+        }
+        cat("\n")
+        cat("Null deviance: ",round(x$null_deviance,4), "", "on", x$null_df, "", "degrees of freedom", "\n")
+        cat("Residual deviance: ",round(x$deviance,4), "", "on", x$resid_df_obs, "", "observed degrees of freedom", "\n")
+        #if (is.null(x$cic)) {
+        #	message("CIC value is not available when there is no shape-restricted predictor")
+        #} else {message("CIC: ", round(x$cic,4))}
+        if (!is.null(x$coefficients2)) {
+            cat("\n")
+            cat("Approximate significance of smooth terms: \n")
+            printCoefmat(x$coefficients2, P.values = TRUE, has.Pvalue = TRUE)
+        }
+        if (!is.null(x$cic)) {
+            cat("CIC: ", round(x$cic,4))
+        }
+        #if (!is.null(x$residuals)) {
+        #	cat("==============================================================", "\n")
+        #	cat("Call:\n")
+        #	print(x$call)
+        #	cat("\n")
+        #	printCoefmat(x$residuals, P.values = TRUE, has.Pvalue = TRUE)
+        #}
+    } else {
+        print ("No linear predictor is defined")	
+        #print ("Residual degree of freedom is negative!")
+    }
 }
 
 ####################
@@ -2725,7 +2772,7 @@ print.summary.wps <- function(x,...) {
 ##############
 #predict.cgam#
 ##############
-predict.cgam = function(object, newData, interval = c("none", "confidence"),...) {
+predict.cgam = function(object, newData, interval = c("none", "confidence"), level = 0.95, ...) {
 #print (is.data.frame(newData))
 #print (newData)
 #new: 
@@ -3197,7 +3244,9 @@ sh_x = sh = NULL
 			}
 		}
 		yw = y * sqrt(prior.w)
-		ans1 = coneB(yw, spl, zmat)
+        #ans1 = coneB(yw, spl, zmat)
+        ans1 = coneB(yw, t(spl), zmat)
+        face = ans1$face
 		muhat = ans1$yhat
 		#muhat = object$muhat
 		muhat0 = muhat / sqrt(prior.w)
@@ -3214,7 +3263,8 @@ sh_x = sh = NULL
 		for (iloop in 1:nloop) {
 			ysim = muhat0 + rnorm(n)*sighat
 			ysim = ysim * sqrt(prior.w)
-			ans = coneB(ysim, spl, zmat)
+            #ans = coneB(ysim, spl, zmat)
+            ans = coneB(ysim, t(spl), zmat, face = face)
 			cf = round(ans$coefs[(nv+1):(m_acc+nv)], 10)
 			sec = 1:m_acc*0
 			sec[cf > 0] = 1
@@ -3261,8 +3311,11 @@ sh_x = sh = NULL
 		#muhatpr = xmatpr %*% ans1$coefs
 #temp:
 		muhatpr = xmatpr %*% object$coefs[1:ncol(xmatpr), ,drop=FALSE]
-		hl = 2*sqrt(diag(xmatpr%*%acov%*%t(xmatpr)))
-		ans = list(fit = muhatpr, lower = muhatpr - hl, upper = muhatpr + hl)
+#new: C.I. level
+        mult = qnorm((1 - level)/2, lower.tail=FALSE)
+        #hl = 2*sqrt(diag(xmatpr%*%acov%*%t(xmatpr)))
+		hl = mult*sqrt(diag(xmatpr%*%acov%*%t(xmatpr)))
+        ans = list(fit = muhatpr, lower = muhatpr - hl, upper = muhatpr + hl)
 	}
 	return (ans) 
 }
@@ -8161,7 +8214,7 @@ irls = function(y, bigmat, np, nsim = 100, family = gaussian, weights = NULL, cp
 	if (is.null(weights)) {
 		weights = 1:n*0 + 1
 	}
-	sm = 1e-6
+	sm = 1e-8
 	m = dim(bigmat)[1] - np
 # new: initialize cvec
 	cvec = NULL
@@ -8177,7 +8230,9 @@ irls = function(y, bigmat, np, nsim = 100, family = gaussian, weights = NULL, cp
 #np always >= 1	
 		dsend = gmat[, (np + 1):(np + m), drop = FALSE]
         zsend = gmat[, 1:np, drop = FALSE] 
-		ans = coneB(zvec, t(dsend), zsend, msg = FALSE)
+        #ans = coneB(zvec, t(dsend), zsend, msg = FALSE)
+        ans = coneB(zvec, dsend, zsend, msg = FALSE)
+        face = ans$face
 #ans = hingep(zvec, t(dsend), zsend)
 		coef = ans$coefs
 		etahat = t(bigmat) %*% coef 
@@ -8202,8 +8257,8 @@ irls = function(y, bigmat, np, nsim = 100, family = gaussian, weights = NULL, cp
 				gmat = t(bigmat %*% sqrt(diag(wt)))
 				dsend = gmat[, (np + 1):(np + m), drop = FALSE]
         		zsend = gmat[, 1:np, drop = FALSE] 
-				ans = coneB(zvec, t(dsend), zsend, msg = FALSE)
-#ans = hingep(zvec, t(dsend), zsend)
+                #ans = coneB(zvec, t(dsend), zsend, msg = FALSE)
+                ans = coneB(zvec, dsend, zsend, msg = FALSE, face = face)
 				coef = ans$coefs
 				etahat = t(bigmat) %*% coef
 				muhat = muhat.fun(etahat, fml = family$family)
@@ -8272,7 +8327,9 @@ irls = function(y, bigmat, np, nsim = 100, family = gaussian, weights = NULL, cp
             gmat = t(bigmat %*% sqrt(diag(wt)))
            	dsend = gmat[, (np + 1):(np + m), drop = FALSE]
             zsend = gmat[, 1:np, drop = FALSE]
-			ans = try(coneB(zvec, t(dsend), zsend, msg = FALSE))
+            #ans = try(coneB(zvec, t(dsend), zsend, msg = FALSE))
+            ans = try(coneB(zvec, dsend, zsend, msg = FALSE))
+            face = ans$face
 			if (class(ans) == "try-error") next 
 			if (wt.iter) {
 				etahat = t(bigmat) %*% ans$coefs
@@ -8296,7 +8353,8 @@ irls = function(y, bigmat, np, nsim = 100, family = gaussian, weights = NULL, cp
 					gmat = t(bigmat %*% sqrt(diag(wt)))
 					dsend = gmat[, (np + 1):(np + m), drop = FALSE]
 					zsend = gmat[, 1:np, drop = FALSE]
-					ans = try(coneB(zvec, t(dsend), zsend, msg = FALSE))
+                    #ans = try(coneB(zvec, t(dsend), zsend, msg = FALSE))
+                    ans = try(coneB(zvec, dsend, zsend, msg = FALSE, face = face))
 					if (class(ans) == "try-error") next 
 					etahat = t(bigmat) %*% ans$coefs
 					muhat = muhat.fun(etahat, fml = family$family)
@@ -9927,14 +9985,15 @@ if (all(w == 1)) {
 	wt = 1:n*0
 	eta = 1:n*0
 	diff = 100
-	i = 0
+	nrep = 0
 	olddev = 100
 	oldmu = 1:n*0+1
-	while(diff > 1e-8 & i < 400){
-		i = i+1
+    face = NULL
+	while(diff > 1e-8 & nrep < 400){
+		nrep = nrep+1
 #eta step:
-		fgr(a, y, eta, w) -> gr
-		fwt(a, y, eta, w) -> wt
+		gr = fgr(a, y, eta, w)
+		wt = fwt(a, y, eta, w)
 		q0 = diag(as.vector(wt))
 		cvec = wt * eta - gr
 		zvec = 1:n*0
@@ -9952,7 +10011,13 @@ if (all(w == 1)) {
 			zsend = NULL
 		}
 		if ((capm + capt + capu) > 0) {
-			ans = coneB(zvec, dsend, vmat = zsend)
+            #ans = coneB(zvec, dsend, vmat = zsend)
+            if (nrep > 1) {
+                ans = coneB(zvec, t(dsend), vmat = zsend, face = face)
+            } else {
+                ans = coneB(zvec, t(dsend), vmat = zsend)
+                face = ans$face
+            }
 			#ans = coneB(zvec, t(dsend))			
 			bh = coef(ans) 
 		} else {
@@ -9962,8 +10027,8 @@ if (all(w == 1)) {
 #a step:
 #res = optim(a, fmin, gr = gmin, hessian = TRUE)
 #a = res$par
-		fgr_a(a, y, eta, w) -> gr_a
-		fwt_a(a, y, eta, w) -> wt_a
+        gr_a = fgr_a(a, y, eta, w)
+		wt_a = fwt_a(a, y, eta, w)
 		qmat_a = wt_a	
 		a = a - solve(qmat_a, gr_a)
 #a = atil + bh[1]
@@ -10396,13 +10461,14 @@ polr_getedf = function(ysim, bigmat, np, capm, shapes, w = NULL) {
 	wt = 1:n*0
 	eta = 1:n*0
 	diff = 100
-	i = 0
+	nrep = 0
 	oldmu = 1:n*0+1
-	while(diff > 1e-5 & i < 400){
-		i = i+1
+    face = NULL
+	while(diff > 1e-8 & nrep < 400){
+		nrep = nrep+1
 #eta step:
-		fgr(a, ysim, eta, w) -> gr
-		fwt(a, ysim, eta, w) -> wt
+		gr = fgr(a, ysim, eta, w)
+        wt = fwt(a, ysim, eta, w)
 		q0 = diag(as.vector(wt))
 		cvec = wt * eta - gr
 		zvec = 1:n*0
@@ -10421,7 +10487,13 @@ polr_getedf = function(ysim, bigmat, np, capm, shapes, w = NULL) {
 		}
 		#print (dsend)
 		if (capm > 0) {
-			ans = coneB(zvec, dsend, vmat = zsend)
+            #ans = coneB(zvec, dsend, vmat = zsend)
+            if (nrep > 1) {
+                ans = coneB(zvec, t(dsend), vmat = zsend, face = face)
+            } else {
+                ans = coneB(zvec, t(dsend), vmat = zsend)
+                face = ans$face
+            }
 			bh = coef(ans) 
 		} else {
 			bh = solve(t(zsend) %*% zsend, t(zsend) %*% zvec)	
@@ -10432,8 +10504,8 @@ polr_getedf = function(ysim, bigmat, np, capm, shapes, w = NULL) {
 #res = optim(a, fmin, gr = gmin)
 #a = res$par
 #print (a)
-		fgr_a(a, ysim, eta,  w) -> gr_a
-		fwt_a(a, ysim, eta, w) -> wt_a
+		gr_a = fgr_a(a, ysim, eta,  w)
+		wt_a = fwt_a(a, ysim, eta, w)
 		qmat_a = wt_a	
 		a = a - solve(qmat_a, gr_a)
 #a = atil + bh[1]
@@ -10685,4 +10757,326 @@ getbin = function(num, capl) {
 	binrep
 }
 
+########################################################
+#cgam.pv:get p-values for smooth-constrained components#
+########################################################
+cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL, numknotsuse=NULL, varlist=NULL, family=gaussian(), weights=NULL, test_id=1, nsims=1000, skip=TRUE) {
+    n = length(y)
+    cicfamily <- CicFamily(family)
+    llh.fun <- cicfamily$llh.fun
+    #new: use log link in gamma
+    linkfun <- cicfamily$linkfun
+    etahat.fun <- cicfamily$etahat.fun
+    gr.fun <- cicfamily$gr.fun
+    wt.fun <- cicfamily$wt.fun
+    zvec.fun <- cicfamily$zvec.fun
+    muhat.fun <- cicfamily$muhat.fun
+    ysim.fun <- cicfamily$ysim.fun
+    deriv.fun <- cicfamily$deriv.fun
+    dev.fun <- cicfamily$dev.fun
+    
+    capl = length(xmat) / n
+    if (capl < 1) {capl = 0}
+    capk = length(zmat) / n
+    if (capk < 1) {capk = 0}
+    capls = sum(shapes == 17)
+    one = 1:n*0 + 1
+    if (!skip) {
+        numknots = c(0,0,0)
+        knots = list(); for (i in 1:3) knots[[i]] = 0
+        space = rep('E',3)
+        
+        delta <- NULL
+        varlist <- NULL
+        xid1 <- NULL; xid2 <- NULL; xpos2 <- 0
+        knotsuse <- list(); numknotsuse <- NULL
+        mslst <- list()
+        #new:
+        capm <- 0
+        capms <- 0
+        
+        del1_ans <- makedelta(xmat[, 1], shapes[1], numknots[1], knots[[1]], space = space[1])
+        del1 <- del1_ans$amat
+        knotsuse[[1]] <- del1_ans$knots
+        mslst[[1]] <- del1_ans$ms
+        numknotsuse <- c(numknotsuse, length(del1_ans$knots))
+        m1 <- length(del1) / n
+        #new code: record the number of columns of del1 if shapes0[1] == 17:
+        if (shapes[1] == 17) {capms <- capms + m1}
+        var1 <- 1:m1*0 + 1
+        xpos1 <- xpos2 + 1
+        xpos2 <- xpos2 + m1
+        xid1 <- c(xid1, xpos1)
+        xid2 <- c(xid2, xpos2)
+        if (capl == 1) {
+            delta <- del1
+            varlist <- var1
+        } else {
+            for (i in 2:capl) {
+                #new code:
+                del2_ans <- makedelta(xmat[,i], shapes[i], numknots[i], knots[[i]], space = space[i])
+                del2 <- del2_ans$amat
+                knotsuse[[i]] <- del2_ans$knots
+                mslst[[i]] <- del2_ans$ms
+                numknotsuse <- c(numknotsuse, length(del2_ans$knots))
+                m2 <- length(del2) / n
+                #new code: record the number of columns of del2 if shapes0[i] == 17:
+                if (shapes[i] == 17) {capms <- capms + m2}
+                xpos1 <- xpos2 + 1
+                xpos2 <- xpos2 + m2
+                xid1 <- c(xid1, xpos1)
+                xid2 <- c(xid2, xpos2)
+                delta <- rbind(del1, del2)
+                varlist <- 1:(m1 + m2)*0
+                varlist[1:m1] <- var1
+                varlist[(m1 + 1):(m1 + m2)] <- (1:m2)*0 + i
+                var1 <- varlist
+                m1 <- m1 + m2
+                del1 <- delta
+            }
+        }
+    }
+    umbrella.delta = tree.delta = NULL
+    #ignore ut for now
+    delta_ut = NULL; caput = 0
+    if (!is.null(umbrella.delta) | !is.null(tree.delta)) {
+        delta_ut = rbind(umbrella.delta, tree.delta)
+        caput = nrow(delta_ut)
+    }
+    #del1 is edges for the component being tested; del0 is the cone with del1 removed
+    del1 = t(delta[varlist == test_id, ])
+    if (sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13) > 0 & capk > 0) {
+        del0 = cbind(t(delta[varlist != test_id, ]), one, zmat, xmat[, shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13])
+        del = cbind(t(delta), one, zmat, xmat[, shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13])
+        np = 1 + capk + sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13)  + capms
+    } else if (sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13) > 0 & capk == 0) {
+        del0 = cbind(t(delta[varlist != test_id, ]), one, xmat[, shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13])
+        del = cbind(t(delta), one, xmat[, shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13])
+        np = 1 + sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13) + capms
+    } else if (sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13) == 0 & capk > 0) {
+        del0 = cbind(t(delta[varlist != test_id, ]), one, zmat)
+        del = cbind(t(delta), one, zmat)
+        np = 1 + capk + capms
+    } else if (sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13) == 0 & capk == 0) {
+        del0 = cbind(t(delta[varlist != test_id, ]), one)
+        del = cbind(t(delta), one)
+        np = 1 + capms
+    } else {
+        print ("error in capk, shapes!")
+    }
+    
+    m0 = dim(del0)[2]
+    m = dim(del)[2]
+    
+    #nkts is the col number of edges for each component
+    nkts = numknotsuse
+    id_add = which(shapes >= 13 & shapes <= 17)
+    if (length(id_add) >= 1) {
+        nkts[id_add] = nkts[id_add] + 1
+    }
+    nr = sum(nkts)
+    nc = nr + np
+    amat = matrix(0, nrow=nr, ncol=nc)
+    for(i in 1:nr){amat[i,i]=1}
+    
+    nr0 = sum(nkts) - nkts[test_id]
+    nc0 = nr0 + np
+    amat0 = matrix(0, nrow=nr0, ncol=nc0)
+    
+    #when there is only one component, flat vs s.incr
+    if (nr0 > 0) {
+        for(i in 1:nr0){amat0[i,i]=1}
+    } #else {'Use shapereg in coneproj'}
+    wt.iter = FALSE
+    if (family$family == "binomial" | family$family == "poisson") {
+        wt.iter = TRUE
+    }
+    if (!wt.iter) {
+        if (is.null(weights)) {
+            weights = 1:n*0 + 1
+        }
+        w = weights
+        ### null hyp fit
+        ytil = y*sqrt(w)
+        deltil = del0
+        for(i in 1:m0){deltil[,i] = deltil[,i]*sqrt(w)}
+        if (capl > 1) {
+            umat = chol(crossprod(deltil))
+            uinv = solve(umat)
+            ytiltil = t(uinv) %*% crossprod(deltil, ytil)
+            atil = amat0 %*% uinv
+            
+            ans = coneA(ytiltil, atil)
+            chat = uinv %*% ans$thetahat
+            mu1 = del0 %*% chat
+            #d0 = cbind(del2, del3)
+        } else {
+            cvec = t(deltil) %*% ytil
+            chat = solve(crossprod(deltil), cvec)
+            mu1 = del0 %*% chat
+        }
+        
+        if (capl > 1) {
+            d0 = t(delta[varlist != test_id, ])
+            pr0 = -d0 %*% solve(crossprod(d0), t(d0))
+            for(i in 1:n){pr0[i,i] = 1+pr0[i,i]}
+            d1tr = pr0 %*% del1
+        } else {
+            d1tr = del1
+        }
+        ##  do weighted projection of xi=z, weights w, onto d1tr cone
+        d1trw = d1tr
+        nk1 = nkts[test_id]
+        for(i in 1:nk1){d1trw[,i] = d1tr[,i]*sqrt(w)}
+        ans1 = coneB(ytil, d1trw)
+        num = sum((d1trw%*%ans1$coef)^2)
+        
+        ## do weighted projection of xi=z, weights w, onto big cone
+        delw = del
+        for(i in 1:m){delw[,i]=del[,i]*sqrt(w)}
+        
+        ans2 = coneB(ytil,delw[,1:(m-np)],delw[,(m-np+1):m])
+        coef0 = ans2$coef
+        coef = coef0
+        coef[1:(m-np)] = coef0[(np+1):m]
+        coef[(m-np+1):m] = coef0[1:np]
+        ss2 = sum((ytil-delw%*%coef)^2)
+        #        ss2 = sum((ytil-delw[,1:(m-np)]%*%ans2$coef[(np+1):m]-delw[,(m-np+1):m]*ans2$coef[1:np])^2)
+        #        df2 = n-sum(abs(ans2$coef)>1e-8)
+        df2 = n - m
+        bstat = num/(num+ss2)
+        ## get mixing distn
+        
+        mdist = 0:nk1*0
+        for(isims in 1:nsims){
+            ysim = rnorm(n)
+            anss = coneB(ysim, d1trw)
+            d = sum(anss$coef>1e-8)
+            mdist[d+1] = mdist[d+1]+1
+        }
+        mdist = mdist/nsims
+        
+        pval = mdist[1]
+        for(i in 1:nk1){
+            pval = pval+pbeta(bstat,i/2,df2/2)*mdist[i+1]
+        }
+        pv = 1-pval
+    } else {
+        ### null hyp fit
+        eta0 = 1:n*0
+        z = 1:n
+        mu0 = muhat.fun(eta0, fml=family$family)
+        mu1 = mu0
+        if (is.null(weights)) {
+            weights = 1:n*0 + 1
+        }
+        prior.w = weights
+        end = FALSE; nrep = 0; face = NULL
+        while (!end & nrep < 400) {
+            nrep = nrep+1
+            if (family$famil == "binomial") {
+                ch = mu0>1e-7 & mu0<1-1e-7
+            }
+            if (family$famil == "poisson") {
+                ch = mu0>1e-7
+            }
+            z[ch] = eta0[ch] + (y[ch]-mu0[ch]) * deriv.fun(mu0[ch], fml = family$family)
+            z[!ch] = eta0[!ch]
+            w = as.vector(prior.w * (deriv.fun(mu0, fml = family$family))^(-1))
+            #to avoid deltil to be singular
+            w[which(round(w, 7) == 0)] = 1e-7
+            ztil = z*sqrt(w)
+            deltil = del0
+            for(i in 1:m0){deltil[,i] = deltil[,i]*sqrt(w)}
+            if (capl > 1) {
+                umat = chol(crossprod(deltil))
+                uinv = solve(umat)
+                ztiltil = t(uinv) %*% crossprod(deltil, ztil)
+                atil = amat0 %*% uinv
+                #if (nrep > 1) {
+                ans = coneA(ztiltil, atil, face=face)
+                #} else {
+                #    ans = coneA(ztiltil, atil)
+                #    face = ans$face
+                #if (nrep == 107 | nrep == 108) {
+                #    print (face)
+                #}
+                #}
+                chat = uinv %*% ans$thetahat
+            } else {
+                cvec = t(deltil) %*% ztil
+                chat = solve(crossprod(deltil), cvec)
+            }
+            eta1 = del0 %*% chat
+            mu1 = muhat.fun(eta1, fml=family$family)
+            ch2 = mu1 > 2*max(y)
+            if (length(ch2) >= 1) {
+                mu1[ch2] = 2*max(y)
+            }
+            dist = sqrt(sum(mu0-mu1)^2/sum(mu0^2))
+            if (dist < 1e-5){end = TRUE} else {eta0=eta1;mu0=mu1}
+        }
+        if (capl > 1) {
+            d0 = t(delta[varlist != test_id, ])
+            #pr0 = -d0%*%solve(crossprod(d0), t(d0))
+            #for(i in 1:n){pr0[i,i] = 1+pr0[i,i]}
+            #d1tr = pr0%*%del1
+            
+            ##  do weighted projection of xi=z, weights w, onto d1tr cone
+            
+            #d1trw = d1tr
+            #nk1 = nkts[test_id]
+            #for(i in 1:nk1){d1trw[,i] = d1tr[,i]*sqrt(w)}
+            
+            #to make sure edges are orthogonal:
+            m0a = dim(d0)[2]
+            d0w = d0
+            for(i in 1:m0a){d0w[,i] = d0[,i]*sqrt(w)}
+            pr0 = -d0w %*% solve(t(d0w) %*% d0w) %*% t(d0w)
+            for(i in 1:n){pr0[i,i]=1+pr0[i,i]}
+        }
+        del1w = del1
+        nk1 = nkts[test_id]
+        for(i in 1:nk1){del1w[,i] = del1[,i]*sqrt(w)}
+        if (capl > 1) {
+            d1trw = pr0%*%del1w
+        } else {
+            d1trw = del1w
+        }
+        ans1 = coneB(ztil, d1trw)
+        num = sum((d1trw %*% ans1$coef)^2)
+        
+        ## do weighted projection of xi=z, weights w, onto big cone
+        delw = del
+        for(i in 1:m){delw[,i] = del[,i]*sqrt(w)}
+        
+        ans2 = coneB(ztil,delw[,1:(m-np)],delw[,(m-np+1):m])
+        coef0 = ans2$coef
+        coef = coef0
+        coef[1:(m-np)] = coef0[(np+1):m]
+        coef[(m-np+1):m] = coef0[1:np]
+        #ss2 = sum((ztil-delw[,1:(m-np)]%*%ans2$coef[(np+1):m]-delw[,(m-np+1):m]*ans2$coef[1:np])^2)
+        ss2 = sum((ztil-delw%*%coef)^2)
+        #df2=n-sum(abs(ans2$coef)>1e-8)
+        df2 = n - m
+        bstat = num/(num+ss2)
+        
+        mdist = 0:nk1*0
+        for(isims in 1:nsims){
+            zsim = rnorm(n)
+            anss = coneB(zsim, d1trw)
+            d = sum(anss$coef>1e-8)
+            mdist[d+1] = mdist[d+1]+1
+        }
+        mdist = mdist/nsims
+        
+        pval = mdist[1]
+        for(i in 1:nk1){
+            pval = pval+pbeta(bstat,i/2,df2/2)*mdist[i+1]
+        }
+        pv = 1-pval
+    }
+    ans = list(pv = pv, edf = sum(abs(ans2$coef)>1e-8), coef=ans2$coef, bstat=bstat)
+    return (ans)
+}
 

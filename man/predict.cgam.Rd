@@ -6,13 +6,14 @@
 \description{Predicted values based on a cgam object}
 
 \usage{
-\method{predict}{cgam}(object, newData, interval = c("none", "confidence"),...)
+\method{predict}{cgam}(object, newData, interval = c("none", "confidence"), level = 0.95,...)
 }
 
 \arguments{
   \item{object}{A cgam object.}
   \item{newData}{A data frame in which to look for variables with which to predict. If omitted, the fitted values are used.}
   \item{interval}{Type of interval calculation.}
+  \item{level}{Tolerance/confidence level.}
    \item{\dots}{Further arguments passed to the routine.}
 }
 
@@ -58,6 +59,17 @@ splines with application to estimation of tree height
 	# make a data frame 
 	x0 <- seq(min(x), max(x), by = 0.05)
 	new.Data <- data.frame(x = x0)
+
+	# predict values in new.Data based on the cgam fit without a confidence interval
+	pfit <- predict(fit, new.Data)
+	
+	# or 
+	pfit <- predict(fit, new.Data, interval = "none")
+	
+	# make a plot to check the prediction
+	plot(x, y, main = "Predict Method for CGAM")
+	lines(sort(x), (fitted(fit)[order(x)]))
+	points(x0, pfit$fit, col = 2, pch = 20)
 
 	# predict values in new.Data based on the cgam fit with a confidence interval
 	pfit <- predict(fit, new.Data, interval = "confidence")
