@@ -7,3 +7,6 @@
 * Add p-value for each non-parametrically modeled component
 * coneB uses columns of "delta" as edges
 
+1.9
+* Debug the p-value part in a summary table when there is a categorical covariate
+* Debug predict.cgam when all predictors are unconstrained

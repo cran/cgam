@@ -790,134 +790,140 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
                         }
                     }
                 } else if (capk + capls > 0 & capl - capls + capt + capu == 0) {
-			if (is.null(weights)) {
-				weights <- 1:n*0 + 1
-			}
-			prior.w <- weights
-			vmat <- t(bigmat[1:np, , drop = FALSE])	
-			if (wt.iter) {
-				nrep <- 0
-				muhat <- mean(y) + 1:n*0
-				etahat <- linkfun(muhat)
-				diff <- 1
-				if (family$family == "binomial") {
-					mdiff <- abs(max(muhat) - 1) > sm	
-				} else {mdiff <- TRUE}
-				while (diff > sm & mdiff & nrep < n^2) {
-					nrep <- nrep + 1
-					oldmu <- muhat
-					zhat <- etahat + (y - muhat) * deriv.fun(muhat, fml = family$family)				
-					#w <- diag(as.vector(prior.w / deriv.fun(muhat)))		
-					#w <- diag(as.vector(prior.w * (deriv.fun(muhat, fml = family$family))^(-1)))
-					#b <- solve(t(vmat) %*% w %*% vmat) %*% t(vmat) %*% w %*% zhat
-					w <- as.vector(prior.w * (deriv.fun(muhat, fml = family$family))^(-1))
- 					tvmat <- t(vmat)
- 					for (i in 1:n) {tvmat[,i] <- tvmat[,i] * w[i]}
- 					#print (tvmat)
-					b <- solve(tvmat %*% vmat) %*% tvmat %*% zhat
-					etahat <- vmat %*% b
-					muhat <- muhat.fun(etahat, fml = family$family)		
-					diff <- mean((muhat - oldmu)^2)	
-					mdiff <- abs(max(muhat) - 1)
-					if (family$family == "binomial") {
-						mdiff <- abs(max(muhat) - 1) > sm	
-					} else {mdiff <- TRUE}
-				}
-				zcoefs <- b[1:(capk + 1)]
-				#se.beta <-  sqrt(diag(solve(t(vmat) %*% w %*% vmat)))[1:(capk + 1)]
-				se.beta <- sqrt(diag(solve(tvmat %*% vmat)))[1:(capk + 1)]
-				zstat <- zcoefs / se.beta
-				pvals.beta <-  1 - pchisq(zstat^2, df = 1)
+                    if (is.null(weights)) {
+                        weights <- 1:n*0 + 1
+                    }
+                    prior.w <- weights
+                    vmat <- t(bigmat[1:np, , drop = FALSE])
+                    if (wt.iter) {
+                        nrep <- 0
+                        muhat <- mean(y) + 1:n*0
+                        etahat <- linkfun(muhat)
+                        diff <- 1
+                        if (family$family == "binomial") {
+                            mdiff <- abs(max(muhat) - 1) > sm
+                        } else {mdiff <- TRUE}
+                        while (diff > sm & mdiff & nrep < n^2) {
+                            nrep <- nrep + 1
+                            oldmu <- muhat
+                            zhat <- etahat + (y - muhat) * deriv.fun(muhat, fml = family$family)
+                            #w <- diag(as.vector(prior.w / deriv.fun(muhat)))
+                            #w <- diag(as.vector(prior.w * (deriv.fun(muhat, fml = family$family))^(-1)))
+                            #b <- solve(t(vmat) %*% w %*% vmat) %*% t(vmat) %*% w %*% zhat
+                            w <- as.vector(prior.w * (deriv.fun(muhat, fml = family$family))^(-1))
+                            tvmat <- t(vmat)
+                            for (i in 1:n) {tvmat[,i] <- tvmat[,i] * w[i]}
+                            #print (tvmat)
+                            b <- solve(tvmat %*% vmat) %*% tvmat %*% zhat
+                            etahat <- vmat %*% b
+                            muhat <- muhat.fun(etahat, fml = family$family)
+                            diff <- mean((muhat - oldmu)^2)
+                            mdiff <- abs(max(muhat) - 1)
+                            if (family$family == "binomial") {
+                                mdiff <- abs(max(muhat) - 1) > sm
+                            } else {mdiff <- TRUE}
+                        }
+                        zcoefs <- b[1:(capk + 1)]
+                        #se.beta <-  sqrt(diag(solve(t(vmat) %*% w %*% vmat)))[1:(capk + 1)]
+                        se.beta <- sqrt(diag(solve(tvmat %*% vmat)))[1:(capk + 1)]
+                        zstat <- zcoefs / se.beta
+                        pvals.beta <-  1 - pchisq(zstat^2, df = 1)
 #new: gamma only
-				if (family$family == "Gamma") {
-					phihat <- sum(((y - muhatkeep) / muhatkeep)^2) / (n - np)	
-				} else {phihat <- NULL}
-			} else {
-				#w <- diag(prior.w)
-				#b <- solve(t(vmat) %*% w %*% vmat) %*% t(vmat) %*% w %*% y
-				w <- prior.w
-				tvmat <- t(vmat)
-				for (i in 1:n) {tvmat[,i] <- tvmat[,i] * w[i]}
-				b <- solve(tvmat %*% vmat) %*% tvmat %*% y
-				etahat <- vmat %*% b
-				muhat <- muhat.fun(etahat, fml = family$family)	
-				sdhat2 <- sum(prior.w * (y - muhat)^2) / (n - np)
-				zcoefs <- b[1:(capk + 1)]
-				se.beta <- sqrt(diag(solve(tvmat %*% vmat) * sdhat2))[1:(capk + 1)]
-				tstat <- zcoefs / se.beta
-				pvals.beta <-  (1 - pt(abs(tstat), df = n - np)) * 2 
-			}
+                        if (family$family == "Gamma") {
+                            phihat <- sum(((y - muhatkeep) / muhatkeep)^2) / (n - np)
+                        } else {phihat <- NULL}
+                    } else {
+                        #w <- diag(prior.w)
+                        #b <- solve(t(vmat) %*% w %*% vmat) %*% t(vmat) %*% w %*% y
+                        w <- prior.w
+                        tvmat <- t(vmat)
+                        for (i in 1:n) {tvmat[,i] <- tvmat[,i] * w[i]}
+                        b <- solve(tvmat %*% vmat) %*% tvmat %*% y
+                        etahat <- vmat %*% b
+                        muhat <- muhat.fun(etahat, fml = family$family)
+                        sdhat2 <- sum(prior.w * (y - muhat)^2) / (n - np)
+                        zcoefs <- b[1:(capk + 1)]
+                        se.beta <- sqrt(diag(solve(tvmat %*% vmat) * sdhat2))[1:(capk + 1)]
+                        tstat <- zcoefs / se.beta
+                        pvals.beta <-  (1 - pt(abs(tstat), df = n - np)) * 2
+                    }
 #add thvecs if capls > 0:
-			thvecs <- NULL
-			if (capls > 0) {
-				thvecs <- matrix(nrow = capls, ncol = n)
-	    		dcoefs <- b[(capk + 2):np]
-	    		for (i in 1:capls) {
-					thvecs[i,] <- t(delta[varlist == i,]) %*% dcoefs[varlist == i]
-	    		}
-			}
+                thvecs <- NULL
+                if (capls > 0) {
+                    thvecs <- matrix(nrow = capls, ncol = n)
+                    dcoefs <- b[(capk + 2):np]
+                    for (i in 1:capls) {
+                        thvecs[i,] <- t(delta[varlist == i,]) %*% dcoefs[varlist == i]
+                    }
+                }
 #new:
-			if (sc_y) {
-				y <- y*sc
-				etahat <- etahat*sc
-				muhat <- muhat.fun(etahat, fml = family$family)
-				for (i in 1:nrow(thvecs)) {
-					thvecs[i,] = thvecs[i,] * sc
-				}
-			}
-			llh <- llh.fun(y, muhat, etahat, phihat, n, weights, fml = family$family)
-			df_obs <- np
-			dfmean <- np
-			rslt <- new.env()
-			rslt$family <- family 
-			rslt$wt.iter <- wt.iter 
-			#rslt$wt <- diag(w)
-			rslt$wt <- w
-			rslt$bigmat <- bigmat
-			rslt$etahat <- etahat
-			rslt$muhat <- muhat
-			rslt$d0 <- np
-			rslt$capm <- 0
-			rslt$capms <- capms
-			rslt$capk <- capk
-			rslt$capu <- capu
-			rslt$capt <- capt
-			rslt$xid1 <- xid1 + np - capms
-			rslt$xid2 <- xid2 + np - capms 
-			rslt$dfmean <- dfmean	
-			rslt$edf0 <- dfmean 
-			#rslt$llh <- llh 
-			#if (nsim > 0) {
-			if (family$family == "binomial") {
-				nobs <- sum(prior.w)
-			} else {nobs <- n}
-			if ((nobs - np - 1.5 * (dfmean - np)) <= 0) {
-				rslt$cic <- llh + log(1 + 2 * dfmean / (dfmean - np))
-			} else {
-        		rslt$cic <- llh + log(1 + 2 * dfmean / (nobs - np - 1.5 * (dfmean - np)))
-			}
-			#rslt$cic <- llh + log(1 + 2 * dfmean / (n - np - 1.5 * (dfmean - np)))
-			#}
-			rslt$zcoefs <- zcoefs
-			rslt$coefs <- b
-			rslt$vcoefs <- b
-			rslt$xcoefs <- b[(capk + 2):np]
-			rslt$se.beta <- se.beta 
-			rslt$pvals.beta <- pvals.beta 
-			rslt$dev <- dev.fun(y, muhat, etahat, weights, fml = family$family)$dev
-			rslt$dev.null <- dev.fun(y, muhat, etahat, weights, fml = family$family)$dev.null
-			rslt$df <- n - np 
-			rslt$df.null <- n - 1
-			#rslt$resid_df_obs <- n - np - 1.5 * (df_obs - np)
-			rslt$resid_df_obs <- n - cpar * df_obs
-			rslt$vhat <- etahat 		
-			rslt$vmat <- vmat	
-			rslt$etacomps <- thvecs
-			rslt$knots <- knotsuse
-			rslt$numknots <- numknotsuse 
-			rslt$ms <- mslst
-			return (rslt) 
-		}
+                if (sc_y) {
+                    y <- y*sc
+                    etahat <- etahat*sc
+                    muhat <- muhat.fun(etahat, fml = family$family)
+                    for (i in 1:nrow(thvecs)) {
+                        thvecs[i,] = thvecs[i,] * sc
+                    }
+                }
+                llh <- llh.fun(y, muhat, etahat, phihat, n, weights, fml = family$family)
+                df_obs <- np
+                dfmean <- np
+                rslt <- new.env()
+                rslt$family <- family
+                rslt$wt.iter <- wt.iter
+                #rslt$wt <- diag(w)
+                rslt$wt <- w
+                rslt$bigmat <- bigmat
+                rslt$etahat <- etahat
+                rslt$muhat <- muhat
+                rslt$d0 <- np
+                rslt$capm <- 0
+                rslt$capms <- capms
+                rslt$capk <- capk
+                rslt$capu <- capu
+                rslt$capt <- capt
+                rslt$xid1 <- xid1 + np - capms
+                rslt$xid2 <- xid2 + np - capms
+                rslt$dfmean <- dfmean
+                rslt$edf0 <- dfmean
+                #rslt$llh <- llh
+                #if (nsim > 0) {
+                if (family$family == "binomial") {
+                    nobs <- sum(prior.w)
+                } else {nobs <- n}
+                if ((nobs - np - 1.5 * (dfmean - np)) <= 0) {
+                    rslt$cic <- llh + log(1 + 2 * dfmean / (dfmean - np))
+                } else {
+                    rslt$cic <- llh + log(1 + 2 * dfmean / (nobs - np - 1.5 * (dfmean - np)))
+                }
+                #rslt$cic <- llh + log(1 + 2 * dfmean / (n - np - 1.5 * (dfmean - np)))
+                #}
+                rslt$zcoefs <- zcoefs
+                rslt$coefs <- b
+                rslt$vcoefs <- b
+                rslt$xcoefs <- b[(capk + 2):np]
+                rslt$se.beta <- se.beta
+                rslt$pvals.beta <- pvals.beta
+                rslt$dev <- dev.fun(y, muhat, etahat, weights, fml = family$family)$dev
+                rslt$dev.null <- dev.fun(y, muhat, etahat, weights, fml = family$family)$dev.null
+                rslt$df <- n - np
+                rslt$df.null <- n - 1
+                #rslt$resid_df_obs <- n - np - 1.5 * (df_obs - np)
+                rslt$resid_df_obs <- n - cpar * df_obs
+                rslt$vhat <- etahat
+                rslt$vmat <- vmat
+                rslt$etacomps <- thvecs
+                rslt$knots <- knotsuse
+                rslt$numknots <- numknotsuse
+                rslt$ms <- mslst
+                #new: used for predict when there are only shape == 17 x's
+                #rslt$xmat <- xmat
+                rslt$xmat2 <- xmat
+                rslt$knots2 <- knotsuse
+                rslt$numknots2 <- numknotsuse
+                rslt$ms2 <- mslst
+                return (rslt)
+            }
 ##########
 #get cic#
 ##########
@@ -2601,7 +2607,12 @@ summary.cgam <- function(object,...) {
             rslt2 <- NULL
             if (!is.null(pvs)) {
                 rslt2 <- data.frame("edf" = round(s.edf, 4), "mixture of Beta" = round(bstats, 4), "p.value" = round(pvs, 4))
-                rownames(rslt2) <- attributes(tms)$term.labels
+                #debugged: check more
+                if (!is.null(zid)) {
+                    rownames(rslt2) <- (attributes(tms)$term.labels)[-(zid-1)]
+                } else {
+                    rownames(rslt2) <- (attributes(tms)$term.labels)
+                }
             }
         }
         #if (!is.null(sse0) & !is.null(sse1)) {
