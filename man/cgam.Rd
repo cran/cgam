@@ -8,7 +8,7 @@
   The partial linear generalized additive model is fitted using the method of maximum likelihood, where shape or order restrictions can be imposed on the non-parametrically modelled predictors with optional smoothing, and no restrictions are imposed on the optional parametrically modelled covariate. 
 }
 
-\usage{cgam(formula, nsim = 1e+2, family = gaussian, cpar = 1.2, data = NULL, weights = NULL, 
+\usage{cgam(formula, nsim = 0, family = gaussian, cpar = 1.2, data = NULL, weights = NULL, 
 sc_x = FALSE, sc_y = FALSE, pnt = TRUE, pen = 0)}
 
 \arguments{
@@ -39,7 +39,7 @@ sc_x = FALSE, sc_y = FALSE, pnt = TRUE, pen = 0)}
     }
 }
   \item{nsim}{
-  The number of simulations used to get the cic parameter. The default is nsim = 1e+2. 
+  The number of simulations used to get the cic parameter. The default is nsim = 0. 
 }
   \item{family}{
   A parameter indicating the error distribution and link function to be used in the model. It can be a character string naming a family function or the result of a call to a family function. This is borrowed from the glm routine in the stats package. There are three families used in cgam: gaussian, binomial, poisson, and Gamma. Note that if family = Ord is specified, a proportional odds regression model with shape constraints is fitted. This is under development. 
@@ -211,6 +211,7 @@ See references cited in this section and the official manual (\url{https://cran.
   # "smooth and decreasing" and "smooth and decreasing"
   fit.cgam.s <- cgam(loss ~ s.decr(hard) + s.decr(tens), data = Rubber)
   summary(fit.cgam.s)
+  anova(fit.cgam.s)
   
   # make a 3D plot based on fit.cgam and fit.cgam.s
   plotpersp(fit.cgam, th = 120, main = "3D Plot of a Cgam Fit")

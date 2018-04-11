@@ -10,3 +10,9 @@
 1.9
 * Debug the p-value part in a summary table when there is a categorical covariate
 * Debug predict.cgam when all predictors are unconstrained
+
+1.10
+* Update predict.cgam for binomial responses with a 95% confidence interval
+* Default number of knots in cgam is increased by two
+* add anova table
+* add p-value for categorical predictors
