@@ -9,7 +9,7 @@
 }
 
 \usage{cgam(formula, nsim = 0, family = gaussian, cpar = 1.2, data = NULL, weights = NULL, 
-sc_x = FALSE, sc_y = FALSE, pnt = TRUE, pen = 0)}
+sc_x = FALSE, sc_y = FALSE, pnt = TRUE, pen = 0, var.est = NULL)}
 
 \arguments{
   \item{formula}{
@@ -58,6 +58,7 @@ sc_x = FALSE, sc_y = FALSE, pnt = TRUE, pen = 0)}
   \item{sc_y}{Logical flag indicating if or not the response variable is normalized. The default is sc_y = FALSE.}
   \item{pen}{User-defined penalty parameter. It must be non-negative. It will only be used in a warped-plane spline fit or a triangle spline fit. The default is pen = 0.}
   \item{pnt}{Logical flag indicating if or not penalized constrained regression splines are used. It will only be used in a warped-plane spline fit or a triangle spline fit. The default is pnt = TRUE.}
+  \item{var.est}{To do a monotonic variance function estimation, the user can set var.est = s.incr(x) or var.est = s.decr(x). See \code{\link{s.incr}} and \code{\link{s.decr}} for more details. The default is var.est = NULL.}
 }
 
 \details{
@@ -142,6 +143,8 @@ See references cited in this section and the official manual (\url{https://cran.
   \item{sps}{A character vector storing the \emph{space} parameter to create knots for each shape-restricted predictor.}
   \item{ms}{The centering terms used to make edges for shape-restricted predictors.}
 \item{cpar}{The cpar argument in the cgam formula}
+\item{vh}{The estimated monotonic variance function.}
+\item{kts.var}{The knots used in monotonic variance function estimation.}
   \item{call}{The matched call.}
 }
 
@@ -216,6 +219,51 @@ See references cited in this section and the official manual (\url{https://cran.
   # make a 3D plot based on fit.cgam and fit.cgam.s
   plotpersp(fit.cgam, th = 120, main = "3D Plot of a Cgam Fit")
   plotpersp(fit.cgam.s, tens, hard, data = Rubber, th = 120, main = "3D Plot of a Smooth Cgam Fit")
+
+# Example 4. monotonic variance estimation
+  n <- 400
+  x <- runif(n)
+  sig <- .1 + exp(15*x-8)/(1+exp(15*x-8))
+  e <- rnorm(n)
+  mu <- 10*x^2
+  y <- mu + sig*e
+
+  fit <- cgam(y ~ s.incr.conv(x), var.est = s.incr(x))
+  est.var <- fit$vh
+  muhat <- fit$muhat
+
+  par(mfrow = c(1, 2))
+  plot(x, y)
+  points(sort(x), muhat[order(x)], type = "l", lwd = 2, col = 2)
+  lines(sort(x), (mu)[order(x)], col = 4)
+
+  plot(sort(x), est.var[order(x)], col=2, lwd=2, type="l", 
+  lty=2, ylab="Variance", ylim=c(0, max(c(est.var, sig^2))))
+  points(sort(x), (sig^2)[order(x)], col=1, lwd=2, type="l")
+
+# Example 5. monotonic variance estimation with the lidar data set in SemiPar
+  library(SemiPar)
+  data(lidar)
+
+  fit <- cgam(logratio ~ s.decr(range), var.est=s.incr(range), data=lidar)
+  muhat <- fit$muhat
+  est.var <- fit$vh
+  
+  logratio <- lidar$logratio
+  range <- lidar$range
+  pfit <- predict(fit, newData=data.frame(range=range), interval="confidence", level=0.95)
+  upp <- pfit$upper
+  low <- pfit$lower
+  
+  par(mfrow = c(1, 2))
+  plot(range, logratio)
+  points(sort(range), muhat[order(range)], type = "l", lwd = 2, col = 2)
+  lines(sort(range), upp[order(range)], type = "l", lwd = 2, col = 4)
+  lines(sort(range), low[order(range)], type = "l", lwd = 2, col = 4)
+  title("Smoothly Decreasing Fit with a Point-Wise Confidence Interval", cex.main=0.5)
+  
+  plot(range, est.var, col=2, lwd=2, type="l",lty=2, ylab="variance")
+  title("Smoothly Increasing Variance", cex.main=0.5)
 }
 
 \keyword{cgam routine}

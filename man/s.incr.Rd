@@ -4,24 +4,28 @@
 
 \description{A symbolic routine to define that the systematic component \eqn{\eta} is smooth and increasing in a predictor in a formula argument to cgam. This is the smooth version.}
 
-\usage{s.incr(x, numknots = 0, knots = 0, space = "E")}
+\usage{s.incr(x, numknots = 0, knots = 0, var.knots = 0, space = "E", db.exp = FALSE)}
 
 \arguments{
  \item{x}{A numeric predictor which has the same length as the response vector.}
  \item{numknots}{The number of knots used to constrain \eqn{x}. It will not be used if the user specifies the \emph{knots} argument. The default is numknots = \eqn{0}.}
   \item{knots}{The knots used to constrain \eqn{x}. User-defined knots will be used when given. Otherwise, \emph{numknots} and \emph{space} will be used to create knots. The default is knots = \eqn{0}.}
+  \item{var.knots}{The knots used in variance function estimation. User-defined knots will be used when given. The default is var.knots = \eqn{0}.} 
   \item{space}{A character specifying the method to create knots. It will not be used if the user specifies the \emph{knots} argument. If space == "E", then equally spaced knots will be created; if space == "Q", then a vector of equal \eqn{x} quantiles will be created based on \eqn{x} with duplicate elements removed. The number of knots is \emph{numknots} when \emph{numknots} \eqn{> 0}. Otherwise it is of the order \eqn{n^{1/7}}. The default is space = "E".}
+\item{db.exp}{The parameter will be used in variance function estimation. If db.exp = TRUE, then the errors are assumed to follow a normal distribution; otherwise, the errors are assumed to follow a double-exponential distribution. The default is db.exp = FALSE.}
 }
 
 \value{The vector x with five attributes, i.e., name: the name of x; shape: 9("smooth and increasing"); numknots: the numknots argument in "s.incr"; knots: the knots argument in "s.incr"; space: the space argument in "s.incr".}
 
 \details{
-  "s.incr" returns the vector "x" and imposes on it five attributes: name, shape, numknots, knots and space. 
+  "s.incr" returns the vector "x" and imposes on it seven attributes: name, shape, numknots, knots, space, var.knots and db.exp. 
   
   The name attribute is used in the subroutine plotpersp; the numknots, knots and space attributes are the same as the numknots, knots and space arguments in "s.incr"; the shape attribute is 9("smooth and increasing"). According to the value of the vector itself and its shape, numknots, knots and space attributes, the cone edges will be made by I-spline basis functions in Meyer (2008). The cone edges are a set of basis employed in the hinge algorithm. 
 
   Note that "s.incr" does not make the corresponding cone edges itself. It sets things up to a subroutine called makedelta in cgam.
 
+  var.knots and db.exp will be used for monotonic variance function estimation.
+  
   See references cited in this section for more details.
 }
 

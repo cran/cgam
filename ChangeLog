@@ -14,5 +14,9 @@
 1.10
 * Update predict.cgam for binomial responses with a 95% confidence interval
 * Default number of knots in cgam is increased by two
-* add anova table
-* add p-value for categorical predictors
+* Add anova table
+* Add p-value for categorical predictors
+
+1.11
+* Add cgamm 
+* Add monotonic variance estimation

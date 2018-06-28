@@ -1,7 +1,7 @@
 ######
 #cgam#
 ######
-cgam <- function(formula, nsim = 0, family = gaussian, cpar = 1.2, data = NULL, weights = NULL, sc_x = FALSE, sc_y = FALSE, pnt = TRUE, pen = 0)
+cgam <- function(formula, nsim = 0, family = gaussian, cpar = 1.2, data = NULL, weights = NULL, sc_x = FALSE, sc_y = FALSE, pnt = TRUE, pen = 0, var.est = NULL)
 {
 	cl <- match.call()
     if (is.character(family)) 
@@ -251,7 +251,7 @@ cgam <- function(formula, nsim = 0, family = gaussian, cpar = 1.2, data = NULL, 
   			if (is.null(shapes_add)) {
     			nsim <- 0
   			}
-  			ans <- cgam.fit(y = y, xmat = xmat0_add, zmat = zmat, shapes = shapes0_add, numknots = nums0_add, knots = ks0_add, space = sps0_add, nsim = nsim, family = family, cpar = cpar, wt.iter = wt.iter, umbrella.delta = umbrella.delta, tree.delta = tree.delta, weights = weights, zid = zid, zid1 = zid1, zid2 = zid2, sc_x = sc_x, sc_y = sc_y, idx_s = idx_s, idx = idx)
+  			ans <- cgam.fit(y = y, xmat = xmat0_add, zmat = zmat, shapes = shapes0_add, numknots = nums0_add, knots = ks0_add, space = sps0_add, nsim = nsim, family = family, cpar = cpar, wt.iter = wt.iter, umbrella.delta = umbrella.delta, tree.delta = tree.delta, weights = weights, zid = zid, zid1 = zid1, zid2 = zid2, sc_x = sc_x, sc_y = sc_y, idx_s = idx_s, idx = idx, var.est = var.est, data = data)
   			if (!is.null(uid1) & !is.null(uid2)) {
     			uid1 <- uid1 + ans$d0 + ans$capm
     			uid2 <- uid2 + ans$d0 + ans$capm
@@ -267,7 +267,7 @@ cgam <- function(formula, nsim = 0, family = gaussian, cpar = 1.2, data = NULL, 
   			if (length(knots_add) > 0) {
     			names(knots_add) <- xnms_add
   			}
-  			rslt <- list(etahat = ans$etahat, muhat = ans$muhat, vcoefs = ans$vcoefs, xcoefs = ans$xcoefs, zcoefs = ans$zcoefs, ucoefs = ans$ucoefs, tcoefs = ans$tcoefs, coefs = ans$coefs, cic = ans$cic, d0 = ans$d0, edf0 = ans$edf0, etacomps = ans$etacomps, y = y, xmat_add = xmat_add, zmat = zmat, ztb = ztb, tr = tr, umb = umb, tree.delta = tree.delta, umbrella.delta = umbrella.delta, bigmat = ans$bigmat, shapes = shapes_add, shapesx = shapes1_add, shapesx0 = shapes0_add, prior.w = weights, wt = ans$wt, wt.iter = ans$wt.iter, family = family, SSE0 = ans$sse0, SSE1 = ans$sse1, pvals.beta = ans$pvals.beta, se.beta = ans$se.beta, null_df = ans$df.null, df = ans$df, resid_df_obs = ans$resid_df_obs, edf = ans$df_obs, null_deviance = ans$dev.null, deviance = ans$dev, tms = mt, capm = ans$capm, capms = ans$capms, capk = ans$capk, capt = ans$capt, capu = ans$capu, xid1 = ans$xid1, xid2 = ans$xid2, tid1 = tid1, tid2 = tid2, uid1 = uid1, uid2 = uid2, zid = zid, vals = vals, zid1 = zid1, zid2 = zid2, nsim = nsim, xnms_add = xnms_add, xnms = xnms, ynm = ynm, znms = znms, is_param = is_param, is_fac = is_fac, knots = knots_add, numknots = numknots_add, sps = sps_add, ms = ans$ms, cpar = ans$cpar, pl = pl, idx_s = idx_s, idx = idx, xmat0 = ans$xmat2, knots0 = ans$knots2, numknots0 = ans$numknots2, sps0 = ans$sps2, ms0 = ans$ms2, phihat = ans$phihat, pvs = ans$pvs, s.edf = ans$s.edf, bstats = ans$bstats, pvsz = ans$pvsz, z.edf = ans$z.edf, fstats = ans$fstats)
+  			rslt <- list(etahat = ans$etahat, muhat = ans$muhat, vcoefs = ans$vcoefs, xcoefs = ans$xcoefs, zcoefs = ans$zcoefs, ucoefs = ans$ucoefs, tcoefs = ans$tcoefs, coefs = ans$coefs, cic = ans$cic, d0 = ans$d0, edf0 = ans$edf0, etacomps = ans$etacomps, y = y, xmat_add = xmat_add, zmat = zmat, ztb = ztb, tr = tr, umb = umb, tree.delta = tree.delta, umbrella.delta = umbrella.delta, bigmat = ans$bigmat, shapes = shapes_add, shapesx = shapes1_add, shapesx0 = shapes0_add, prior.w = weights, wt = ans$wt, wt.iter = ans$wt.iter, family = family, SSE0 = ans$sse0, SSE1 = ans$sse1, pvals.beta = ans$pvals.beta, se.beta = ans$se.beta, null_df = ans$df.null, df = ans$df, resid_df_obs = ans$resid_df_obs, edf = ans$df_obs, null_deviance = ans$dev.null, deviance = ans$dev, tms = mt, capm = ans$capm, capms = ans$capms, capk = ans$capk, capt = ans$capt, capu = ans$capu, xid1 = ans$xid1, xid2 = ans$xid2, tid1 = tid1, tid2 = tid2, uid1 = uid1, uid2 = uid2, zid = zid, vals = vals, zid1 = zid1, zid2 = zid2, nsim = nsim, xnms_add = xnms_add, xnms = xnms, ynm = ynm, znms = znms, is_param = is_param, is_fac = is_fac, knots = knots_add, numknots = numknots_add, sps = sps_add, ms = ans$ms, cpar = ans$cpar, pl = pl, idx_s = idx_s, idx = idx, xmat0 = ans$xmat2, knots0 = ans$knots2, numknots0 = ans$numknots2, sps0 = ans$sps2, ms0 = ans$ms2, phihat = ans$phihat, pvs = ans$pvs, s.edf = ans$s.edf, bstats = ans$bstats, pvsz = ans$pvsz, z.edf = ans$z.edf, fstats = ans$fstats, vh = ans$vh, kts.var = ans$kts.var)
   			rslt$call <- cl
   			class(rslt) <- "cgam"
 		} else if (any(grepl("warp", labels, fixed = TRUE)) & !any(grepl("tri", labels, fixed = TRUE))) {
@@ -439,7 +439,7 @@ bmat.fun <- function(x)
 ##########
 #cgam.fit#
 ##########
-cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family = gaussian(), cpar = 1.2, wt.iter = FALSE, umbrella.delta = NULL, tree.delta = NULL, weights = NULL, zid = zid, zid1 = zid1, zid2 = zid2, sc_x = FALSE, sc_y = FALSE, idx_s = NULL, idx = NULL) {
+cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family = gaussian(), cpar = 1.2, wt.iter = FALSE, umbrella.delta = NULL, tree.delta = NULL, weights = NULL, zid = zid, zid1 = zid1, zid2 = zid2, sc_x = FALSE, sc_y = FALSE, idx_s = NULL, idx = NULL, var.est = NULL, data = NULL) {
   	cicfamily <- CicFamily(family)
 	llh.fun <- cicfamily$llh.fun
 #new: use log link in gamma
@@ -633,6 +633,50 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
                 ans <- coneB(zvec, dsend, zsend)
                 face <- ans$face
 			  	etahat <- t(bigmat) %*% ans$coefs
+#new: for monotinic variance estimation
+                vh <- NULL
+                kts.var <- NULL
+                if (!is.null(var.est)) {
+                    #x.var <- var.est
+                    #test more:
+                    if (!is.null(data)) {
+                        nms <- names(data)
+                        nm <- attributes(var.est)$nm
+                        if (nm %in% nms) {
+                            x.var <- data[[nm]]
+                            attributes(x.var) <- attributes(var.est)
+                        }
+                    } else {x.var <- var.est}
+                    db.exp <- attributes(x.var)$db.exp
+                    kts.var <- attributes(x.var)$var.knots
+                    shape.var <- attributes(x.var)$shape
+                    iter <- 0
+                    diff.var <- 100
+                    oldeta <- etahat
+                    evec0 <- y - etahat
+                    #bigwt <- 10*max(evec0)
+                    bigwt <- 1000
+                    while(diff.var > 1e-8 & iter < 10) {
+                        iter <- iter + 1
+                        evec <- y - etahat
+                        fit.var <- varest(evec, x.var, shape=shape.var, var.knots=kts.var, db.exp=db.exp)
+                        v1 <- fit.var$vhat
+                        wt0 <- 1/v1
+                        wt0[wt0 > bigwt] <- bigwt
+                        wt <- wt.fun(y, etahat, n, weights = wt0, fml = family$family)
+                        zvec <- zvec.fun(cvec, wt, y, fml = family$family)
+                        gmat <- t(bigmat)
+                        for (i in 1:n) {gmat[i,] <- bigmat[,i] * sqrt(wt[i])}
+                        dsend <- gmat[, (np + 1):(np + capm + capu + capt), drop = FALSE]
+                        zsend <- gmat[, 1:np, drop = FALSE]
+                        ans <- coneB(zvec, dsend, zsend)
+                        etahat <- t(bigmat) %*% ans$coefs
+                        diff.var <- mean((etahat - oldeta)^2)
+                        oldeta <- etahat
+                    }
+                    kts.var <- fit.var$var.knots
+                    vh <- v1
+                }
 			  	if (wt.iter) {
 					muhat <- muhat.fun(etahat, fml = family$family)
 			  		diff <- 1
@@ -862,6 +906,40 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
                         se.beta <- sqrt(diag(solve(tvmat %*% vmat) * sdhat2))[1:(capk + 1)]
                         tstat <- zcoefs / se.beta
                         pvals.beta <-  (1 - pt(abs(tstat), df = n - np)) * 2
+#new: for var estimation
+                        vh <- NULL
+                        kts.var <- NULL
+                        if (!is.null(var.est)) {
+                            x.var <- var.est
+                            db.exp <- attributes(x.var)$db.exp
+                            kts.var <- attributes(x.var)$var.knots
+                            shape.var <- attributes(x.var)$shape
+                            iter <- 0
+                            diff.var <- 100
+                            oldeta <- etahat
+                            evec0 <- y - oldeta
+                            #bigwt <- 10*max(evec0)
+                            bigwt <- 1000
+                            while(diff.var > 1e-8 & iter < 10) {
+                                iter <- iter + 1
+                                evec <- y - etahat
+                                fit.var <- varest(evec, x.var, shape=shape.var, var.knots=kts.var, db.exp=db.exp)
+                                v1 <- fit.var$vhat
+                                #w <- 1/v1
+                                w0 <- 1/v1
+                                w0[w0 > bigwt] <- bigwt
+                                w <- w0
+                                tvmat <- t(vmat)
+                                for (i in 1:n) {tvmat[,i] <- tvmat[,i] * w[i]}
+                                b <- solve(tvmat %*% vmat) %*% tvmat %*% y
+                                etahat <- vmat %*% b
+                                diff.var <- mean((etahat - oldeta)^2)
+                                oldeta <- etahat
+                                #print (diff.var)
+                            }
+                            kts.var <- fit.var$var.knots
+                            vh <- v1
+                        }
                     }
 #add thvecs if capls > 0:
                 thvecs <- NULL
@@ -938,6 +1016,8 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
                 rslt$knots2 <- knotsuse
                 rslt$numknots2 <- numknotsuse
                 rslt$ms2 <- mslst
+                rslt$vh <- vh
+                rslt$kts.var <- kts.var
                 return (rslt)
             }
 ##########
@@ -1184,6 +1264,8 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
         rslt$pvsz <- pvsz
         rslt$z.edf <- z.edf
         rslt$fstats <- fstats
+        rslt$vh <- vh
+        rslt$kts.var <- kts.var
 		#rslt$sdhat2 <- sdhat2
 		return (rslt)
 	}
@@ -1659,7 +1741,36 @@ decr.conc <- function(x, numknots = 0, knots = 0, space = "E")
     x
 }
 
-s.incr <- function(x, numknots = 0, knots = 0, space = "E")
+#s.incr <- function(x, numknots = 0, knots = 0, space = "E")
+#{
+#    cl <- match.call()
+#    pars <- match.call()[-1]
+#    attr(x, "nm") <- deparse(pars$x)
+#    attr(x, "shape") <- 9
+#    attr(x, "numknots") <- numknots
+#    attr(x, "knots") <- knots
+#    attr(x, "space") <- space
+#    attr(x, "categ") <- "additive"
+#    #class(x) <- "additive"
+#    x
+#}
+
+#s.decr <- function(x, numknots = 0, knots = 0, space = "E")
+#{
+#    cl <- match.call()
+#    pars <- match.call()[-1]
+#    attr(x, "nm") <- deparse(pars$x)
+#    attr(x, "shape") <- 10
+#    attr(x, "numknots") <- numknots
+#    attr(x, "knots") <- knots
+#    attr(x, "space") <- space
+#    attr(x, "categ") <- "additive"
+#    #class(x) <- "additive"
+#    x
+#}
+
+
+s.incr <- function(x, numknots = 0, knots = 0, var.knots = 0, space = "E", db.exp = FALSE)
 {
     cl <- match.call()
     pars <- match.call()[-1]
@@ -1669,23 +1780,28 @@ s.incr <- function(x, numknots = 0, knots = 0, space = "E")
     attr(x, "knots") <- knots
     attr(x, "space") <- space
     attr(x, "categ") <- "additive"
+    attr(x, "db.exp") <- db.exp
+    attr(x, "var.knots") <- var.knots
     #class(x) <- "additive"
     x
 }
 
-s.decr <- function(x, numknots = 0, knots = 0, space = "E") 
+s.decr <- function(x, numknots = 0, knots = 0, var.knots = 0, space = "E", db.exp = FALSE)
 {
     cl <- match.call()
     pars <- match.call()[-1]
     attr(x, "nm") <- deparse(pars$x)
     attr(x, "shape") <- 10
     attr(x, "numknots") <- numknots
-    attr(x, "knots") <- knots	
+    attr(x, "knots") <- knots
     attr(x, "space") <- space
     attr(x, "categ") <- "additive"
+    attr(x, "db.exp") <- db.exp
+    attr(x, "var.knots") <- var.knots
     #class(x) <- "additive"
     x
 }
+
 
 s.conv <- function(x, numknots = 0, knots = 0, space = "E") 
 {
@@ -2852,9 +2968,10 @@ predict.cgam = function(object, newData, interval = c("none", "confidence"), typ
 		#newData = as.data.frame(newData)
 		stop ("newData must be a data frame!")	
 	}
-		#shapes = object$shapes
+    #shapes = object$shapes
 #new: used for ci
 	prior.w = object$prior.w
+    vh = object$vh
 	y = object$y
 #new: only use shapes for x != umb or tree
 	shapes = object$shapesx
@@ -3294,22 +3411,35 @@ sh_x = sh = NULL
             #nsec will be too big for ordinal, ignore for now
             nsec = 2^m_acc
             #print (dim(zmat))
-            if (is.null(prior.w)) {
-                prior.w = rep(1, n)
+            #if (is.null(prior.w)) {
+            #    prior.w = rep(1, n)
+            #}
+            #if (!all(prior.w == 1)) {
+            #    for (i in 1:n) {
+            #        spl[,i] = spl[,i] * sqrt(prior.w[i])
+            #        zmat[i,] = zmat[i,] * sqrt(prior.w[i])
+            #    }
+            #}
+            if (!is.null(vh)) {
+                wvec = 1/vh
+            } else if (is.null(vh) & !is.null(prior.w)) {
+                wvec = prior.w
+            } else if (is.null(vh) & is.null(prior.w)) {
+                wvec = rep(1, n)
             }
-            if (!all(prior.w == 1)) {
+            if (!all(wvec == 1)) {
                 for (i in 1:n) {
-                    spl[,i] = spl[,i] * sqrt(prior.w[i])
-                    zmat[i,] = zmat[i,] * sqrt(prior.w[i])
+                    spl[,i] = spl[,i] * sqrt(wvec[i])
+                    zmat[i,] = zmat[i,] * sqrt(wvec[i])
                 }
             }
-            yw = y * sqrt(prior.w)
+            yw = y * sqrt(wvec)
             #ans1 = coneB(yw, spl, zmat)
             ans1 = coneB(yw, t(spl), zmat)
             face = ans1$face
             muhat = ans1$yhat
             #muhat = object$muhat
-            muhat0 = muhat / sqrt(prior.w)
+            muhat0 = muhat / sqrt(wvec)
             #muhat0 = object$muhat
             #muhat = muhat0 * sqrt(prior.w)
             #print (ans1$df)
@@ -3322,7 +3452,7 @@ sh_x = sh = NULL
             sector = 1:nsec*0
             for (iloop in 1:nloop) {
                 ysim = muhat0 + rnorm(n)*sighat
-                ysim = ysim * sqrt(prior.w)
+                ysim = ysim * sqrt(wvec)
                 #ans = coneB(ysim, spl, zmat)
                 ans = coneB(ysim, t(spl), zmat, face = face)
                 cf = round(ans$coefs[(nv+1):(m_acc+nv)], 10)
@@ -11575,6 +11705,146 @@ print.anova.cgam <- function(x,...){
         cat("Approximate significance of smooth terms: \n")
         printCoefmat(x$coefficients2, P.values = TRUE, has.Pvalue = TRUE)
     }
+}
+
+###############################################
+#subroutines for monotonic variance estimation
+###############################################
+varest = function(y, x, muhat=NULL, shape=9, var.knots=0, db.exp=FALSE){
+    n = length(y)
+    order.id = order(x)
+    #new:rk to order var back
+    #rk = rank(x)
+    #x = x[order.id]
+    xs = sort(x)
+    y = y[order.id]
+    
+    ndegree = 2
+    #if (length(muhat) == 1){
+    #  muhat = rep(0,n)
+    #}
+    #if (length(muhat) == n){
+    #  muhat = muhat
+    #}
+    if (n < 20) {
+        print("ERROR: must have at least 20 observations")
+    }
+    if (length(x) != length(y)) {
+        print("ERROR: length of x must be length of y")
+    }
+    if (length(var.knots) > 1) {
+        var.kint = var.knots[-c(1, length(var.knots))]
+    } else {
+        br = c(30, 100, 200, 400, 700, 1000, 1e+10)
+        obs = 1:7
+        var.nk = min(obs[n < br]) + 2
+        var.knots = 0:(var.nk - 1)/(var.nk - 1) * (max(x) - min(x)) + min(x)
+        var.kint = var.knots[-c(1, length(var.knots))]
+    }
+    nknots = length(var.kint)
+    nk = nknots + 2 + 1
+    
+    #initial coefficients
+    theta0 = seq(1, 0.5, length = nk)
+    dif.theta = 1
+    amat = matrix(0, ncol = nk, nrow = nk)
+    
+    #if (increasing == 1){
+    if (shape == 9) {
+        for (i in 1:(nk - 1)) {
+            amat[i, i] = 1
+            amat[i, i + 1] = -1
+        }
+        amat[nk, nk] = 1
+    }
+    
+    #if (increasing == 2){
+    if (shape == 10) {
+        for (i in 1:(nk - 1)) {
+            amat[i, i] = -1
+            amat[i, i + 1] = 1
+        }
+        amat[nk, 1] = 1
+    }
+    
+    bvec = c(rep(0,nk-1), 10^-10)
+    Bint = bs(xs, knots = var.kint, degree = 2, intercept = T)
+    
+    if (!is.null(muhat)) {
+        r = y - muhat
+    } else {
+        r = y
+    }
+    sm = 1e-6
+    nrep = 0
+    while (dif.theta > sm) {
+        nrep = nrep + 1
+        dl = db.penal(theta0, Bint, r, db.exp)
+        d2l = ddb.penal(theta0, Bint)
+        res = qprog(d2l, c(t(theta0) %*% d2l) - dl, amat, bvec)
+        #if (class(res) == "try-error") {
+        #    break
+        #}
+        theta1.new = res$thetahat
+        var1 = 1/(Bint %*% theta1.new)
+        var0 = 1/(Bint %*% theta0)
+        dif.theta = sum(abs(var1 - var0))/sum(abs(var0))
+        theta0 = theta1.new + 1e-10
+        #print (dif.theta)
+    }
+    res0 = theta1.new
+    
+    if (!db.exp) {
+        vhat = 1/Bint %*% theta1.new
+    } else if (db.exp) {
+        vhat = (1/Bint %*% theta1.new)^2
+    }
+    #new
+    #print (vhat)
+    #vhat = vhat[rk]
+    #print (vhat)
+    vhat=vhat[rank(x)]
+    res = list(vhat = vhat, muhat = muhat, x = x, y = y, var.knots = var.knots)
+    return(res)
+}
+
+#functions used in the varest function for normal errors
+db.penal <- function(betas,B,r, db.exp=FALSE){
+    nk= ncol(B)
+    dl=vector()
+    if (!db.exp) {
+        for (i in 1:nk){
+            dl[i]=sum(-(1/(B%*%betas))*B[,i] + (r^2)*B[,i])
+        }
+    } else {
+        for (i in 1:nk){
+            dl[i]=sum(-(1/(B%*%betas))*B[,i] + sqrt(2)*abs(r)*B[,i])
+        }
+    }
+    return(dl)
+}
+
+ddb.penal <- function(betas,B){
+    nk=ncol(B)
+    d2l=diag(0,nk)
+    for (i in 1:nk){
+        for (j in 1:nk){
+            d2l[i,j]= sum((1/((B%*%betas)^2))*(B[,i]*B[,j]))
+        }
+    }
+    return(d2l)
+}
+
+
+ddb.penal_dexp <- function(betas,B){
+    nk=ncol(B)
+    d2l=diag(0,nk)
+    for (i in 1:nk){
+        for (j in 1:nk){
+            d2l[i,j] = sum((1/((B%*%betas)^2))*(B[,i]*B[,j]))
+        }
+    }
+    return(d2l)
 }
 
 
