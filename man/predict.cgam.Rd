@@ -6,16 +6,17 @@
 \description{Predicted values based on a cgam object}
 
 \usage{
-\method{predict}{cgam}(object, newData, interval = c("none", "confidence"), 
-type = c("response", "link"), level = 0.95,...)
+\method{predict}{cgam}(object, newData, interval = c("none", "confidence", "prediction"), 
+type = c("response", "link"), level = 0.95, n.mix = 500,...)
 }
 
 \arguments{
   \item{object}{A cgam object.}
   \item{newData}{A data frame in which to look for variables with which to predict. If omitted, the fitted values are used.}
-  \item{interval}{Type of interval calculation.}
+  \item{interval}{Type of interval calculation. A prediction interval is only implemented for Gaussian response for now.}
   \item{type}{If the response is Gaussian, type = "response" gives the predicted mean; if the response is binomial, type = "response" gives the predicted probabilities, and type = "link" gives the predicted systematic component.}
   \item{level}{Tolerance/confidence level.}
+  \item{n.mix}{Number of simulations to get the mixture distribution. The default is n.mix = 500.}
    \item{\dots}{Further arguments passed to the routine.}
 }
 

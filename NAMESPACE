@@ -41,3 +41,5 @@ S3method(anova, cgam)
 S3method(print, anova.cgam)
 
 S3method(predict, cgamm)
+S3method(summary, cgamm)
+S3method(print, summary.cgamm)

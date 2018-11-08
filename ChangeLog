@@ -20,3 +20,7 @@
 1.11
 * Add cgamm 
 * Add monotonic variance estimation
+
+1.12
+* Update ShapeSelect with user’s option to set an initial population size and mutation rate
+* Update cgamm with prediction interval

@@ -985,10 +985,12 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
                 if (family$family == "binomial") {
                     nobs <- sum(prior.w)
                 } else {nobs <- n}
-                if ((nobs - np - 1.5 * (dfmean - np)) <= 0) {
+                if ((nobs - np - cpar * (dfmean - np)) <= 0) {
                     rslt$cic <- llh + log(1 + 2 * dfmean / (dfmean - np))
                 } else {
-                    rslt$cic <- llh + log(1 + 2 * dfmean / (nobs - np - 1.5 * (dfmean - np)))
+                    #new:
+                    if (n<=200){cpar=1.5}
+                    rslt$cic <- llh + log(1 + 2 * dfmean / (nobs - np - cpar * (dfmean - np)))
                 }
                 #rslt$cic <- llh + log(1 + 2 * dfmean / (n - np - 1.5 * (dfmean - np)))
                 #}
@@ -1136,10 +1138,12 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
 		if (!is.null(dfmean)) {
 #check!
 #new: use dfmean - np if n - np - 1.5 * (dfmean - np) < 0
-			if ((n - np - 1.5 * (dfmean - np)) <= 0) {
+			if ((n - np - cpar * (dfmean - np)) <= 0) {
 				rslt$cic <- llh + log(1 + 2 * dfmean / (dfmean - np))
 			} else {
-        		rslt$cic <- llh + log(1 + 2 * dfmean / (n - np - 1.5 * (dfmean - np)))
+                #new:
+                if (n<=200){cpar=1.5}
+        		rslt$cic <- llh + log(1 + 2 * dfmean / (n - np - cpar * (dfmean - np)))
 			}
 		} else {rslt$cic <- NULL}
 		rslt$edf0 <- dfmean 
@@ -2946,7 +2950,7 @@ print.summary.wps <- function(x,...) {
 ##############
 #predict.cgam#
 ##############
-predict.cgam = function(object, newData, interval = c("none", "confidence"), type = c("response", "link"), level = 0.95, ...) {
+predict.cgam = function(object, newData, interval = c("none", "confidence", "prediction"), type = c("response", "link"), level = 0.95, n.mix = 500,...) {
 #print (is.data.frame(newData))
 #print (newData)
 #new: 
@@ -3407,7 +3411,8 @@ sh_x = sh = NULL
 		p = 1 + capk + sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13)
 		zmat = t(bigmat[1:p, ,drop = FALSE])
         if (family$family == "gaussian") {
-            nloop = 1000
+            #nloop = 1000
+            nloop = n.mix
             #nsec will be too big for ordinal, ignore for now
             nsec = 2^m_acc
             #print (dim(zmat))
@@ -3505,7 +3510,12 @@ sh_x = sh = NULL
             #new: C.I. level
             mult = qnorm((1 - level)/2, lower.tail=FALSE)
             #hl = 2*sqrt(diag(xmatpr%*%acov%*%t(xmatpr)))
-            hl = mult*sqrt(diag(xmatpr%*%acov%*%t(xmatpr)))
+            if (interval == "confidence") {
+                hl = mult*sqrt(diag(xmatpr%*%acov%*%t(xmatpr)))
+            }
+            if (interval == "prediction") {
+                hl = mult*sqrt(sighat^2+diag(xmatpr%*%acov%*%t(xmatpr)))
+            }
             #ans = list(fit = muhatpr, lower = muhatpr - hl, upper = muhatpr + hl)
         } else {
             ## initialize
@@ -3596,10 +3606,12 @@ sh_x = sh = NULL
             muhatpr = 1 - 1/(1+exp(etapr))
             #new: C.I. level
             mult = qnorm((1 - level)/2, lower.tail=FALSE)
-            uppeta = etapr + mult*sqrt(coveta)
-            loweta = etapr - mult*sqrt(coveta)
-            uppmu = 1 - 1/(1+exp(uppeta))
-            lowmu = 1 - 1/(1+exp(loweta))
+            #if (interval == "confidence") {
+                uppeta = etapr + mult*sqrt(coveta)
+                loweta = etapr - mult*sqrt(coveta)
+                uppmu = 1 - 1/(1+exp(uppeta))
+                lowmu = 1 - 1/(1+exp(loweta))
+            #}
         }
         if (family$family == "gaussian") {
             ans = list(fit = muhatpr, lower = muhatpr - hl, upper = muhatpr + hl)
@@ -5924,7 +5936,8 @@ fitted.cgam.polr <- function(object,...) {
 #shape selection part
 #############################
 #get(x = "s", pos = "package:cgam")
-ShapeSelect <- function(formula, family = gaussian, cpar = 1.2, data = NULL, weights = NULL, genetic = FALSE) {
+#new: add npop; per.mutate
+ShapeSelect <- function(formula, family = gaussian, cpar = 2, data = NULL, weights = NULL, npop = 200, per.mutate = 0.05, genetic = FALSE) {
 	if (exists("s", parent.frame()) & class(get("s", envir = parent.frame())) == "function") {
 		if (!identical(get("s", envir = parent.frame()), cgam::s)) {
 			assign("s", cgam::s, envir = parent.frame())
@@ -6054,7 +6067,7 @@ ShapeSelect <- function(formula, family = gaussian, cpar = 1.2, data = NULL, wei
 # call GA
 		print ("Go genetic algorithm!")
 		ptm <- proc.time()
-		ans <- ConstrGA(y, xmat, zmat, trmat, family = family, shpsx = shpsx, shpsvx = shpsvx, shpsz = shpsz, shpst = shpst, cpar = cpar, nmod = nmod, zfacs = zfacs, weights = weights, vzmat = vzmat, vzfacs = vzfacs, vxmat = vxmat, vtrmat = vtrmat)
+		ans <- ConstrGA(y, xmat, zmat, trmat, family = family, shpsx = shpsx, shpsvx = shpsvx, shpsz = shpsz, shpst = shpst, cpar = cpar, nmod = nmod, zfacs = zfacs, weights = weights, vzmat = vzmat, vzfacs = vzfacs, vxmat = vxmat, vtrmat = vtrmat, npop = npop, per.mutate = per.mutate)
 		tm <- proc.time() - ptm
 	} else {
 		if (nmod <= 5e+2) {
@@ -6067,7 +6080,7 @@ ShapeSelect <- function(formula, family = gaussian, cpar = 1.2, data = NULL, wei
 		} else if (nmod > 5e+2 & nmod <= 1e+6) {
 			print ("Estimating the time of one fit!")
 			ptm <- proc.time()	
-			invisible(ConstrGA(y, xmat, zmat, trmat, family = family, shpsx = shpsx, shpsvx = shpsvx, shpsz = shpsz, shpst = shpst, cpar = cpar, nmod = nmod, zfacs = zfacs, time.est = TRUE, weights = weights, vzmat = vzmat, vzfacs = vzfacs, vxmat = vxmat, vtrmat = vtrmat))
+			invisible(ConstrGA(y, xmat, zmat, trmat, family = family, shpsx = shpsx, shpsvx = shpsvx, shpsz = shpsz, shpst = shpst, cpar = cpar, nmod = nmod, zfacs = zfacs, time.est = TRUE, weights = weights, vzmat = vzmat, vzfacs = vzfacs, vxmat = vxmat, vtrmat = vtrmat, npop = npop, per.mutate = per.mutate))
 			tm <- proc.time() - ptm
 			print (paste("Total time of one fit is roughly", round(tm[3], 1), "seconds"))
 			if (round(tm[3] * nmod/60^2) > 1) {
@@ -6083,14 +6096,14 @@ ShapeSelect <- function(formula, family = gaussian, cpar = 1.2, data = NULL, wei
 			} else {
 				print ("Go genetic!")
 				ptm <- proc.time()
-				ans <- ConstrGA(y, xmat, zmat, trmat, family = family, shpsx = shpsx, shpsvx = shpsvx, shpsz = shpsz, shpst = shpst, cpar = cpar, nmod = nmod, zfacs = zfacs, weights = weights, vzmat = vzmat, vzfacs = vzfacs, vxmat = vxmat, vtrmat = vtrmat)
+				ans <- ConstrGA(y, xmat, zmat, trmat, family = family, shpsx = shpsx, shpsvx = shpsvx, shpsz = shpsz, shpst = shpst, cpar = cpar, nmod = nmod, zfacs = zfacs, weights = weights, vzmat = vzmat, vzfacs = vzfacs, vxmat = vxmat, vtrmat = vtrmat, npop = npop, per.mutate = per.mutate)
 				tm <- proc.time() - ptm
 			}
 #too many models or memory problem
 		} else {
 			print ("Go genetic! Too many models!")	
 			ptm <- proc.time()
-			ans <- ConstrGA(y, xmat, zmat, trmat, family = family, shpsx = shpsx, shpsvx = shpsvx, shpsz = shpsz, shpst = shpst, cpar = cpar, nmod = nmod, zfacs = zfacs, weights = weights, vzmat = vzmat, vzfacs = vzfacs, vxmat = vxmat, vtrmat = vtrmat)
+			ans <- ConstrGA(y, xmat, zmat, trmat, family = family, shpsx = shpsx, shpsvx = shpsvx, shpsz = shpsz, shpst = shpst, cpar = cpar, nmod = nmod, zfacs = zfacs, weights = weights, vzmat = vzmat, vzfacs = vzfacs, vxmat = vxmat, vtrmat = vtrmat, npop = npop, per.mutate = per.mutate)
 			tm <- tm + proc.time() - ptm
 		}
 	}
@@ -6286,7 +6299,7 @@ make_form <- function(pvec = NULL, pnms = NULL, ynm = NULL, zfacs = NULL, vznms 
 ###################
 #genetic algorithm#
 ###################
-ConstrGA = function(y, xmat, zmat, trmat, family = gaussian, shpsx = NULL, shpsvx = NULL, shpsz = NULL, shpst = NULL, cpar = 1.2, nmod = 2e+4, zfacs = NULL, time.est = FALSE, weights = NULL, vzmat = NULL, vzfacs = NULL, vxmat = NULL, vtrmat = NULL) {
+ConstrGA = function(y, xmat, zmat, trmat, family = gaussian, shpsx = NULL, shpsvx = NULL, shpsz = NULL, shpst = NULL, cpar = 1.2, nmod = 2e+4, zfacs = NULL, time.est = FALSE, weights = NULL, vzmat = NULL, vzfacs = NULL, vxmat = NULL, vtrmat = NULL, npop = NULL, per.mutate = NULL) {
 	#linkfun = family$linkfun
 	cicfamily = CicFamily(family)
 	linkfun = cicfamily$linkfun
@@ -6744,12 +6757,21 @@ if (capl > 1) {
 		npop = 1
 	} else {
 		#npop = 200 #* nmod / 2e+4
-if (nmod < 2e+6) {
-	npop = 200
-} else {
-	npop = 200 + round((nmod - 2e+6) / nmod * 20)
-}
-#print (npop)	
+        #if (nmod < 2e+6) {
+        #    npop = 200
+        #} else {
+        #    npop = 200 + round((nmod - 2e+6) / nmod * 20)
+        #}
+        #new: now we allow user to speficy npop
+        if (npop <= 0 | round(npop) != npop) {
+            warning('npop must be a positive integer! npop=200 will be used!')
+            if (nmod < 2e+6) {npop = 200} else {npop = 200 + round((nmod - 2e+6) / nmod * 20)}
+        }
+        #if (npop > nmod) {
+        #    warning('npop must be smaller than the total number of possible models! npop=200 will be used!')
+        #    if (nmod < 2e+6) {npop = 200} else {npop = 200 + round((nmod - 2e+6) / nmod * 20)}
+        #}
+        #print (npop)
 	}	
 	popmat = matrix(0, nrow = npop, ncol = capl + capk + capt)
 #print (capl)
@@ -7009,8 +7031,18 @@ cat(paste("Iter =", nrep, " | Mean =", format(mean(fitness), digits = 6), " | Be
 # mutate!  randomly throughout population  ## don't mutate the most fit
 # imut is the row # of popmat
 # igene is the column # of x, z, and tree
-		imut = trunc(runif(nm) * (npop - 1) + 2)  
-		#igene = trunc(runif(nm) * (capk + capl) + 1)
+        #imut = trunc(runif(nm) * (npop - 1) + 2)
+        #new for imut
+        if (per.mutate <= 0 | per.mutate >= 0.5) {
+            warning('per.mutate should be a percentage > 0 and < 0.5! per.mute = 0.05 will be used!')
+            per.mutate = 0.05
+            
+        }
+        nm = round(npop * per.mutate)
+        imut = sample(1:npop, size = nm, replace = FALSE)
+        #print (nm)
+        #print (paste('imute:',imut))
+#igene = trunc(runif(nm) * (capk + capl) + 1)
 #check!
 igene = trunc(runif(nm) * (capk + capl + capt) + 1)
 		for (im in 1:nm) {

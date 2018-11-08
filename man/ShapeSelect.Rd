@@ -7,8 +7,8 @@
 The partial linear generalized additive model is considered, where the goal is to choose a subset of predictor variables and describe the component relationships with the response, in the case where there is very little \emph{a priori} information. For each predictor, the user need only specify a set of possible shape or order restrictions. A model selection method chooses the shapes and orderings of the relationships as well as the variables.  For each possible combination of shapes and orders for the predictors, the maximum likelihood estimator for the constrained generalized additive model is found using iteratively re-weighted cone projections.  The cone information criterion is used to select the best combination of variables and shapes.  
 }
 
-\usage{ShapeSelect(formula, family = gaussian, cpar = 1.2, data = NULL, weights = NULL, 
-genetic = FALSE)}
+\usage{ShapeSelect(formula, family = gaussian, cpar = 2, data = NULL, weights = NULL, 
+npop = 200, per.mutate = 0.05, genetic = FALSE)}
 
 \arguments{
   \item{formula}{
@@ -20,9 +20,11 @@ genetic = FALSE)}
     }
   }
   \item{family}{A parameter indicating the error distribution and link function to be used in the model. It can be a character string naming a family function or the result of a call to a family function. This is borrowed from the glm routine in the stats package. There are three families used in ShapeSelect: gaussian, binomial and poisson.}
-  \item{cpar}{A multiplier to estimate the model variance, which is defined as \eqn{\sigma^2 = SSR / (n - d_0 - cpar * edf)}. SSR is the sum of squared residuals for the full model, \eqn{d_0} is the dimension of the linear space in the cone, and edf is the effective degrees of freedom. The default is cpar = 1.2. See Meyer, M. C. and M. Woodroofe (2000) for more details.}
+  \item{cpar}{A multiplier to estimate the model variance, which is defined as \eqn{\sigma^2 = SSR / (n - d_0 - cpar * edf)}. SSR is the sum of squared residuals for the full model, \eqn{d_0} is the dimension of the linear space in the cone, and edf is the effective degrees of freedom. The default is cpar = 2. See Meyer, M. C. and M. Woodroofe (2000) for more details.}
   \item{data}{An optional data frame, list or environment containing the variables in the model. The default is data = NULL.}
   \item{weights}{An optional non-negative vector of "replicate weights" which has the same length as the response vector. If weights are not given, all weights are taken to equal 1. The default is weights = NULL.}
+  \item{npop}{The population size used for the genetic algorithm. The default is npop = 200.}
+  \item{per.mutate}{The percentage of mutation used for the genetic algorithm. The default is per.mutate = 0.05}
   \item{genetic}{A logical scalar showing if or not the genetic algorithm is defined by the user to select the best model. The default is genetic = FALSE.}
 }
 
@@ -104,6 +106,10 @@ See references cited in this section for more details.
 
   # include factor(z) in the formula and determine if factor(z) should be in the model 
   fit <- ShapeSelect(y ~ shapes(x1, set = "s.9") + shapes(x2, set = "s.9") + in.or.out(factor(z)))
+  
+  # use the genetic algorithm
+  fit <- ShapeSelect(y ~ shapes(x1, set = "s.9") + shapes(x2, set = "s.9") + in.or.out(factor(z)),
+   npop = 300, per.mutate=0.02)
 
   # include z as a linear term in the formula and determine if z should be in the model 
   fit <- ShapeSelect(y ~ shapes(x1, set = "s.9") + shapes(x2, set = "s.9") + in.or.out(z))
