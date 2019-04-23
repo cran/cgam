@@ -1,7 +1,7 @@
 ######
 #cgam#
 ######
-cgam <- function(formula, nsim = 0, family = gaussian, cpar = 1.2, data = NULL, weights = NULL, sc_x = FALSE, sc_y = FALSE, pnt = TRUE, pen = 0, var.est = NULL)
+cgam <- function(formula, nsim = 100, family = gaussian, cpar = 1.2, data = NULL, weights = NULL, sc_x = FALSE, sc_y = FALSE, pnt = TRUE, pen = 0, var.est = NULL)
 {
 	cl <- match.call()
     if (is.character(family)) 
@@ -838,16 +838,22 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
                     pvsz <- NULL
                     z.edf <- NULL
                     fstats <- NULL
-                    if (is.null(weights)) {
-                        weights <- 1:n*0 + 1
-                    }
-                    prior.w <- weights
-                    if (capk > 0) {
-                        sse1 <- sum(prior.w * (y - muhatkeep)^2)
-                        ansi <- cgam.pvz(y=y, bigmat=bigmat, df_obs=df_obs, sse1=sse1, np=np, zid=zid, zid1=zid1, zid2=zid2, muhat = muhatkeep, etahat = etakeep, coefskeep = coefskeep, wt.iter=wt.iter, family=family, weights=weights)
-                        pvsz <- ansi$pvs
-                        z.edf <- ansi$edfs
-                        fstats <- ansi$fstats
+                    #temp: use cgam.pvz only when there's smooth component
+                    if (is.numeric(shapes)) {
+                        #changed to include shape==17
+                        if (all(shapes >= 9 & shapes <= 17)) {
+                            if (is.null(weights)) {
+                                weights <- 1:n*0 + 1
+                            }
+                            prior.w <- weights
+                            if (capk > 0) {
+                                sse1 <- sum(prior.w * (y - muhatkeep)^2)
+                                ansi <- cgam.pvz(y=y, bigmat=bigmat, df_obs=df_obs, sse1=sse1, np=np, zid=zid, zid1=zid1, zid2=zid2, muhat = muhatkeep, etahat = etakeep, coefskeep = coefskeep, wt.iter=wt.iter, family=family, weights=weights)
+                                pvsz <- ansi$pvs
+                                z.edf <- ansi$edfs
+                                fstats <- ansi$fstats
+                            }
+                        }
                     }
                 } else if (capk + capls > 0 & capl - capls + capt + capu == 0) {
                     if (is.null(weights)) {
@@ -3416,15 +3422,15 @@ sh_x = sh = NULL
             #nsec will be too big for ordinal, ignore for now
             nsec = 2^m_acc
             #print (dim(zmat))
-            #if (is.null(prior.w)) {
-            #    prior.w = rep(1, n)
-            #}
-            #if (!all(prior.w == 1)) {
-            #    for (i in 1:n) {
-            #        spl[,i] = spl[,i] * sqrt(prior.w[i])
-            #        zmat[i,] = zmat[i,] * sqrt(prior.w[i])
-            #    }
-            #}
+            if (is.null(prior.w)) {
+                prior.w = rep(1, n)
+            }
+            if (!all(prior.w == 1)) {
+                for (i in 1:n) {
+                    spl[,i] = spl[,i] * sqrt(prior.w[i])
+                    zmat[i,] = zmat[i,] * sqrt(prior.w[i])
+                }
+            }
             if (!is.null(vh)) {
                 wvec = 1/vh
             } else if (is.null(vh) & !is.null(prior.w)) {
@@ -3454,27 +3460,71 @@ sh_x = sh = NULL
             nv = p
             ## estimate sector probabilties
             #set.seed(1)
-            sector = 1:nsec*0
-            for (iloop in 1:nloop) {
-                ysim = muhat0 + rnorm(n)*sighat
-                ysim = ysim * sqrt(wvec)
-                #ans = coneB(ysim, spl, zmat)
-                ans = coneB(ysim, t(spl), zmat, face = face)
-                cf = round(ans$coefs[(nv+1):(m_acc+nv)], 10)
-                sec = 1:m_acc*0
-                sec[cf > 0] = 1
-                r = makebin(sec) + 1
-                sector[r] = sector[r] + 1
-            }
+            #sector = Matrix(1:nsec*0,nrow=1)
+            #sector = big.matrix(1:nsec*0,nrow=1)
+            #sector = 1:nsec*0
+            #for (iloop in 1:nloop) {
+            #    ysim = muhat0 + rnorm(n)*sighat
+            #    ysim = ysim * sqrt(wvec)
+            #    #ans = coneB(ysim, spl, zmat)
+            #    ans = coneB(ysim, t(spl), zmat, face = face)
+            #    cf = round(ans$coefs[(nv+1):(m_acc+nv)], 10)
+            #    sec = 1:m_acc*0
+            #    sec[cf > 0] = 1
+            #    r = makebin(sec) + 1
+            #    sector[r] = sector[r] + 1
+            #}
             ### calculate the mixture hat matrix:
-            bsec = matrix(0, nrow=nsec,ncol=2)
-            bsec[,1] = 1:nsec
-            bsec[,2] = sector / nsec
-            keep = sector > 0
-            bsec = bsec[keep,]
-            ns = dim(bsec)[1]
+            #bsec = matrix(0, nrow=nsec,ncol=2)
+            #bsec[,1] = 1:nsec
+            #bsec[,2] = sector / nsec
+            #keep = sector > 0
+            #bsec = bsec[keep,]
+            #ns = dim(bsec)[1]
+            #bsec[,2] = bsec[,2] / sum(bsec[,2])
+           
+           
+           #new: not use sector = 1:nsec*0; simulate for 1,000 times and record the faces used more than once
+           # if times / nloop < 1e-3, then delete
+           sector = NULL
+           times = NULL
+           df = NULL
+           #first column shows sector; second column shows times
+           for (iloop in 1:nloop) {
+               ysim = muhat0 + rnorm(n)*sighat
+               ysim = ysim * sqrt(prior.w)
+               ans = coneB(ysim, t(spl), zmat, face = face)
+               cf = round(ans$coefs[(nv+1):(m_acc+nv)], 10)
+               sec = 1:m_acc*0
+               sec[cf > 0] = 1
+               sector = rbind(sector, sec)
+               r = makebin(sec) + 1
+               #sector[r] = sector[r] + 1
+               if (iloop == 1) {
+                   df = rbind(df, c(r, 1))
+               } else {
+                   if (r %in% df[,1]) {
+                       ps = which(df[,1] %in% r)
+                       df[ps,2] = df[ps,2] + 1
+                   } else {
+                       df = rbind(df, c(r, 1))
+                   }
+               }
+           }
+
+            #remove times/sum(times) < 1e-3??
+            sm_id = which((df[,2]/nloop) < 1e-3)
+            if (any(sm_id)) {
+                df = df[-sm_id, ,drop=FALSE]
+            }
+
+            #new:
+            ns = nrow(df)
+            bsec = df
             bsec[,2] = bsec[,2] / sum(bsec[,2])
-            
+            ord = order(bsec[,1])
+            bsec = bsec[ord, ,drop=FALSE]
+
             ### calculate the mixture cov(alpha) matrix:
             obs = 1:m_acc;oobs = 1:(m_acc+nv)
             acov = matrix(0, nrow = m_acc+nv, ncol = m_acc+nv)

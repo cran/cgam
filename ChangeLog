@@ -24,3 +24,7 @@
 1.12
 * Update ShapeSelect with user’s option to set an initial population size and mutation rate
 * Update cgamm with prediction interval
+
+1.13
+* Stop initializing a vector for possible faces, which may cause memory leakage
+

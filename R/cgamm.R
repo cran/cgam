@@ -1459,7 +1459,12 @@ if (is.null(var.f)) {
             #uinvmat = as.matrix(bdiag(vms))
             if (round(thhat,6) != 0) {
             ## estimate sector probabilties:
-                sector = 1:nsec*0
+                #sector = 1:nsec*0
+                #new:
+                sector = NULL
+                times = NULL
+                df = NULL
+                
                 for(iloop in 1:nloop){
                     ysim = NULL
                     etil = NULL
@@ -1499,36 +1504,102 @@ if (is.null(var.f)) {
                     ans = coneB(ysim, dsend, vmat = zsend, face = NULL)
                     #face = ans$face
                     cf = round(ans$coefs[(np+1):(m_acc+np)],10)
+                    #sec = 1:m_acc*0
+                    #sec[cf>0] = 1
+                    #r = makebin(sec)+1
+                    #sector[r] = sector[r]+1
+                    
+                    #new:
                     sec = 1:m_acc*0
-                    sec[cf>0] = 1
-                    r = makebin(sec)+1
-                    sector[r] = sector[r]+1
+                    sec[cf > 0] = 1
+                    sector = rbind(sector, sec)
+                    r = makebin(sec) + 1
+                    #sector[r] = sector[r] + 1
+                    if (iloop == 1) {
+                        df = rbind(df, c(r, 1))
+                    } else {
+                        if (r %in% df[,1]) {
+                            ps = which(df[,1] %in% r)
+                            df[ps,2] = df[ps,2] + 1
+                        } else {
+                            df = rbind(df, c(r, 1))
+                        }
+                    }
+
+                    #remove times/sum(times) < 1e-3??
+                    sm_id = which((df[,2]/nloop) < 1e-3)
+                    if (any(sm_id)) {
+                        df = df[-sm_id, ,drop=FALSE]
+                    }
                 }
             } else {
                 prior.w = 1:n*0 + 1
-                sector = 1:nsec*0
+                #sector = 1:nsec*0
+                #for (iloop in 1:nloop) {
+                #    ysim = muhat + rnorm(n)*sig2hat^.5
+                #    ysim = ysim * sqrt(prior.w)
+                #    dsend = edges[, (np+1):(m_acc+np)]
+                #    zsend = edges[, 1:np]
+                #    ans = coneB(ysim, dsend, zsend, face = NULL)
+                #    #face = ans$face
+                #    cf = round(ans$coefs[(np+1):(m_acc+np)], 10)
+                #    sec = 1:m_acc*0
+                #    sec[cf > 0] = 1
+                #    r = makebin(sec) + 1
+                #    sector[r] = sector[r] + 1
+                #}
+                
+                #new:
+                sector = NULL
+                times = NULL
+                df = NULL
+                #first column shows sector; second column shows times
                 for (iloop in 1:nloop) {
                     ysim = muhat + rnorm(n)*sig2hat^.5
                     ysim = ysim * sqrt(prior.w)
                     dsend = edges[, (np+1):(m_acc+np)]
                     zsend = edges[, 1:np]
                     ans = coneB(ysim, dsend, zsend, face = NULL)
-                    #face = ans$face
                     cf = round(ans$coefs[(np+1):(m_acc+np)], 10)
                     sec = 1:m_acc*0
                     sec[cf > 0] = 1
+                    sector = rbind(sector, sec)
                     r = makebin(sec) + 1
-                    sector[r] = sector[r] + 1
+                    #sector[r] = sector[r] + 1
+                    if (iloop == 1) {
+                        df = rbind(df, c(r, 1))
+                    } else {
+                        if (r %in% df[,1]) {
+                            ps = which(df[,1] %in% r)
+                            df[ps,2] = df[ps,2] + 1
+                        } else {
+                            df = rbind(df, c(r, 1))
+                        }
+                    }
+                }
+                
+                #remove times/sum(times) < 1e-3??
+                sm_id = which((df[,2]/nloop) < 1e-3)
+                if (any(sm_id)) {
+                    df = df[-sm_id, ,drop=FALSE]
                 }
             }
             ### calculate the mixture hat matrix:
-            bsec = matrix(0, nrow=nsec, ncol=2)
-            bsec[,1] = 1:nsec
-            bsec[,2] = sector / nsec
-            keep = sector > 0
-            bsec = bsec[keep,]
-            ns = dim(bsec)[1]
+            #bsec = matrix(0, nrow=nsec, ncol=2)
+            #bsec[,1] = 1:nsec
+            #bsec[,2] = sector / nsec
+            #keep = sector > 0
+            #bsec = bsec[keep,]
+            #ns = dim(bsec)[1]
+            #bsec[,2] = bsec[,2] / sum(bsec[,2])
+            
+            #new:
+            ns = nrow(df)
+            bsec = df
             bsec[,2] = bsec[,2] / sum(bsec[,2])
+            ord = order(bsec[,1])
+            bsec = bsec[ord,,drop=FALSE]
+            
             # nv and np are the dim of vmat
             nv = np
             zmat = zsend
