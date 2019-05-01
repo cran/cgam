@@ -149,8 +149,14 @@ See references cited in this section and the official manual (\url{https://cran.
 }
 
 \references{
+  Liao, X. and Meyer, M. C. (2019) cgam: An R Package for the Constrained Generalized Additive Model.
+\emph{Journal of Statistical Software \bold{89(5)}}, 1--24. 
+  
+  Meyer, M. C. (2018) A Framework for Estimation and Inference in Generalized Additive Models with Shape and Order Restrictions.
+\emph{Statistical Science \bold{33(4)}}, 595--614. 
+  
   Meyer, M. C. (2013a) Semi-parametric additive constrained regression. 
-\emph{Journal of Nonparametric Statistics \bold{25(3)}}, 715
+\emph{Journal of Nonparametric Statistics \bold{25(3)}}, 715.
 
   Meyer, M. C. (2013b) A simple new algorithm for quadratic programming with applications in statistics. \emph{Communications in Statistics \bold{42(5)}}, 1126--1139.  
   

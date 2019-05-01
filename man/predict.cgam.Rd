@@ -35,14 +35,14 @@ type = c("response", "link"), level = 0.95, n.mix = 500,...)
 }
 
 \references{
-	Meyer, M. C. (2008) Inference using shape-restricted regression splines. \emph{Annals of Applied Statistics \bold{2(3)}}, 1013--1033.
-	
-	Meyer, M. C. (2012) Constrained penalized splines. \emph{Canadian Journal of Statistics \bold{40(1)}}, 190--206.
-	  
 	Meyer, M. C. (2017) Constrained partial linear regression splines. \emph{Statistical Sinica in press}.
 
 	Meyer, M. C. (2017) Confidence intervals for regression functions using constrained
 splines with application to estimation of tree height
+
+	Meyer, M. C. (2012) Constrained penalized splines. \emph{Canadian Journal of Statistics \bold{40(1)}}, 190--206.
+	  	  
+	Meyer, M. C. (2008) Inference using shape-restricted regression splines. \emph{Annals of Applied Statistics \bold{2(3)}}, 1013--1033.
 }
 
 \author{

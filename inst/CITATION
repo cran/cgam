@@ -1,0 +1,18 @@
+bibentry(bibtype = "Article",
+  title        = "{cgam}: An {R} Package for the Constrained Generalized Additive Model",
+  author       = c(person(given = "Xiyue",
+                          family = "Liao",
+                          email = "xiyue@rams.colostate.edu"),
+                   person(given = c("Mary", "C."),
+                          family = "Meyer",
+                          email = "meyer@stat.colostate.edu")),
+  journal      = "Journal of Statistical Software",
+  year         = "2019",
+  volume       = "89",
+  number       = "5",
+  pages        = "1--24",
+  doi          = "10.18637/jss.v089.i05",
+
+  header       = "To cite cgam in publications use:"
+)
+

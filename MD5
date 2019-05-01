@@ -1,15 +1,16 @@
 36313cdce9deb68fb708214556b584fa *ChangeLog
-5cf05a95f0ddb61bac0ed49a11929c54 *DESCRIPTION
+024bc56ef2be36970aef14cfaac427a3 *DESCRIPTION
 75bf0440923d22c649f4e6c0dd3d4ba2 *NAMESPACE
 594a3bca4a33476be5c82207987b6484 *R/cgam.R
 72a97aac1af8039c0edf23b3d783335f *R/cgamm.R
 a0db33d4a416d9f938daadefe0e246d8 *data/cubic.rda
 38989ead0193c484041448d86a606c2e *data/mental.rda
 93ee04b3d197dfd325786592ed5accbf *data/plasma.rda
+306b18b377bb05b420442574e2e84ecd *inst/CITATION
 883e5898cac424e9164fe2ce815d579c *man/Ord.Rd
 87ca4718d9883f4f4e95d9e64b563014 *man/ShapeSelect.Rd
 defec4599769cfb4e78ccc7abb8175e8 *man/best.fit.Rd
-d60dcbcbd8cf2d609ad26dd741f58b33 *man/cgam.Rd
+1201da88bb4cbe4fa1edb38f0eccd23c *man/cgam.Rd
 546408cc1a0d317a5bf1beb8e059ec9b *man/cgamm.Rd
 02dfead6a50ea3d987075cdfc314332d *man/conc.Rd
 49444d5af949917f6772fa3025d26e0c *man/conv.Rd
@@ -24,7 +25,7 @@ f8c670516d35684c34511851b2dcfe6a *man/incr.conv.Rd
 5e31e813762d0157e7b659d694a2f545 *man/mental.Rd
 1a8fa2f3659519856fddfc62fde89978 *man/plasma.Rd
 bf27094bf62dd4478d4821eb62af899a *man/plotpersp.Rd
-0ffbbb8274408f7e82a61c0ab92a4be5 *man/predict.cgam.Rd
+8beadb01c69a198bdb33b9b372d29e5c *man/predict.cgam.Rd
 ea6719955a499d76abd87ce540ce7222 *man/s.Rd
 94e48b038d1cba48c81a419a5bcf945a *man/s.conc.Rd
 4111576f076528a70470ad1fee565f57 *man/s.conc.conc.Rd
