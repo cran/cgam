@@ -28,3 +28,8 @@
 1.13
 * Stop initializing a vector for possible faces, which may cause memory leakage
 
+1.15
+* Add prediction for warped plane fit with visualization 
+
+1.16
+* Add plotpersp in cgamm.R 

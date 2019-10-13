@@ -41,6 +41,7 @@ cgam <- function(formula, nsim = 100, family = gaussian, cpar = 1.2, data = NULL
   		ztb <- list(); iztb <- 1
 		iadd <- 0
 		varlist_add <- NULL
+        xmat0_add <- NULL
 #warp
 		warp.delta <- NULL
   		nums_wp <- NULL; ks_wp <- list(); ks_wps <- list(); sps_wp <- NULL
@@ -267,37 +268,41 @@ cgam <- function(formula, nsim = 100, family = gaussian, cpar = 1.2, data = NULL
   			if (length(knots_add) > 0) {
     			names(knots_add) <- xnms_add
   			}
-  			rslt <- list(etahat = ans$etahat, muhat = ans$muhat, vcoefs = ans$vcoefs, xcoefs = ans$xcoefs, zcoefs = ans$zcoefs, ucoefs = ans$ucoefs, tcoefs = ans$tcoefs, coefs = ans$coefs, cic = ans$cic, d0 = ans$d0, edf0 = ans$edf0, etacomps = ans$etacomps, y = y, xmat_add = xmat_add, zmat = zmat, ztb = ztb, tr = tr, umb = umb, tree.delta = tree.delta, umbrella.delta = umbrella.delta, bigmat = ans$bigmat, shapes = shapes_add, shapesx = shapes1_add, shapesx0 = shapes0_add, prior.w = weights, wt = ans$wt, wt.iter = ans$wt.iter, family = family, SSE0 = ans$sse0, SSE1 = ans$sse1, pvals.beta = ans$pvals.beta, se.beta = ans$se.beta, null_df = ans$df.null, df = ans$df, resid_df_obs = ans$resid_df_obs, edf = ans$df_obs, null_deviance = ans$dev.null, deviance = ans$dev, tms = mt, capm = ans$capm, capms = ans$capms, capk = ans$capk, capt = ans$capt, capu = ans$capu, xid1 = ans$xid1, xid2 = ans$xid2, tid1 = tid1, tid2 = tid2, uid1 = uid1, uid2 = uid2, zid = zid, vals = vals, zid1 = zid1, zid2 = zid2, nsim = nsim, xnms_add = xnms_add, xnms = xnms, ynm = ynm, znms = znms, is_param = is_param, is_fac = is_fac, knots = knots_add, numknots = numknots_add, sps = sps_add, ms = ans$ms, cpar = ans$cpar, pl = pl, idx_s = idx_s, idx = idx, xmat0 = ans$xmat2, knots0 = ans$knots2, numknots0 = ans$numknots2, sps0 = ans$sps2, ms0 = ans$ms2, phihat = ans$phihat, pvs = ans$pvs, s.edf = ans$s.edf, bstats = ans$bstats, pvsz = ans$pvsz, z.edf = ans$z.edf, fstats = ans$fstats, vh = ans$vh, kts.var = ans$kts.var)
+  			rslt <- list(etahat = ans$etahat, muhat = ans$muhat, vcoefs = ans$vcoefs, xcoefs = ans$xcoefs, zcoefs = ans$zcoefs, ucoefs = ans$ucoefs, tcoefs = ans$tcoefs, coefs = ans$coefs, cic = ans$cic, d0 = ans$d0, edf0 = ans$edf0, etacomps = ans$etacomps, y = y, xmat_add = xmat_add, zmat = zmat, ztb = ztb, tr = tr, umb = umb, tree.delta = tree.delta, umbrella.delta = umbrella.delta, bigmat = ans$bigmat, shapes = shapes_add, shapesx = shapes1_add, shapesx0 = shapes0_add, prior.w = weights, wt = ans$wt, wt.iter = ans$wt.iter, family = family, SSE0 = ans$sse0, SSE1 = ans$sse1, pvals.beta = ans$pvals.beta, se.beta = ans$se.beta, null_df = ans$df.null, df = ans$df, resid_df_obs = ans$resid_df_obs, edf = ans$df_obs, null_deviance = ans$dev.null, deviance = ans$dev, tms = mt, capm = ans$capm, capms = ans$capms, capk = ans$capk, capt = ans$capt, capu = ans$capu, xid1 = ans$xid1, xid2 = ans$xid2, tid1 = tid1, tid2 = tid2, uid1 = uid1, uid2 = uid2, zid = zid, vals = vals, zid1 = zid1, zid2 = zid2, nsim = nsim, xnms_add = xnms_add, xnms = xnms, ynm = ynm, znms = znms, is_param = is_param, is_fac = is_fac, knots = knots_add, numknots = numknots_add, sps = sps_add, ms = ans$ms, cpar = ans$cpar, pl = pl, idx_s = idx_s, idx = idx, xmat0 = ans$xmat2, knots0 = ans$knots2, numknots0 = ans$numknots2, sps0 = ans$sps2, ms0 = ans$ms2, phihat = ans$phihat, pvs = ans$pvs, s.edf = ans$s.edf, bstats = ans$bstats, pvsz = ans$pvsz, z.edf = ans$z.edf, fstats = ans$fstats, vh = ans$vh, kts.var = ans$kts.var, sc = ans$sc, sc_y = sc_y)
   			rslt$call <- cl
   			class(rslt) <- "cgam"
 		} else if (any(grepl("warp", labels, fixed = TRUE)) & !any(grepl("tri", labels, fixed = TRUE))) {
-			nprs <- sum(grepl("warp", labels, fixed = TRUE)) / 2
-			delta_add <- NULL
-			np_add <- 0
-			pb <- 0
-			if (any(labels == "additive")) {
-				#delta_add <- NULL
-				if (length(shapes0_add) > 0) {
-					ans_add <- make_delta_add(xmat = xmat0_add, shapes = shapes0_add, numknots = nums0_add, knots = ks0_add, space = sps0_add) 
-					delta_add <- ans_add$bigmat
-#np_add: smooth only, conv and conc					
-					np_add <- ans_add$np
-					pb <- nrow(delta_add)
-					varlist_add <- ans_add$varlist
-				}
-			}
-			delta_ut <- NULL
-			if (!is.null(umbrella.delta)) {
-				delta_add <- rbind(delta_add, umbrella.delta)	
-				delta_ut <- rbind(delta_ut, umbrella.delta)
-			} 
-			if (!is.null(tree.delta)) {
-				delta_add <- rbind(delta_add, tree.delta)
-				delta_ut <- rbind(delta_ut, tree.delta)
-			}
-			ans <- wps.fit(x1t = x1_wps, x2t = x2_wps, y = y, zmat = zmat, xmat_add = xmat_add, delta_add = delta_add, delta_ut = delta_ut, varlist_add = varlist_add, shapes_add = shapes_add, np_add = np_add, w = weights, pen = pen, pnt = pnt, cpar = cpar, decrs = dcss, delta = warp.delta, kts = ks_wps, wt.iter = wt.iter, family = family, nsim = nsim, nprs = nprs, idx_s = idx_s, idx = idx)
-  			rslt <- list(ks_wps = ans$kts, muhat = ans$muhat, SSE1 = ans$sse1, SSE0 = ans$sse0, edfc = ans$edf, edf0 = ans$edf0, delta = ans$delta, y = y, zmat = ans$zmat, zmat_0 = ans$zmat_0, xmat_wp = xmat_wp, xmat_add = xmat_add, xmat = xmat, shapes = shapes_add, coefs = ans$coefs, zcoefs = ans$zcoefs, pvals.beta = ans$pz, se.beta = ans$sez, gcv = ans$gcv, xnms_wp = xnms_wp, xnms_add = xnms_add, xnms = xnms, xid_add = xid_add, znms = znms, zid = zid, vals = vals, zid1 = zid1, zid2 = zid2, ynm = ynm, decrs = dcss, tms = mt, is_param = is_param, is_fac = is_fac, d0 = ans$d0, pb = pb, pen = ans$pen, cpar = ans$cpar, wt.iter = wt.iter, cic = ans$cic, family = family, nprs_wps = nprs, varlist_wps = varlist_wps, coef_wp = ans$coef_wp, varlist_add = varlist_add, np_add = np_add, coef_add = ans$coef_add, coef_ut = ans$coef_ut, etacomps = ans$etacomps)
-  			class(rslt) <- "wps"
+            nprs <- sum(grepl("warp", labels, fixed = TRUE)) / 2
+            delta_add <- NULL
+            ms <- NULL
+            np_add <- 0
+            pb <- 0
+            knotsuse_add <- NULL
+            if (any(labels == "additive")) {
+                #delta_add <- NULL
+                if (length(shapes0_add) > 0) {
+                    ans_add <- make_delta_add(xmat = xmat0_add, shapes = shapes0_add, numknots = nums0_add, knots = ks0_add, space = sps0_add)
+                    delta_add <- ans_add$bigmat
+                    ms <- ans_add$mslst
+                    #np_add: smooth only, conv and conc
+                    np_add <- ans_add$np
+                    pb <- nrow(delta_add)
+                    varlist_add <- ans_add$varlist
+                    knotsuse_add <- ans_add$knotsuse
+                }
+            }
+            delta_ut <- NULL
+            if (!is.null(umbrella.delta)) {
+                delta_add <- rbind(delta_add, umbrella.delta)
+                delta_ut <- rbind(delta_ut, umbrella.delta)
+            }
+            if (!is.null(tree.delta)) {
+                delta_add <- rbind(delta_add, tree.delta)
+                delta_ut <- rbind(delta_ut, tree.delta)
+            }
+            ans <- wps.fit(x1t = x1_wps, x2t = x2_wps, y = y, zmat = zmat, xmat_add = xmat_add, delta_add = delta_add, delta_ut = delta_ut, varlist_add = varlist_add, shapes_add = shapes_add, np_add = np_add, w = weights, pen = pen, pnt = pnt, cpar = cpar, decrs = dcss, delta = warp.delta, kts = ks_wps, wt.iter = wt.iter, family = family, nsim = nsim, nprs = nprs, idx_s = idx_s, idx = idx)
+            rslt <- list(ks_wps = ans$kts, muhat = ans$muhat, SSE1 = ans$sse1, SSE0 = ans$sse0, edfc = ans$edf, edf0 = ans$edf0, delta = ans$delta, y = y, zmat = ans$zmat, ztb = ztb, zmat_0 = ans$zmat_0, xmat_wp = xmat_wp, xmat_add = xmat_add, xmat0_add = xmat0_add, xmat = xmat, shapes = shapes_add, coefs = ans$coefs, zcoefs = ans$zcoefs, pvals.beta = ans$pz, se.beta = ans$sez, gcv = ans$gcv, xnms_wp = xnms_wp, xnms_add = xnms_add, xnms = xnms, xid_add = xid_add, znms = znms, zid = zid, vals = vals, zid1 = zid1, zid2 = zid2, ynm = ynm, decrs = dcss, tms = mt, mf = mf, is_param = is_param, is_fac = is_fac, d0 = ans$d0, pb = pb, pen = ans$pen, cpar = ans$cpar, wt.iter = wt.iter, cic = ans$cic, family = family, nprs_wps = nprs, varlist_wps = varlist_wps, coef_wp = ans$coef_wp, varlist_add = varlist_add, np_add = np_add, coef_add = ans$coef_add, coef_ut = ans$coef_ut, etacomps = ans$etacomps, amat = ans$amat, dmat = ans$dmat, prior.w = weights, sig2hat = ans$sig2hat, ms = ms, knotsuse_add = knotsuse_add, vmat = ans$vmat)
+            class(rslt) <- "wps"
   			if (!is.null(delta_add)) {
   				class(rslt) <- c("wps", "cgam")
   				if (min(which(labels == "additive")) < min(which(grepl("warp", labels, fixed = TRUE)))) {
@@ -310,6 +315,8 @@ cgam <- function(formula, nsim = 100, family = gaussian, cpar = 1.2, data = NULL
   			amat_wp <- NULL
   			dmat_wp <- NULL
 			delta_add <- NULL
+            knotsuse_add <- NULL
+            ms <- NULL
   			np_add <- 0
 			pb <- 0
 			if (any(labels == "additive")) {
@@ -319,6 +326,8 @@ cgam <- function(formula, nsim = 100, family = gaussian, cpar = 1.2, data = NULL
 					np_add <- ans_add$np
 					pb <- nrow(delta_add)
 					varlist_add <- ans_add$varlist
+                    ms <- ans_add$mslst
+                    knotsuse_add <- ans_add$knotsuse
 				}
 			}
 			if (!is.null(umbrella.delta)) {
@@ -334,7 +343,7 @@ cgam <- function(formula, nsim = 100, family = gaussian, cpar = 1.2, data = NULL
 				valist_wps <- ans_wps$valist_wps
 			}
   			ans <- trispl.fit(x1t = x1_tris, x2t = x2_tris, y = y, zmat = zmat, xmat_add = xmat_add, delta_add = delta_add, varlist_add = varlist_add, shapes_add = shapes_add, np_add = np_add, xmat_wp = xmat_wp, delta_wp = warp.delta, varlist_wps = varlist_wps, amat_wp = amat_wp, dmat_wp = dmat_wp, w = weights, lambda = pen, pnt = TRUE, cpar = cpar, cvss = cvss, delta = tri.delta, kts = ks_tris, nkts = nks_tris, wt.iter = wt.iter, family = family, nsim = nsim, nprs = nprs)
-  			rslt <- list(muhat = ans$muhat, etahat = ans$etahat, trimat = ans$trimat, y = y, zmat = ans$zmat, capk = ans$capk, xmat_tri = xmat_tri, xmat_add = xmat_add, xmat_wp = xmat_wp, xmat = xmat, shapes = shapes_add, coefs = ans$thhat, zcoefs = ans$zcoefs, se.beta = ans$se.beta, pvals.beta = ans$pvals.beta, gcv = ans$gcv, edf = ans$edf, edf0 = ans$edf0, cic = ans$cic, sse0 = ans$sse0, sse1 = ans$sse1, family = family, nprs = nprs, nprs_wps = nprs_wps, varlist_wps = varlist_wps, varlist_add = varlist_add, varlist_tri = ans$varlist, xnms_tri = xnms_tri, xnms_add = xnms_add, xnms_wp = xnms_wp, xnms = xnms, znms = znms, zid = zid, vals = vals, zid1 = zid1, zid2 = zid2, ynm = ynm, decrs = dcss, cvss = cvss, tms = mt, is_param = is_param, is_fac = is_fac, d0 = ans$d0, pen = ans$pen, cpar = cpar, wt.iter = wt.iter, np_add = np_add, pb = pb, coef_add = ans$coef_add, coef_tri = ans$coef_tri, coef_wp = ans$coef_wp, etacomps = ans$etacomps, ks_wps = ks_wps, knots_lst = ans$knots_lst, trimat_lst = ans$trimat_lst, bmat_lst = ans$bmat_lst, capk_lst = ans$capk_lst)  				
+  			rslt <- list(muhat = ans$muhat, etahat = ans$etahat, trimat = ans$trimat, y = y, zmat = ans$zmat, ztb = ztb, capk = ans$capk, xmat_tri = xmat_tri, xmat_add = xmat_add, xmat0_add = xmat0_add, xmat_wp = xmat_wp, xmat = xmat, shapes = shapes_add, coefs = ans$thhat, zcoefs = ans$zcoefs, se.beta = ans$se.beta, pvals.beta = ans$pvals.beta, gcv = ans$gcv, edf = ans$edf, edf0 = ans$edf0, cic = ans$cic, sse0 = ans$sse0, sse1 = ans$sse1, family = family, nprs = nprs, nprs_wps = nprs_wps, varlist_wps = varlist_wps, varlist_add = varlist_add, varlist_tri = ans$varlist, xnms_tri = xnms_tri, xnms_add = xnms_add, xnms_wp = xnms_wp, xnms = xnms, znms = znms, zid = zid, vals = vals, zid1 = zid1, zid2 = zid2, ynm = ynm, decrs = dcss, cvss = cvss, tms = mt, is_param = is_param, is_fac = is_fac, d0 = ans$d0, pen = ans$pen, cpar = cpar, wt.iter = wt.iter, np_add = np_add, pb = pb, coef_add = ans$coef_add, coef_tri = ans$coef_tri, coef_wp = ans$coef_wp, etacomps = ans$etacomps, ks_wps = ks_wps, knots_lst = ans$knots_lst, trimat_lst = ans$trimat_lst, bmat_lst = ans$bmat_lst, capk_lst = ans$capk_lst, prior.w = weights, dmatc = ans$dmatc, amatc = ans$amatc, pmatc = ans$pmatc, sig2hat = ans$sig2hat, knotsuse_add = knotsuse_add, ms = ms)
   			class(rslt) <- "trispl"
   			if (!is.null(delta_add) & is.null(warp.delta)) {
   				if (labels[1] == "additive") {
@@ -465,6 +474,7 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
 		#for (i in 1:capl) {xmat[,i] <- xmat[,i] / sd(xmat[,i])}
 	}
 #new:
+    sc <- 1
 	if (sc_y) {
 		sc <- sd(y)
 		y <- y / sc	
@@ -1276,6 +1286,7 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
         rslt$fstats <- fstats
         rslt$vh <- vh
         rslt$kts.var <- kts.var
+        rslt$sc <- sc
 		#rslt$sdhat2 <- sdhat2
 		return (rslt)
 	}
@@ -2310,7 +2321,7 @@ make_delta_add = function(xmat, shapes, numknots, knots, space) {
 		bigmat = delta
 		np = capms
 	} 
-	rslt = list(bigmat=bigmat, np=np, varlist=varlist)
+	rslt = list(bigmat=bigmat, np=np, varlist=varlist, knotsuse=knotsuse, mslst=mslst)
 	return(rslt)
 }
 
@@ -2870,6 +2881,24 @@ summary.wps <- function(object,...) {
 	}
 }
 
+#####################
+#print.cgam #
+#####################
+print.cgam = function (x, ...)
+{
+    print(x$family)
+    cat("Call:\n")
+    print(x$call)
+    cat("\n")
+    if(!is.null(x$deviance)) {
+        cat("Null deviance: ",round(x$null_deviance,4), "", "on", x$null_df, "", "degrees of freedom", "\n")
+        cat("Residual deviance: ",round(x$deviance,4), "", "on", x$resid_df_obs, "", "observed degrees of freedom", "\n")
+    }
+    if (!is.null(x$cic)) {
+        cat("CIC: ", round(x$cic,4))
+    }
+    invisible(x)
+}
 
 #####################
 #print.summary.cgam #
@@ -2985,7 +3014,7 @@ predict.cgam = function(object, newData, interval = c("none", "confidence", "pre
 	y = object$y
 #new: only use shapes for x != umb or tree
 	shapes = object$shapesx
-	np = object$d0; capm = object$capm; capk = object$capk; capt = object$capt; capu = object$capu
+    np = object$d0; capm = object$capm; capms = object$capms; capk = object$capk; capt = object$capt; capu = object$capu
 #new:
 	xid10 = object$xid1; xid20 = object$xid2; 
 	uid1 = object$uid1; uid2 = object$uid2; tid1 = object$tid1; tid2 = object$tid2 
@@ -3112,6 +3141,7 @@ predict.cgam = function(object, newData, interval = c("none", "confidence", "pre
 #print (head(newz))
 #print (head(newv))
 #new: separate x and x_s, move shape 17 to the beginning
+    idx_s <- NULL
 	if (!is.null(shapes)) {
 		if (any(shapes == 17)) {
 			kshapes <- length(shapes)
@@ -3363,7 +3393,7 @@ sh_x = sh = NULL
 	#ans = list(muhat = newmuhat)
 	#muhat = newmuhat
 	if ("none" %in% interval) {
-		ans = list(fit = newmuhat)
+		ans = list(fit = newmuhat, object = object)
 #new: add prediction interval
 	} else if (interval == "confidence" | interval == "prediction") {
 		n = ncol(bigmat)
@@ -3373,6 +3403,8 @@ sh_x = sh = NULL
 		object$ms0 -> ms0
 #sh = 17 first
 		object$shapesx0 -> shapes
+        #new:
+        varlist = NULL
 		for (i in 1:nc) {
 			msi = ms0[[i]]
 			shpi = shapes[i]
@@ -3385,6 +3417,7 @@ sh_x = sh = NULL
 			#	stop (print (msi))
 			#}
 			spli = deli$amat
+            varlist = c(varlist, rep(i, nrow(spli)))
 			if (shpi >= 9) {
 				dpri = makedelta(xipr, shpi, knots = ki, suppre = TRUE, interp = TRUE) 
 				splpri = dpri$amat
@@ -3663,16 +3696,57 @@ sh_x = sh = NULL
                 lowmu = 1 - 1/(1+exp(loweta))
             #}
         }
+        #new: thvs are for individual c.i. bands and surfaces
+        #smooth additive terms only, no umbrella or tree
         if (family$family == "gaussian") {
-            ans = list(fit = muhatpr, lower = muhatpr - hl, upper = muhatpr + hl)
+            dcoefs = object$coefs[(np - capms + 1):(np + capm),,drop=FALSE]
+            etacomps = object$etacomps
+            capl = nrow(etacomps)
+            thvs_upp = thvs_lwr = matrix(0, nrow = capl, ncol = rn)
+            ncon = 1
+            # temp: constrained smooth terms covariance
+            acov2 = acov[-c(1:np),-c(1:np)]
+            for (i in 1:capl) {
+                ddi = t(splpr[varlist == i, ,drop=FALSE])
+                acovi = acov2[varlist == i, varlist == i]
+                hli = mult*sqrt(diag(ddi %*% acovi %*% t(ddi)))
+                ei = ddi%*%dcoefs[varlist == i, ,drop=FALSE]
+                thvs_upp[i,] = ei + hli
+                thvs_lwr[i,] = ei - hli
+            }
+
+            # order thvs back
+            if (length(idx_s) > 0) {
+                thvs0_upp = thvs_upp
+                thvs0_upp[idx_s,] = thvs_upp[1:length(idx_s), ]
+                thvs0_lwr = thvs_lwr
+                thvs0_lwr[idx_s,] = thvs_lwr[1:length(idx_s), ]
+                if (length(idx) > 0) {
+                    thvs0_upp[idx,] = thvs_upp[(1+length(idx_s)):capl, ]
+                    thvs0_lwr[idx,] = thvs_lwr[(1+length(idx_s)):capl, ]
+                }
+                thvs_upp = thvs0_upp
+                thvs_lwr = thvs0_lwr
+            }
+            #new: problem when not gaussian
+            if (object$sc_y) {
+                for (i in 1:nrow(thvs_upp)) {
+                    thvs_upp[i,] = thvs_upp[i,] * object$sc
+                    thvs_lwr[i,] = thvs_lwr[i,] * object$sc
+                }
+            }
+        }
+        if (family$family == "gaussian") {
+            ans = list(fit = muhatpr, lower = muhatpr - hl, upper = muhatpr + hl, acov = acov, object = object, mult = mult, thvs_upp = thvs_upp, thvs_lwr = thvs_lwr)
         } else if (family$family == "binomial") {
             if ("response" %in% type) {
-                ans = list(fit = muhatpr, lower = lowmu, upper = uppmu)
+                ans = list(fit = muhatpr, lower = lowmu, upper = uppmu, object = object, mult = mult)
             } else if ("link" %in% type) {
-                ans = list(fit = etapr, lower = loweta, upper = uppeta)
+                ans = list(fit = etapr, lower = loweta, upper = uppeta, object = object, mult = mult)
             }
         }
     }
+    class(ans) = "cgamp"
     return (ans) 
 }
 
@@ -3765,48 +3839,956 @@ pred_del = function(x, sh, xp, ms) {
 	return (sigma)
 }
 
+
+
+##############
+#predict.wps#
+# >= pairs + additive + z
+##############
+predict.wps = function(object, newData, interval = c("none", "confidence", "prediction"), type = c("response", "link"), level = 0.95, ...) {
+    #new:
+    family = object$family
+    cicfamily = CicFamily(family)
+    muhat.fun = cicfamily$muhat.fun
+    if (!inherits(object, "wps")) {
+        warning("calling predict.wps(<fake-wps-object>) ...")
+    }
+    if (missing(newData) || is.null(newData)) {
+        #if (missing(newData)) {
+        #etahat = object$etahat
+        #muhat = muhat.fun(etahat, fml = family$family)
+        #ans = list(fit = muhat, etahat = etahat, newbigmat = object$bigmat)
+        ans = list(fit = object$muhat)
+        return (ans)
+    }
+    if (!is.data.frame(newData)) {
+        #newData = as.data.frame(newData)
+        stop ("newData must be a data frame!")
+    }
+    #shapes = object$shapes
+    #new: used for ci
+    ahat = object$coefs
+    coef_wp = object$coef_wp
+    prior.w = object$prior.w
+    pen = object$pen
+    dmat = object$dmat
+    amat = object$amat
+    y = object$y
+    #zmat includes one vector and also conc, conv, shape=17, additive
+    zmat = object$zmat
+    #vmat includes one vector and also conc, conv, shape=17
+    vmat = object$vmat
+    #delta includes everything
+    delta = object$delta
+    tt = object$tms
+    Terms = delete.response(tt)
+    #model.frame will re-organize newData in the original order in formula
+    m = model.frame(Terms, newData)
+    
+    newdata = m
+    #print (head(newdata))
+    #new:
+    newx0 = NULL; newxv = NULL; newx = NULL; newx_s = NULL; newu = NULL; newt = NULL; newz = NULL; newv = NULL
+    #newz = list();
+    ztb = object$ztb; zid1 = object$zid1; zid2 = object$zid2; iz = 1
+    rn = nrow(newdata)
+    #at least one pair in decrs and ks_wps
+    decrs = object$decrs
+    ks_wps = object$ks_wps
+    sps_wps = list()
+    dcss = list()
+    x1_wps = x2_wps = list()
+    iwps = 0
+    varlist = object$varlist_wps
+    varlist = varlist[-1]
+    #######################
+    #local helper function#
+    #######################
+    my_line = function(xp = NULL, y, x, end, start) {
+        slope = NULL
+        intercept = NULL
+        yp = NULL
+        slope = (y[end] - y[start]) / (x[end] - x[start])
+        intercept = y[end] - slope * x[end]
+        yp = intercept + slope * xp
+        ans = new.env()
+        ans$slope = slope
+        ans$intercept = intercept
+        ans$yp = yp
+        ans
+    }
+    
+    #get shape attributes and elem out of newdata
+    for (i in 1:ncol(newdata)) {
+        if (is.null(attributes(newdata[,i])$shape)) {
+            if (is.factor(newdata[,i])) {
+                lvli = levels(newdata[,i])
+                ztbi = levels(ztb[[iz]])
+                newdatai = NULL
+                if (!any(lvli %in% ztbi)) {
+                    stop ("new factor level must be among factor levels in the fit!")
+                } else {
+                    id1 = which(ztbi %in% lvli)
+                    klvls = length(ztbi)
+                    if (klvls > 1) {
+                        newimat = matrix(0, nrow = rn, ncol = klvls-1)
+                        for (i1 in 1:rn) {
+                            if (newdata[i1,i] != ztbi[1]) {
+                                id_col = which(ztbi %in% newdata[i1,i]) - 1
+                                newimat[i1,id_col] = 1
+                            }
+                        }
+                        newdatai = newimat
+                    }
+                }
+            } else {
+                newdatai = newdata[,i]
+            }
+            newz = cbind(newz, newdatai)
+            iz = iz + 1
+        }
+        if (length(attributes(newdata[,i])$decreasing)>1) {
+            iwps = iwps + 1
+            #sps_wp = attributes(newdata[, i])$space
+            #sps_wps[[iwps]] = sps_wp
+            dcs = attributes(newdata[, i])$decreasing
+            dcss[[iwps]] = dcs
+            x1_wp = (newdata[, i])[, 1]
+            x1_wps[[iwps]] = x1_wp
+            x2_wp = (newdata[, i])[, 2]
+            x2_wps[[iwps]] = x2_wp
+        }
+        if (is.numeric(attributes(newdata[,i])$shape)) {
+            newx0 = cbind(newx0, newdata[,i])
+            if ((attributes(newdata[,i])$shape > 2 & attributes(newdata[,i])$shape < 5) | (attributes(newdata[,i])$shape > 10 & attributes(newdata[,i])$shape < 13)) {
+                newxv = cbind(newxv, newdata[,i])
+            }
+        }
+        #if (is.character(attributes(newdata[,i])$shape)) {
+        #    if (attributes(newdata[,i])$shape == "tree") {
+        #        newt = cbind(newt, newdata[,i])
+        #    }
+        #    if (attributes(newdata[,i])$shape == "umbrella") {
+        #        newu = cbind(newu, newdata[,i])
+        #    }
+        #}
+    }
+    #conc, or conv + shape=17 + other shapes + zmat (including one) + wps
+    m_acc_add = 0
+    spl_add = splpr_add = NULL
+    if (!is.null(newx0)) {
+        shapes = object$shapes
+        #put s=17 first as in wps.fit
+        if (any(shapes == 17)) {
+            kshapes = length(shapes)
+            obs = 1:kshapes
+            idx_s = obs[which(shapes == 17)]; idx = obs[which(shapes != 17)]
+            newx1 = newx0
+            shapes0 = 1:kshapes*0
+            newx1[,1:length(idx_s)] = newx0[,idx_s]
+            shapes0[1:length(idx_s)] = shapes[idx_s]
+            if (length(idx) > 0) {
+                newx1[,(1 + length(idx_s)):kshapes] = newx0[,idx]
+                shapes0[(1 + length(idx_s)):kshapes] = shapes[idx]
+            }
+            newx0 = newx1; shapes = shapes0
+        }
+        nc = ncol(newx0)
+        ms = object$ms
+        knotsuse_add = object$knotsuse_add
+        #17 is first
+        xmat0_add = object$xmat0_add
+        
+        for (i in 1:nc) {
+            msi = ms[[i]]
+            shpi = shapes[i]
+            ki = knotsuse_add[[i]]
+            xi = xmat0_add[,i]
+            xipr = newx0[,i]
+            if (any(xipr > max(ki)) | any(xipr < min(ki))) {
+                stop ("No extrapolation is allowed in cgam prediction!")
+            }
+            #if (shpi >= 9) {
+            dpri = makedelta(xipr, shpi, knots = ki, suppre = TRUE, interp = TRUE)
+            splpri = dpri$amat
+            if (shpi > 10 & shpi < 13) {
+                xs = sort(xi)
+                ord = order(xi)
+                #nx = length(xi)
+                #nx is n
+                obs = 1:n
+                nr = nrow(splpri)
+                #nc = length(xipr)
+                #rn is the length of a new vector
+                ms2 = matrix(0, nrow = nr, ncol = rn)
+                for (i1 in 1:rn) {
+                    for (i2 in 1:nr) {
+                        ms2[i2, i1] = my_line(xp = xipr[i1], y = msi[i2, ][ord], x = xs, end = n, start = 1)$yp
+                    }
+                }
+                splpri = splpri - ms2
+            } else {
+                splpri = splpri - msi
+            }
+            #} else {splpri = pred_del(xi, shpi, xipr, msi)}
+            mi = dim(splpri)[1]
+            m_acc_add = m_acc_add + mi
+            #splpr_add  = rbind(splpr_add, splpri)
+            splpr_add  = cbind(splpr_add, t(splpri))
+        }
+    }
+    #temp
+    #newv = cbind(1:rn*0 + 1, newz, newxv)
+    newv = cbind(newxv, splpr_add, 1:rn*0 + 1, newz)
+    np = ncol(newv)
+    n = length(y)
+    splpr = NULL
+    splpr_lst = mus = list()
+    m_acc = 0
+    #loop through total number of wps pairs
+    for (i in 1:iwps) {
+        k1 = ks_wps[[i]][[1]]
+        k2 = ks_wps[[i]][[2]]
+        nxi1 = x1_wps[[i]]
+        nxi2 = x2_wps[[i]]
+        if (any(nxi1 > max(k1)) | any(nxi1 < min(k1)) | any(nxi2 > max(k2)) | any(nxi2 < min(k2))) {
+            stop ("No extrapolation is allowed in cgam prediction!")
+        }
+        #sps_wp = sps_wps[[i]]
+        #space, m1_0, m2_0 don't matter
+        deli = makedelta_wps(nxi1, nxi2, m1_0 = length(k1), m2_0 = length(k2), k1, k2, space = c("E",
+        "E"), decreasing = decrs[[i]], interp = TRUE)
+        splpri = deli$delta
+        #remove the constant vector
+        #if (i > 1) {
+        splpri = splpri[,-1]
+        #}
+        mi = dim(splpri)[2]
+        m_acc = m_acc + mi
+        #spl = rbind(spl, spli)
+        splpr = cbind(splpr, splpri)
+        splpr_lst[[i]] = splpri
+        #ignore z for now
+        mui = cbind(1, splpri) %*% c(ahat[1], ahat[which(varlist == i)+np])
+        mus[[i]] = muhat.fun(mui, fml = family$family)
+    }
+    m_acc = m_acc + m_acc_add
+    xmatpr = cbind(newv, splpr)
+    muhatpr = xmatpr %*% ahat
+    muhatpr = muhat.fun(muhatpr, fml = family$family)
+    if ("none" %in% interval) {
+        ans = list(fit = muhatpr, xmatpr = xmatpr, spls = splpr_lst, mus = mus)
+        #new: add prediction interval
+    } else if (interval == "confidence" | interval == "prediction") {
+        if (family$family == "gaussian") {
+            #bmat includes constant + zmat, not weighted
+            bmat = delta
+            np = object$d0
+            nloop = 500
+            #nsec will be too big for ordinal, ignore for now
+            #nsec = 2^m_acc
+            #print (dim(zmat))
+            if (is.null(prior.w)) {
+                prior.w = rep(1, n)
+            }
+            if (!all(prior.w == 1)) {
+                for (i in 1:n) {
+                    bmat[,i] = bmat[,i] * sqrt(prior.w[i])
+                    #spl[,i] = spl[,i] * sqrt(prior.w[i])
+                    zmat[i,] = zmat[i,] * sqrt(prior.w[i])
+                    vmat[i,] = vmat[i,] * sqrt(prior.w[i])
+                }
+            }
+            #spl is constrained splines: additive + wps
+            spl = bmat[,-c(1:np),drop=FALSE]
+            #muhat0 = (object$muhat)/sqrt(prior.w)
+            #muhat0: unweighted
+            muhat0 = object$muhat
+            sighat = (object$sig2hat)^(1/2)
+            nv = np
+            ## estimate sector probabilties
+            #new: not use sector = 1:nsec*0; simulate for 1,000 times and record the faces used more than once
+            # if times / nloop < 1e-3, then delete
+            sector = NULL
+            times = NULL
+            df = NULL
+            faces = list()
+            #set.seed(1)
+            #first column shows sector; second column shows times
+            for (iloop in 1:nloop) {
+                ysim = muhat0 + rnorm(n)*sighat
+                ysim = ysim * sqrt(prior.w)
+                #ans = coneB(ysim, t(spl), zmat, face = face)
+                #cf = round(ans$coefs[(nv+1):(m_acc+nv)], 10)
+                qv0 = crossprod(bmat)
+                dv0 = crossprod(dmat)
+                #pen2 = find_pen(aims = edf, Q = qv0, B = bmat, D = dv0, PNT = TRUE, Y = ysim, D0 = dmat)
+                
+                #nxi1 = x1_wps[[1]]
+                #nxi2 = x2_wps[[1]]
+                #mat = cbind(1, nxi1, nxi2, nxi1*nxi2)
+                #mu_para = mat %*% solve(t(mat) %*% mat) %*% t(mat) %*% ysim
+                #ssr = sum((ysim - mu_para)^2)
+                #sc = ssr / (n - ncol(mat))
+                #pen = max(1e-6, 1 * sc)
+                
+                qv = qv0 + pen * dv0
+                cv = crossprod(bmat, ysim)
+                #amat = diag(m)
+                #amat[1, ] = 0
+                #ans = qprog(qv, cv, amat, 1:nrow(amat)*0, msg = FALSE)
+                #cf = round(ans$thetahat[(np+1):(m_acc+np)],10)
+                #sec = 1:m_acc*0
+                #sec[cf > 0] = 1
+                umat = chol(qv)
+                uinv = solve(umat)
+                atil = amat %*% uinv
+                cvec = t(uinv) %*% t(bmat) %*% ysim
+                ans = coneA(cvec, atil, msg = FALSE)
+                #phihat = ans$thetahat
+                #ahat = uinv %*% phihat
+                
+                #new: use polar cone instead
+                face = ans$face
+                faces[[iloop]] = face
+                sec = 1:nrow(amat)*0
+                sec[face] = 1
+                
+                #sec = 1:nrow(amat)*0+1
+                #cf = round(ans$thetahat,10)
+                #sec[cf > 0] = 0
+                
+                r = makebin(sec) + 1
+                if (iloop == 1) {
+                    df = rbind(df, c(r, 1))
+                    sector = rbind(sector, sec)
+                } else {
+                    if (r %in% df[,1]) {
+                        ps = which(df[,1] %in% r)
+                        df[ps,2] = df[ps,2] + 1
+                    } else {
+                        df = rbind(df, c(r, 1))
+                        sector = rbind(sector, sec)
+                    }
+                }
+            }
+            #remove times/sum(times) < 1e-3??
+            sm_id = which((df[,2]/nloop) < 1e-3)
+            if (any(sm_id)) {
+                df = df[-sm_id, ,drop=FALSE]
+                sector = sector[-sm_id, ,drop=FALSE]
+            }
+            #new:
+            ns = nrow(df)
+            bsec = df
+            bsec[,2] = bsec[,2] / sum(bsec[,2])
+            ord = order(bsec[,1])
+            bsec = bsec[ord, ,drop=FALSE]
+            sector = sector[ord, ,drop=FALSE]
+            
+            ### calculate the mixture cov(alpha) matrix:
+            #spl = t(spl)
+            #obs = 1:m_acc;oobs = 1:(m_acc+nv)
+            #acov = matrix(0, nrow = m_acc+nv, ncol = m_acc+nv)
+            #for (is in 1:ns) {
+            #    if (bsec[is,2] > 0) {
+            #        jvec = getbin(bsec[is,1], m_acc)
+            #        if (sum(jvec) == 1) {
+            #            smat = cbind(vmat, spl[,which(jvec==1),drop=FALSE])
+            #        } else if (sum(jvec) == 0) {
+            #            smat = vmat
+            #        } else {
+            #            smat = cbind(vmat, spl[,which(jvec==1),drop=FALSE])
+            #        }
+            #        acov1 = bsec[is,2]*solve(t(smat)%*%smat)
+            #        acov2 = matrix(0,nrow=m_acc+nv,ncol=m_acc+nv)
+            #        jobs = 1:(m_acc+nv)>0
+            #        jm = 1:m_acc>0
+            #        jm[obs[jvec==0]] = FALSE
+            #        jobs[(nv+1):(m_acc+nv)] = jm
+            #        nobs = oobs[jobs==TRUE]
+            #        for (i in 1:sum(jobs)) {
+            #            acov2[nobs[i],jobs] = acov1[i,]
+            #        }
+            #        acov = acov+acov2
+            #    }
+            #}
+            #get covariance of phihat first
+            #umat = chol(qv)
+            #uinv = solve(umat)
+            #atil = amat %*% uinv
+            dp = -atil
+            for (i in 1:nrow(dp)) {
+                dpi = dp[i,,drop=F]
+                dpi = dpi/sqrt(tcrossprod(dpi)[1])
+                dp[i,]=dpi
+            }
+            dp = t(dp)
+            imat = diag(nrow(qv))
+            acov0 = matrix(0, nrow=nrow(qv), ncol=ncol(qv))
+            for (is in 1:ns) {
+                if (bsec[is,2] > 0) {
+                    #jvec = getbin(bsec[is,1], ncol(dp))
+                    jvec = sector[is, ]
+                    if (sum(jvec) == 0) {
+                        pmat_is = imat
+                    } else {
+                        smat = dp[,which(jvec==1),drop=FALSE]
+                        #if (qr(smat)$rank < ncol(smat)) {
+                        #save(smat,file='smat.Rda')
+                        #fc = bsec[is,1]
+                        #pj = bsec[is,2]
+                        #save(jvec, file='jvec.Rda')
+                        #save(fc, file='fc.Rda')
+                        #save(pj, file='pj.Rda')
+                        #save(faces, file='faces.Rda')
+                        #save(bsec, file='bsec.Rda')
+                        #smat = qr.Q(qr(smat), complete = TRUE)[, 1:(qr(smat)$rank), drop = FALSE]
+                        #}
+                        pmat_is_p = smat %*% solve(crossprod(smat), t(smat))
+                        pmat_is = (imat-pmat_is_p)
+                    }
+                    acov0 = acov0 + bsec[is,2]*pmat_is%*%t(uinv)%*%qv0%*%uinv%*%pmat_is
+                }
+            }
+            acov = uinv%*%acov0%*%t(uinv)*sighat^2
+            #only xmatpr and splpr have interpolation points
+            #xmatpr = cbind(newv, splpr)
+            #muhatpr = xmatpr %*% object$coefs
+            #temp:
+            #muhatpr = xmatpr %*% object$coefs[1:ncol(xmatpr), ,drop=FALSE]
+            #new: C.I. level
+            mult = qnorm((1 - level)/2, lower.tail=FALSE)
+            #hl = 2*sqrt(diag(xmatpr%*%acov%*%t(xmatpr)))
+            #hl = mult*sqrt(diag(xmatpr%*%acov%*%t(xmatpr)))
+            #ans = list(fit = muhatpr, lower = muhatpr - hl, upper = muhatpr + hl)
+        }
+        if (interval == "confidence") {
+            hl = mult*sqrt(diag(xmatpr%*%acov%*%t(xmatpr)))
+        }
+        if (interval == "prediction") {
+            hl = mult*sqrt(sighat^2+diag(xmatpr%*%acov%*%t(xmatpr)))
+        }
+        ans = list(fit = muhatpr, lower = muhatpr - hl, upper = muhatpr + hl, object = object, acov = acov, mult = mult, newz = newz)
+    }
+    class(ans) = "wpsp"
+    return (ans)
+}
+
+##############
+#predict.trispl
+#not finished: 1 pair + z only
+##############
+predict.trispl = function(object, newData, interval = c("none", "confidence", "prediction"), type = c("response", "link"), level = 0.95, ...) {
+    #new:
+    family = object$family
+    cicfamily = CicFamily(family)
+    muhat.fun = cicfamily$muhat.fun
+    if (!inherits(object, "trispl")) {
+        warning("calling predict.trispl(<fake-trispl-object>) ...")
+    }
+    if (missing(newData) || is.null(newData)) {
+        #if (missing(newData)) {
+        #etahat = object$etahat
+        #muhat = muhat.fun(etahat, fml = family$family)
+        #ans = list(fit = muhat, etahat = etahat, newbigmat = object$bigmat)
+        ans = list(fit = object$muhat)
+        return (ans)
+    }
+    if (!is.data.frame(newData)) {
+        #newData = as.data.frame(newData)
+        stop ("newData must be a data frame!")
+    }
+    #shapes = object$shapes
+    #new: used for ci
+    ahat = object$coefs
+    coef_tri = object$coef_tri
+    
+    prior.w = object$prior.w
+    pen = object$pen
+    
+    dmat = object$pmatc
+    amat = object$amatc
+    #delta includes everything
+    delta = object$dmatc
+    capk_lst = object$capk_lst
+    trimat_lst = object$trimat_lst
+    
+    y = object$y
+    n = length(y)
+    #zmat does't include one vector in trispl
+    zmat = object$zmat
+    #vmat includes one vector and also conc, conv, shape=17
+    #vmat = object$vmat
+    
+    tt = object$tms
+    Terms = delete.response(tt)
+    #model.frame will re-organize newData in the original order in formula
+    m = model.frame(Terms, newData)
+    
+    newdata = m
+    #print (head(newdata))
+    #new:
+    newx0 = NULL; newxv = NULL; newx = NULL; newx_s = NULL; newu = NULL; newt = NULL; newz = NULL; newv = NULL
+    #newz = list();
+    ztb = object$ztb; zid1 = object$zid1; zid2 = object$zid2; iz = 1
+    rn = nrow(newdata)
+    #at least one pair in decrs and ks_wps
+    #decrs = object$decrs
+    #ks_wps = object$ks_wps
+    #sps_wps = list()
+    #dcss = list()
+    #x1_wps = x2_wps = list()
+    iwps = 0
+    #varlist = object$varlist_wps
+    #varlist = varlist[-1]
+    
+    itri = 0
+    convexity = object$cvss
+    cvss = list()
+    x1_tris = x2_tris = list()
+    icvs = 0
+    varlist_tri = object$varlist_tri
+    ks_tri = object$knots_lst
+    
+    #######################
+    #local helper function#
+    #######################
+    my_line = function(xp = NULL, y, x, end, start) {
+        slope = NULL
+        intercept = NULL
+        yp = NULL
+        slope = (y[end] - y[start]) / (x[end] - x[start])
+        intercept = y[end] - slope * x[end]
+        yp = intercept + slope * xp
+        ans = new.env()
+        ans$slope = slope
+        ans$intercept = intercept
+        ans$yp = yp
+        ans
+    }
+    
+    #get shape attributes and elem out of newdata
+    for (i in 1:ncol(newdata)) {
+        if (is.null(attributes(newdata[,i])$shape)) {
+            if (is.factor(newdata[,i])) {
+                lvli = levels(newdata[,i])
+                ztbi = levels(ztb[[iz]])
+                newdatai = NULL
+                if (!any(lvli %in% ztbi)) {
+                    stop ("new factor level must be among factor levels in the fit!")
+                } else {
+                    id1 = which(ztbi %in% lvli)
+                    klvls = length(ztbi)
+                    if (klvls > 1) {
+                        newimat = matrix(0, nrow = rn, ncol = klvls-1)
+                        for (i1 in 1:rn) {
+                            if (newdata[i1,i] != ztbi[1]) {
+                                id_col = which(ztbi %in% newdata[i1,i]) - 1
+                                newimat[i1,id_col] = 1
+                            }
+                        }
+                        newdatai = newimat
+                    }
+                }
+            } else {
+                newdatai = newdata[,i]
+            }
+            newz = cbind(newz, newdatai)
+            iz = iz + 1
+        } else if (length(attributes(newdata[,i])$decreasing)>1) {
+            iwps = iwps + 1
+            #sps_wp = attributes(newdata[, i])$space
+            #sps_wps[[iwps]] = sps_wp
+            dcs = attributes(newdata[, i])$decreasing
+            dcss[[iwps]] = dcs
+            x1_wp = (newdata[, i])[, 1]
+            x1_wps[[iwps]] = x1_wp
+            x2_wp = (newdata[, i])[, 2]
+            x2_wps[[iwps]] = x2_wp
+        } else if (is.numeric(attributes(newdata[,i])$shape)) {
+            newx0 = cbind(newx0, newdata[,i])
+            if ((attributes(newdata[,i])$shape > 2 & attributes(newdata[,i])$shape < 5) | (attributes(newdata[,i])$shape > 10 & attributes(newdata[,i])$shape < 13)) {
+                newxv = cbind(newxv, newdata[,i])
+            }
+        } else if (is.character(attributes(newdata[,i])$shape) && (attributes(newdata[,i])$categ == "tri")) {
+            itri = itri + 1
+            cvs = attributes(newdata[,i])$cvs
+            cvss[[itri]] = cvs
+            x1_tri = (newdata[,i])[, 1]
+            x1_tris[[itri]] = x1_tri
+            x2_tri = (newdata[,i])[, 2]
+            x2_tris[[itri]] = x2_tri
+        }
+    }
+    #conc, or conv + shape=17 + other shapes + zmat (including one) + wps
+    m_acc_add = 0
+    spl_add = splpr_add = NULL
+    if (!is.null(newx0)) {
+        shapes = object$shapes
+        #put s=17 first as in wps.fit
+        if (any(shapes == 17)) {
+            kshapes = length(shapes)
+            obs = 1:kshapes
+            idx_s = obs[which(shapes == 17)]; idx = obs[which(shapes != 17)]
+            newx1 = newx0
+            shapes0 = 1:kshapes*0
+            newx1[,1:length(idx_s)] = newx0[,idx_s]
+            shapes0[1:length(idx_s)] = shapes[idx_s]
+            if (length(idx) > 0) {
+                newx1[,(1 + length(idx_s)):kshapes] = newx0[,idx]
+                shapes0[(1 + length(idx_s)):kshapes] = shapes[idx]
+            }
+            newx0 = newx1; shapes = shapes0
+        }
+        nc = ncol(newx0)
+        ms = object$ms
+        knotsuse_add = object$knotsuse_add
+        #17 is first
+        xmat0_add = object$xmat0_add
+        
+        for (i in 1:nc) {
+            msi = ms[[i]]
+            shpi = shapes[i]
+            ki = knotsuse_add[[i]]
+            xi = xmat0_add[,i]
+            xipr = newx0[,i]
+            if (any(xipr > max(ki)) | any(xipr < min(ki))) {
+                stop ("No extrapolation is allowed in cgam prediction!")
+            }
+            #if (shpi >= 9) {
+            dpri = makedelta(xipr, shpi, knots = ki, suppre = TRUE, interp = TRUE)
+            splpri = dpri$amat
+            if (shpi > 10 & shpi < 13) {
+                xs = sort(xi)
+                ord = order(xi)
+                #nx = length(xi)
+                #nx is n
+                obs = 1:n
+                nr = nrow(splpri)
+                #nc = length(xipr)
+                #rn is the length of a new vector
+                ms2 = matrix(0, nrow = nr, ncol = rn)
+                for (i1 in 1:rn) {
+                    for (i2 in 1:nr) {
+                        ms2[i2, i1] = my_line(xp = xipr[i1], y = msi[i2, ][ord], x = xs, end = n, start = 1)$yp
+                    }
+                }
+                splpri = splpri - ms2
+            } else {
+                splpri = splpri - msi
+            }
+            #} else {splpri = pred_del(xi, shpi, xipr, msi)}
+            mi = dim(splpri)[1]
+            m_acc_add = m_acc_add + mi
+            #splpr_add  = rbind(splpr_add, splpri)
+            splpr_add  = cbind(splpr_add, t(splpri))
+        }
+    }
+    #temp
+    #newv = cbind(1:rn*0 + 1, newz, newxv)
+    #for tri.fit, don't include the constant vector
+    #newv = cbind(newxv, splpr_add, 1:rn*0 + 1, newz)
+    #newv = cbind(newxv, splpr_add, newz)
+    #np = ncol(newv)
+    #m_acc = 0
+    
+    splpr = NULL
+    splpr_lst = mus = list()
+    #loop through total number of wps pairs
+    for (i in 1:itri) {
+        k1 = ks_tri[[i]][,1]
+        m1 = length(k1)
+        k2 = ks_tri[[i]][,2]
+        m2 = length(k2)
+        nxi1 = x1_tris[[i]]
+        nxi2 = x2_tris[[i]]
+        trimat = trimat_lst[[i]]
+        capk = capk_lst[[i]]
+        if (any(nxi1 > max(k1)) | any(nxi1 < min(k1)) | any(nxi2 > max(k2)) | any(nxi2 < min(k2))) {
+            stop ("No extrapolation is allowed in cgam prediction!")
+        }
+        #sps_wp = sps_wps[[i]]
+        #space, m1_0, m2_0 don't matter
+        deli = makedelta_tri(nxi1, nxi2, m1, m2, k1, k2, trimat, capk, space = c("E",
+        "E"), cvs = convexity[[i]], interp = TRUE)
+        splpri = deli
+        #mi = dim(splpri)[2]
+        #m_acc = m_acc + mi
+        #spl = rbind(spl, spli)
+        splpr = cbind(splpr, splpri)
+        splpr_lst[[i]] = splpri
+        #ignore z for now
+        #mui = cbind(1, splpri) %*% c(ahat[1], ahat[which(varlist == i)+np])
+        #mus[[i]] = muhat.fun(mui, fml = family$family)
+    }
+    # m_acc = m_acc + m_acc_add
+    
+    #in tri.fit: additive + trispl + z + wps (ignore)
+    xmatpr = cbind(splpr_add, splpr, newz)
+    muhatpr = xmatpr %*% ahat
+    muhatpr = muhat.fun(muhatpr, fml = family$family)
+    if ("none" %in% interval) {
+        ans = list(fit = muhatpr, xmatpr = xmatpr, spls = splpr_lst, mus = mus, object = object)
+        #new: add prediction interval
+    } else if (interval == "confidence" | interval == "prediction") {
+        if (family$family == "gaussian") {
+            #bmat includes constant + zmat, not weighted
+            bmat = delta
+            np = object$d0
+            nloop = 500
+            #nsec will be too big for ordinal, ignore for now
+            #nsec = 2^m_acc
+            #print (dim(zmat))
+            if (is.null(prior.w)) {
+                prior.w = rep(1, n)
+            }
+            if (!all(prior.w == 1)) {
+                for (i in 1:n) {
+                    bmat[,i] = bmat[,i] * sqrt(prior.w[i])
+                    #spl[,i] = spl[,i] * sqrt(prior.w[i])
+                    #zmat[i,] = zmat[i,] * sqrt(prior.w[i])
+                    #vmat[i,] = vmat[i,] * sqrt(prior.w[i])
+                }
+            }
+            #spl is constrained splines: additive + wps
+            #spl = bmat[,-c(1:np),drop=FALSE]
+            #muhat0 = (object$muhat)/sqrt(prior.w)
+            #muhat0: unweighted
+            muhat0 = object$muhat
+            sighat = (object$sig2hat)^(1/2)
+            #no use:
+            nv = np
+            ## estimate sector probabilties
+            #new: not use sector = 1:nsec*0; simulate for 1,000 times and record the faces used more than once
+            # if times / nloop < 1e-3, then delete
+            sector = NULL
+            times = NULL
+            df = NULL
+            #faces = list()
+            #set.seed(1)
+            #first column shows sector; second column shows times
+            for (iloop in 1:nloop) {
+                #print (iloop)
+                ysim = muhat0 + rnorm(n)*sighat
+                ysim = ysim * sqrt(prior.w)
+                #ans = coneB(ysim, t(spl), zmat, face = face)
+                #cf = round(ans$coefs[(nv+1):(m_acc+nv)], 10)
+                qv0 = crossprod(bmat)
+                dv0 = crossprod(dmat)
+                #pen2 = find_pen(aims = edf, Q = qv0, B = bmat, D = dv0, PNT = TRUE, Y = ysim, D0 = dmat)
+                
+                qv = qv0 + pen * dv0
+                cv = crossprod(bmat, ysim)
+                umat = chol(qv)
+                uinv = solve(umat)
+                atil = amat %*% uinv
+                cvec = t(uinv) %*% t(bmat) %*% ysim
+                ans = coneA(cvec, atil, msg = FALSE)
+                #phihat = ans$thetahat
+                #ahat = uinv %*% phihat
+                
+                #new: use polar cone instead
+                face = ans$face
+                #faces[[iloop]] = face
+                sec = 1:nrow(amat)*0
+                sec[face] = 1
+                
+                #sec = 1:nrow(amat)*0+1
+                #cf = round(ans$thetahat,10)
+                #sec[cf > 0] = 0
+                
+                r = makebin(sec) + 1
+                if (iloop == 1) {
+                    df = rbind(df, c(r, 1))
+                    sector = rbind(sector, sec)
+                } else {
+                    if (r %in% df[,1]) {
+                        ps = which(df[,1] %in% r)
+                        df[ps,2] = df[ps,2] + 1
+                    } else {
+                        df = rbind(df, c(r, 1))
+                        sector = rbind(sector, sec)
+                    }
+                }
+            }
+            #remove times/sum(times) < 1e-3??
+            sm_id = which((df[,2]/nloop) < 1e-3)
+            if (any(sm_id)) {
+                df = df[-sm_id, ,drop=FALSE]
+                sector = sector[-sm_id, ,drop=FALSE]
+            }
+            #new:
+            ns = nrow(df)
+            bsec = df
+            bsec[,2] = bsec[,2] / sum(bsec[,2])
+            ord = order(bsec[,1])
+            bsec = bsec[ord, ,drop=FALSE]
+            sector = sector[ord, ,drop=FALSE]
+            
+            ### calculate the mixture cov(alpha) matrix:
+            dp = -atil
+            for (i in 1:nrow(dp)) {
+                dpi = dp[i,,drop=F]
+                dpi = dpi/sqrt(tcrossprod(dpi)[1])
+                dp[i,]=dpi
+            }
+            dp = t(dp)
+            imat = diag(nrow(qv))
+            acov0 = matrix(0, nrow=nrow(qv), ncol=ncol(qv))
+            for (is in 1:ns) {
+                if (bsec[is,2] > 0) {
+                    #jvec = getbin(bsec[is,1], ncol(dp))
+                    jvec = sector[is, ]
+                    if (sum(jvec) == 0) {
+                        pmat_is = imat
+                    } else {
+                        smat = dp[,which(jvec==1),drop=FALSE]
+                        pmat_is_p = smat %*% solve(crossprod(smat), t(smat))
+                        pmat_is = (imat-pmat_is_p)
+                    }
+                    acov0 = acov0 + bsec[is,2]*pmat_is%*%t(uinv)%*%qv0%*%uinv%*%pmat_is
+                }
+            }
+            acov = uinv%*%acov0%*%t(uinv)*sighat^2
+            #only xmatpr and splpr have interpolation points
+            #xmatpr = cbind(newv, splpr)
+            #muhatpr = xmatpr %*% object$coefs
+            #temp:
+            #muhatpr = xmatpr %*% object$coefs[1:ncol(xmatpr), ,drop=FALSE]
+            #new: C.I. level
+            mult = qnorm((1 - level)/2, lower.tail=FALSE)
+            #hl = 2*sqrt(diag(xmatpr%*%acov%*%t(xmatpr)))
+            #hl = mult*sqrt(diag(xmatpr%*%acov%*%t(xmatpr)))
+            #ans = list(fit = muhatpr, lower = muhatpr - hl, upper = muhatpr + hl)
+        }
+        if (interval == "confidence") {
+            hl = mult*sqrt(diag(xmatpr%*%acov%*%t(xmatpr)))
+        }
+        if (interval == "prediction") {
+            hl = mult*sqrt(sighat^2+diag(xmatpr%*%acov%*%t(xmatpr)))
+        }
+        ans = list(fit = muhatpr, lower = muhatpr - hl, upper = muhatpr + hl, object = object, acov = acov, mult = mult, newz = newz)
+    }
+    class(ans) = "trisplp"
+    return (ans)
+}
+
+
+###
+#trispl makedelta
+###
+makedelta_tri = function(x1, x2, m1 = 0, m2 = 0, k1 = NULL, k2 = NULL, trimat = NULL, capk = NULL, space = c("E",
+"E"), cvs = c(TRUE, TRUE), interp = TRUE) {
+    n = length(x1)
+    xmat = cbind(x1, x2)
+    delta = NULL
+    #### now determine which triangle contains each point
+    xtri = 1:n*0;still = 1:n>0
+    ntri = (m2 - 1) * (2 * m1 - 1)
+    knots = cbind(k1, k2)
+    for (j in 1:ntri) {
+        for (i in 1:n) {
+            if (still[i]) {
+                if (intri(xmat[i,],knots[trimat[j,1],],knots[trimat[j,2],],knots[trimat[j,3],])) {
+                    still[i] = FALSE
+                    xtri[i] = j
+                }
+            }
+        }
+    }
+    ### make the design matrix
+    dmat = matrix(0, nrow = n, ncol = capk)
+    bmat = matrix(1, nrow = 3, ncol = 3)
+    a = 1:3
+    for (i in 1:n) {
+        for (j in 1:3) {
+            a[j] = trimat[xtri[i],j]
+            bmat[j,2] = knots[a[j],1]
+            bmat[j,3] = knots[a[j],2]
+        }
+        binv = solve(bmat)
+        for (j in 1:3) {
+            dmat[i,a[j]] = binv[1,j] + binv[2,j]*x1[i] + binv[3,j]*x2[i]
+        }
+    }
+    delta = cbind(delta, dmat)
+    return (delta)
+}
+
 ###########################################
 #create a 3D plot for a cgam or wps object#
 ###########################################
 plotpersp <- function(object, x1 = NULL, x2 = NULL,...) {
-	x1nm <- deparse(substitute(x1))
-	x2nm <- deparse(substitute(x2))
-	xnms_add <- object$xnms_add
-	xnms_wp <- object$xnms_wp
-	xnms_tri <- object$xnms_tri
-	is_add <- all(c(any(grepl(x1nm, xnms_add, fixed = TRUE)), any(grepl(x2nm, xnms_add, fixed = TRUE))))
-	#print (is_add)
-	is_wps <- all(c(any(grepl(x1nm, xnms_wp, fixed = TRUE)), any(grepl(x2nm, xnms_wp, fixed = TRUE))))
-	#print (is_wps)
-	is_tri <- all(c(any(grepl(x1nm, xnms_tri, fixed = TRUE)), any(grepl(x2nm, xnms_tri, fixed = TRUE))))
-	#print (is_tri)
-	if (missing(x1) | missing(x2)) {
-		UseMethod("plotpersp")
-	} else {
-		cs = class(object)	
-		if (length(cs) == 1 & is.null(x1nm) & is.null(x2nm)) {
-			UseMethod("plotpersp")
-		} else {
-			if (is_wps) {
-				plotpersp.wps(object, x1, x2, x1nm, x2nm,...)
-			} else if (is_add) {
-				plotpersp.cgam(object, x1, x2, x1nm, x2nm,...)
-			} else if (is_tri) {
-				plotpersp.trispl(object, x1, x2, x1nm, x2nm,...)
-			} else {
-				stop ("Nonparametric components must be from the same class!")
-			}
-		}
-	}
+    x1nm <- deparse(substitute(x1))
+    x2nm <- deparse(substitute(x2))
+    if (inherits(object, "cgamp")) {
+        xnms_add <- object$object$xnms_add
+    } else {
+        xnms_add <- object$xnms_add
+    }
+    if (inherits(object, "wpsp")) {
+        xnms_wp <- object$object$xnms_wp
+    } else {
+        xnms_wp <- object$xnms_wp
+    }
+    if (inherits(object, "trisplp")) {
+        xnms_tri <- object$object$xnms_tri
+    } else {
+        xnms_tri <- object$xnms_tri
+    }
+    is_add <- all(c(any(grepl(x1nm, xnms_add, fixed = TRUE)), any(grepl(x2nm, xnms_add, fixed = TRUE))))
+    #print (is_add)
+    is_wps <- all(c(any(grepl(x1nm, xnms_wp, fixed = TRUE)), any(grepl(x2nm, xnms_wp, fixed = TRUE))))
+    #print (is_wps)
+    is_tri <- all(c(any(grepl(x1nm, xnms_tri, fixed = TRUE)), any(grepl(x2nm, xnms_tri, fixed = TRUE))))
+    #print (is_tri)
+    if (missing(x1) | missing(x2)) {
+        UseMethod("plotpersp")
+    } else {
+        cs = class(object)
+        if (length(cs) == 1 & is.null(x1nm) & is.null(x2nm)) {
+            UseMethod("plotpersp")
+        } else {
+            if (is_wps) {
+                #print (x1)
+                #print (x2nm)
+                if (inherits(object, "wpsp")) {
+                    #print (x1nm)
+                    #print (x2nm)
+                    #print (head(x1))
+                    plotpersp.wpsp(object, x1, x2, x1nm, x2nm,...)
+                } else {
+                    plotpersp.wps(object, x1, x2, x1nm, x2nm,...)
+                }
+            } else if (is_add) {
+                if (inherits(object, "cgamp")){
+                    plotpersp.cgamp(object, x1, x2, x1nm, x2nm,...)
+                } else {
+                    plotpersp.cgam(object, x1, x2, x1nm, x2nm,...)
+                }
+            } else if (is_tri) {
+                if (inherits(object, "trisplp")) {
+                    plotpersp.trisplp(object, x1, x2, x1nm, x2nm,...)
+                } else {
+                    plotpersp.trispl(object, x1, x2, x1nm, x2nm,...)
+                }
+            } else {
+                stop ("Nonparametric components must be from the same class!")
+            }
+        }
+    }
 }
+
+
 ################
 #plotpersp.cgam#
 ################ 
-plotpersp.cgam <- function(object, x1 = NULL, x2 = NULL, x1nm = NULL, x2nm = NULL, data = NULL, surface = "mu", categ = NULL, col = NULL, random = FALSE, ngrid = 12, xlim = range(x1), ylim = range(x2), zlim = NULL, xlab = NULL, ylab = NULL, zlab = NULL, th = NULL, ltheta = NULL, main = NULL, ticktype = "detailed",...) {
+plotpersp.cgam <- function(object, x1 = NULL, x2 = NULL, x1nm = NULL, x2nm = NULL, data = NULL, surface = "mu", categ = NULL, col = NULL, random = FALSE, ngrid = 12, xlim = range(x1), ylim = range(x2), zlim = NULL, xlab = NULL, ylab = NULL, zlab = NULL, th = NULL, ltheta = NULL, main = NULL, ticktype = "simple",...) {
 	#if (class(object) == "list") {
 	#	object <- object[[1]]
 	#}
-	#print (class(object))
+    #print (class(object))
 	if (!inherits(object, "cgam")) { 
 		warning("calling plotpersp(<fake-cgam-object>) ...")
     }
@@ -4142,9 +5124,9 @@ if (fml != "ordered" & all(class(object) != "trispl")) {
 			}
 		}
 	}
-	if (is.null(zlim)) {
-		zlim <- range(xgmat, na.rm = TRUE)
-	}
+    #if (is.null(zlim)) {
+    #	zlim <- range(xgmat, na.rm = TRUE)
+    #}
 	palette <- c("peachpuff", "lightblue", "limegreen", "grey", "wheat", "yellowgreen", "seagreen1", "palegreen", "azure", "whitesmoke")
 	if (!is.null(categ) & surface == "mu") {
 		#palette = c("peachpuff", "lightblue", "grey", "wheat", "yellowgreen", "plum", "limegreen", "paleturqoise", "azure", "whitesmoke")
@@ -4290,7 +5272,14 @@ if (fml != "ordered" & all(class(object) != "trispl")) {
 			#print (head(coli))
 			#print (head(xgmat[[i]]))
 			#print (head(col[[1]]))
-			persp(x1g, x2g, xgmat, xlim = xlim, ylim = ylim, zlim = c(min(mins), max(maxs)), xlab = xlab, ylab = ylab, zlab = zlab, col = coli, main = main, theta = ang, ltheta = ltheta, ticktype = ticktype, box = box, axes = axes,...)
+            if (is.null(zlim)) {
+                lwr = min(mins)
+                upp = max(maxs)
+                zlim0 = c(lwr - (upp-lwr)/3, upp + (upp-lwr)/3)
+            } else {
+                zlim0 = zlim
+            }
+			persp(x1g, x2g, xgmat, xlim = xlim, ylim = ylim, zlim = zlim0, xlab = xlab, ylab = ylab, zlab = zlab, col = coli, main = main, theta = ang, ltheta = ltheta, ticktype = ticktype, box = box, axes = axes,...)
 			par(new = TRUE)
 		}
 	par(new = FALSE)
@@ -4367,539 +5356,1005 @@ if (fml != "ordered" & all(class(object) != "trispl")) {
 		if (is.null(ltheta) | !is.numeric(ltheta)) {
 			ltheta <- -135
 		}
-		persp(x1g, x2g, xgmat, xlim = xlim, ylim = ylim, zlim = zlim, xlab = xlab, ylab = ylab, zlab = zlab, col = col, main = main, theta = ang, ltheta = ltheta, ticktype = ticktype,...)
+        if (is.null(zlim)) {
+            lwr = min(xgmat)
+            upp = max(xgmat)
+            zlim0 = c(lwr - (upp-lwr)/3, upp + (upp-lwr)/3)
+        } else {
+            zlim0 = zlim
+        }
+		persp(x1g, x2g, xgmat, xlim = xlim, ylim = ylim, zlim = zlim0, xlab = xlab, ylab = ylab, zlab = zlab, col = col, main = main, theta = ang, ltheta = ltheta, ticktype = ticktype,...)
+        rslt = list(zlim = zlim0, xlab = xlab, ylab = ylab, zlab = zlab, theta = ang, ltheta = ltheta, col = col, cex.axis = .75, main = main, ticktype = ticktype, z_add = z_add, x3_add = x3_add)
+        invisible(rslt)
 	}
 #print (col)
 }
 
+
+#############################################################
+#apply plotpersp on a predict.cgam or predict.cgamm object
+#############################################################
+plotpersp.cgamp = function(object, x1=NULL, x2=NULL, x1nm=NULL, x2nm=NULL, data=NULL, up = TRUE, main=NULL, cex.main=.8, xlab = NULL, ylab = NULL, zlab = NULL, zlim = NULL, th = NULL, ltheta = NULL, ticktype = "detailed",...) {
+    #obj is prediction for cgam or cgamm
+    if (!inherits(object, "cgamp")) {
+        warning("calling plotpersp(<fake-cgam-prediction-object>) ...")
+    }
+    t_col = function(color, percent = 50, name = NULL) {
+        rgb.val <- col2rgb(color)
+        ## Make new color using input color as base and alpha set by transparency
+        t.col <- rgb(rgb.val[1], rgb.val[2], rgb.val[3],
+        maxColorValue = 255,
+        alpha = (100-percent)*255/100,
+        names = name)
+        ## Save the color
+        invisible(t.col)
+    }
+    if (up) {
+        mycol = t_col("green", perc = 90, name = "lt.green")
+    } else {
+        mycol = t_col("pink", perc = 80, name = "lt.pink")
+    }
+    
+    acov = object$acov
+    mult = object$mult
+    #obj is the cgam or cgamm fit
+    obj = object$object
+    #ah = obj$coef_wp
+    
+    xnms = obj$xnms_add
+    xmat = obj$xmat_add
+    bigmat = obj$bigmat
+    #decrs = obj$decrs
+    
+    #if (x1nm == "NULL" | x2nm == "NULL") {
+    if (is.null(x1nm) | is.null(x2nm)) {
+        if (length(xnms) >= 2) {
+            x1nm = xnms[1]
+            x2nm = xnms[2]
+            x1id = 1
+            x2id = 2
+            x1 = xmat[, 1]
+            x2 = xmat[, 2]
+        } else {stop ("Number of non-parametric predictors must >= 2!")}
+    }
+    #labels = obj$labels
+    #labels = labels[which(grepl("warp", labels, fixed = TRUE))]
+    
+    #is_fac = obj$is_fac
+    ynm = obj$ynm
+    #varlist = obj$varlist_wps
+    #varlist = varlist[-1]
+    kts = obj$knots
+    np = obj$d0
+    
+    knms = length(xnms)
+    obs = 1:knms
+    
+    if (!is.null(data)) {
+        if (!is.data.frame(data)) {
+            stop ("User need to make the data argument a data frame with names for each variable!")
+        }
+        datnms <- names(data)
+        if (!any(datnms == x1nm) | !any(datnms == x2nm)) {
+            stop ("Check the accuracy of the names of x1 and x2!")
+        }
+        x1 <- data[ ,which(datnms == x1nm)]
+        x2 <- data[ ,which(datnms == x2nm)]
+        if (length(x1) != nrow(xmat)) {
+            warning ("Number of observations in the data set is not the same as the number of elements in x1!")
+        }
+        x1id <- obs[xnms == x1nm]
+        
+        if (length(x2) != nrow(xmat)) {
+            warning ("Number of observations in the data set is not the same as the number of elements in x2!")
+        }
+        x2id <- obs[xnms == x2nm]
+    } else {
+        if (all(xnms != x1nm)) {
+            if (length(x1) != nrow(xmat)) {
+                stop ("Number of observations in the data set is not the same as the number of elements in x1!")
+            }
+            bool <- apply(xmat, 2, function(x) all(x1 == x))
+            if (any(bool)) {
+                x1id <- obs[bool]
+                #change x1nm to be the one in formula
+                x1nm <- xnms[bool]
+            } else {
+                stop (paste(paste("'", x1nm, "'", sep = ''), "is not a predictor defined in the cgam fit!"))
+            }
+        } else {
+            x1id <- obs[xnms == x1nm]
+        }
+        if (all(xnms != x2nm)) {
+            if (length(x2) != nrow(xmat)) {
+                stop ("Number of observations in the data set is not the same as the number of elements in x2!")
+            }
+            bool <- apply(xmat, 2, function(x) all(x2 == x))
+            if (any(bool)) {
+                x2id <- obs[bool]
+                x2nm <- xnms[bool]
+            } else {
+                stop (paste(paste("'", x2nm, "'", sep = ''), "is not a predictor defined in the cgam fit!"))
+            }
+        } else {
+            x2id <- obs[xnms == x2nm]
+        }
+    }
+    #xm = xmat[, c(x1id, x2id)]
+    xm0 = object$newx0
+    xm = xm0[,c(x1id,x2id)]
+    #print (x1id)
+    #print (x2id)
+    #print (head(x1))
+    #print (head(x2))
+    thvs_upp = object$thvs_upp
+    thvs_lwr = object$thvs_lwr
+    mins = min(thvs_lwr)+obj$coefs[1]
+    maxs = max(thvs_upp)+obj$coefs[1]
+    #print (mins)
+    #print (maxs)
+    #print (obj$coefs[1])
+    #if (up) {
+    if (is.null(zlim)) {
+        zlim = c(mins-(maxs-mins)/2.2, maxs+(maxs-mins)/2.2)
+    }
+    #} else {
+    #    zlim = c(mins-(maxs-mins)/3, maxs)
+    #}
+    res = plotpersp.cgam(obj, x1=x1, x2=x2, x1nm=x1nm, x2nm=x2nm, zlim=zlim, col='white', xlab=xlab, ylab=ylab, zlab=zlab, th=th, ltheta=ltheta, ticktype=ticktype)
+    #print ('check')
+    ngrid = res$ngrid
+    #print (res$zlim)
+    
+    x_grid = ngrid
+    y_grid = ngrid
+    x1g = 0:x_grid / x_grid * .95 * (max(xm[,1]) - min(xm[,1])) + min(xm[,1]) + .025 * (max(xm[,1]) - min(xm[,1]))
+    n1 = length(x1g)
+    x2g = 0:y_grid / y_grid * .95 * (max(xm[,2]) - min(xm[,2])) + min(xm[,2]) + .025 * (max(xm[,2]) - min(xm[,2]))
+    n2 = length(x2g)
+    xgmat = matrix(nrow = n1, ncol = n2)
+    eta0 = obj$coefs[1]
+    if (up) {
+        thvecs = thvs_upp
+    } else {
+        thvecs = thvs_lwr
+    }
+    for (i2 in 1:n2) {
+        for (i1 in 1:n1) {
+            x1a = max(xm[xm[,1] <= x1g[i1], 1])
+            x1b = min(xm[xm[,1] > x1g[i1], 1])
+            v1a = min(thvecs[x1id, xm[,1] == x1a])
+            v1b = min(thvecs[x1id, xm[,1] == x1b])
+            alp = (x1g[i1] - x1a) / (x1b - x1a)
+            th1add = (1 - alp) * v1a + alp * v1b
+            x2a = max(xm[xm[,2] <= x2g[i2],2])
+            x2b =min(xm[xm[,2] > x2g[i2],2])
+            v2a = min(thvecs[x2id, xm[,2] == x2a])
+            v2b = min(thvecs[x2id, xm[,2] == x2b])
+            alp = (x2g[i2] - x2a) / (x2b - x2a)
+            th2add = (1 - alp) * v2a + alp * v2b
+            xgmat[i1,i2] = eta0 + th1add + th2add
+        }
+    }
+    
+    z_add = res$z_add
+    x3_add = res$x3_add
+    xgmat = xgmat + z_add + x3_add
+    fml = obj$family$family
+    #if (fml != "gaussian" & fml != "ordered") {
+    #    for (i2 in 1:n2) {
+    #        for (i1 in 1:n1) {
+    #            xgmat[i1, i2] <- muhat.fun(xgmat[i1, i2], fml = fml)
+    #        }
+    #    }
+    #}
+    if (up) {
+        if (is.null(main)) {
+            main = "Cgam Surface with Upper 95% Confidence Surface"
+        }
+    }
+    if (!up) {
+        if (is.null(main)) {
+            main = "Cgam Surface with Lower 95% Confidence Surface"
+        }
+    }
+    par(new = TRUE)
+    persp(x1g, x2g, xgmat, zlim = res$zlim, xlab = "", ylab = "", zlab = "", theta = res$theta, ltheta = res$ltheta, cex.axis = res$cex.axis, main = main, cex.main = cex.main, ticktype = res$ticktype, col=mycol, box=FALSE, axes=FALSE)
+    par(new=FALSE)
+}
+
+
+
 #################
 #plotpersp.wps#
 ################ 
-plotpersp.wps = function(object, x1 = NULL, x2 = NULL, x1nm = NULL, x2nm = NULL, data = NULL, surface = "C", categ = NULL, col = NULL, random = FALSE, xlim = range(x1), ylim = range(x2), zlim = NULL, xlab = NULL, ylab = NULL, zlab = NULL, th = NULL, ltheta = NULL, main = NULL, ticktype = "detailed",...) {
-	#print ('wps')
-	if (!inherits(object, "wps")) { 
-	        warning("calling plotpersp(<fake-wps-object>) ...")
+plotpersp.wps = function(object, x1 = NULL, x2 = NULL, x1nm = NULL, x2nm = NULL, data = NULL, surface = "C", categ = NULL, col = NULL, random = FALSE, xlim = range(x1), ylim = range(x2), zlim = NULL, xlab = NULL, ylab = NULL, zlab = NULL, th = NULL, ltheta = NULL, main = NULL, ticktype = "simple",...) {
+    #print ('wps')
+    if (!inherits(object, "wps")) {
+        warning("calling plotpersp(<fake-wps-object>) ...")
     }
    	#x1nm = deparse(substitute(x1))
-	#x2nm = deparse(substitute(x2))
-	#print (x1nm)
-	#print (x2nm)
-	xnms = object$xnms_wp
-	xmat = object$xmat_wp
-	#if (x1nm == "NULL" | x2nm == "NULL") {
-	if (is.null(x1nm) | is.null(x2nm)) {
-		if (length(xnms) >= 2) {
-			x1nm = xnms[1]
-			x2nm = xnms[2]	
-			x1id = 1
-			x2id = 2
-			x1 = xmat[, 1]
-			x2 = xmat[, 2]
-		} else {stop ("Number of non-parametric predictors must >= 2!")}
-	}
-	#xnms = object$xnms
-	#xmat = object$xmat
-	labels = object$labels
-	labels = labels[which(grepl("warp", labels, fixed = TRUE))]
-#new:
-	is_fac = object$is_fac
-	ynm = object$ynm
-#xmat is delta
-	#delta = object$delta
-	znms = object$znms
-	decrs0 = object$decrs
-	kznms = length(znms)
-#zmat include 1 vector if only wps + add
-	zmat = object$zmat
-	d0 = object$d0
-	pb = object$pb
-	np_add = object$np_add
-	p = d0 - np_add
-	#print ('call wps')
-	#zmat = zmat[, (pb+1):(pb+d0), drop = FALSE]
-#check!
-	#zmat = zmat[, (pb+1):(pb+p), drop = FALSE]
-	#print ('zmat')
-	#print (head(zmat))
-	if (any(class(object) == "trispl")) {
-		zmat0 = zmat
-	} else {
-		zmat = zmat[, (pb+1):(pb+p), drop = FALSE]
-		if (d0 > 1) {
-			zmat0 = zmat[, -1, drop = FALSE]
-		} else {zmat0 = NULL}
-	} 
-	#print (head(zmat0))
-	if (all(class(object) != "trispl")) {
-		zcoefs = object$zcoefs[-1]
-	} else {zcoefs = object$zcoefs}
-	#print (zcoefs)
-	zid1 = object$zid1
-	zid2 = object$zid2
-	ah = object$coef_wp
-	#ahu = object$coefsu
-	varlist = object$varlist_wps
-	varlist = varlist[-1]
-	kts = object$ks_wps
-	#k1 = object$k1
-	#k2 = object$k2
-	#p = dim(zmat)[2]
-	#p = d0
-	family = object$family
-	fml = family$family
-	cicfamily = CicFamily(family)
-	muhat.fun = cicfamily$muhat.fun
-#additive
-	thvecs = object$etacomps
-	xnms_add = object$xnms_add
-	xmat_add = object$xmat_add
-	knms = length(xnms_add)
-	x3_add = 0
-	if (knms >= 1) {
-		#x3id <- obs[-c(x1id, x2id)]
-		#kx3 <- length(x3id)
-		for (i in 1:knms) {
-			x3i = xmat_add[, i]
-			x3i_use = max(x3i[x3i <= median(x3i)])
-			x3i_add = min(thvecs[i, x3i == x3i_use])			
-			x3_add = x3_add + x3i_add
-		}
-	} 
-	#if (!is.null(categ)) {
-	#	if (!is.character(categ)) {
-	#		warning("categ must be a character argument!")
-	#	} else if (!any(znms == categ)) {
-#print ('TRUE')	
-	#		warning(paste(categ, "is not an exact character name defined in the cgam fit!"))
-	#		categ = NULL
-	#	} else {
-	#		obsz = 1:kznms
-	#		zid = obsz[znms == categ]
-	#		if (!(is_fac[zid])) {
-	#			categ = NULL
-	#		}
-	#	}
-	#}
-	if (!is.null(categ)) {
-		if (!is.character(categ)) {
-			warning("categ must be a character argument!")
-		} else if (!any(znms == categ)) {
-			if (any(grepl(categ, znms))) {
-				id = which(grepl(categ, znms))
-				znmi = znms[id] 
-				if (grepl("as.factor", znmi)) {
-					categ = paste("as.factor(", categ, ")", sep = "")
-				} else if (grepl("factor", znmi)) {
-					categ = paste("factor(", categ, ")", sep = "")
-				} else {print(paste(categ, "is not an exact character name defined in the cgam fit!"))}
-			} else {print(paste(categ, "is not an exact character name defined in the cgam fit!"))}
-		} else {
-			obsz = 1:kznms
-			zid = obsz[znms == categ]
-#linear term:
-			if (!(is_fac[zid])) {
-				categ = NULL
-			}
-		}
-	}
-#new: switch xnms
-	if (!is.null(data)) {
-		if (!is.data.frame(data)) {
-			stop ("User need to make the data argument a data frame with names for each variable!")
-		}
-		datnms = names(data)
-		if (!any(datnms == x1nm) | !any(datnms == x2nm)) {
-			stop ("Check the accuracy of the names of x1 and x2!")
-		}
-		x1 = data[ ,which(datnms == x1nm)]
-		x2 = data[ ,which(datnms == x2nm)]
-	} else {
-		if (all(xnms != x1nm)) {
-			#stop (paste(paste("'", x1nm0, "'", sep = ''), "is not an exact predictor name defined in the cgam fit!"))
-#new: in case of wrong data fame
-			if (length(x1) != nrow(xmat)) {
-				stop ("Number of observations in the data set is not the same as the number of elements in x1!")
-			}
-			bool = apply(xmat, 2, function(x) all(x1 == x))
-			if (any(bool)) {
-				#x1id = obs[bool]
-				x1nm = xnms[bool] 
-			} else {
-				stop (paste(paste("'", x1nm, "'", sep = ''), "is not a predictor defined in the wps fit!"))
-			}
-		} 
-		if (all(xnms != x2nm)) {
-			#stop (paste(paste("'", x2nm0, "'", sep = ''), "is not an exact predictor name defined in the cgam fit!"))
-			if (length(x2) != nrow(xmat)) {
-				stop ("Number of observations in the data set is not the same as the number of elements in x2!")
-			}
-			bool = apply(xmat, 2, function(x) all(x2 == x))
-			if (any(bool)) {
-				#x2id = obs[bool]
-				x2nm = xnms[bool] 
-			} else {
-				stop (paste(paste("'", x2nm, "'", sep = ''), "is not a predictor defined in the wps fit!"))
-			}
-		} 
-	} 
-	xnm12 = c(x1nm, x2nm)
-	id_lab = which(xnms %in% xnm12)
-	xnm12_lab = labels[id_lab]
-	id1 = id2 = ipr = NULL
-	#print ('id_lab')
-	#print (xnm12_lab)
-	if (length(unique(xnm12_lab)) > 1 | length(id_lab) != 2) {
-		stop ("Two non-parametric predictors do not form a warped-plane surface!")
-	} else {
-		id1 = sort(id_lab)[1]
-		id2 = sort(id_lab)[2]
-		ipr = id2 / 2
-	}
-	decrs = decrs0[[ipr]]
-	ktsi = kts[[ipr]]
-	k1 = ktsi[[1]]
-	k2 = ktsi[[2]]
-	m1 = length(k1)
-	m2 = length(k2)
-	#if (x1nm0 != xnms[1] & x2nm0 != xnms[2]) {
-	#	x1nm = x2nm0
-	#	x2nm = x1nm0
-	#	tmp = x1
-	#	x1 = x2
-	#	x2 = tmp
-	#} else {x1nm = x1nm0; x2nm = x2nm0}
-	#print (paste('id1: ', id1))
-	#print (paste('id2: ', id2))
-	if (x1nm != xnms[id1] & x2nm != xnms[id2]) {
-		nm = x1nm
-		x1nm = x2nm
-		x2nm = nm
-		tmp = x1
-		x1 = x2
-		x2 = tmp
-	} 
-	#print (x1nm)
-#print (x2nm)
-#print (dim(xmat))
-	apl = 1:(m1 + m2 - 1 + (m1 - 1) * (m2 - 1))
-	#aplu = 1:(m1 + m2 - 1 + (m1 - 1) * (m2 - 1))
-	apl[1] = ah[1]
-	#aplu[1] = ahu[1]
-	#apl[2:(m1 + m2 - 1 + (m1 - 1) * (m2 - 1))] = ah[(p + 1):(m1 + m2 - 1 + (m1 - 1) * (m2 - 1) + p - 1)]
-	#aplu[2:(m1 + m2 - 1 + (m1 - 1) * (m2 - 1))] = ahu[(p + 1):(m1 + m2 - 1 + (m1 - 1) * (m2 - 1) + p - 1)]
-	apl[2:(m1 + m2 - 1 + (m1 - 1) * (m2 - 1))] = (ah[-c(1:p)])[which(varlist == ipr)]
-	#aplu[2:(m1 + m2 - 1 + (m1 - 1) * (m2 - 1))] = (ahu[-1])[which(varlist == ipr)]
-	mupl = matrix(apl[1], nrow = m1, ncol = m2)
-	#muplu = matrix(aplu[1], nrow = m1, ncol = m2)
-	for (i1 in 2:m1) {
-		mupl[i1, ] = mupl[i1, ] + apl[i1]
-		#muplu[i1, ] = muplu[i1, ] + aplu[i1]
-	}
-	for (i2 in 2:m2) {
-		mupl[, i2] = mupl[, i2] + apl[m1 - 1 + i2]
-		#muplu[, i2] = muplu[, i2] + aplu[m1 - 1 + i2]
-	}
-	for (i1 in 2:m1) {
-		for (i2 in 2:m2) {
-			mupl[i1, i2] = mupl[i1, i2] + apl[m1 + m2 - 2 + (i1 - 2) * (m2 - 1) + i2]
-			#muplu[i1, i2] = muplu[i1, i2] + aplu[m1 + m2 - 2 + (i1 - 2) * (m2 - 1) + i2]
-		}
-	}
-#new: more families
-	if (fml != "gaussian") {
-		for (i1 in 1:m1) {
-			for (i2 in 1:m2) {
-				mupl[i1, i2] = muhat.fun(mupl[i1, i2], fml = fml)	
-				#muplu[i1, i2] = muhat.fun(muplu[i1, i2], fml = fml)	
-			}
-		}
-		#mupl = muhat.fun(mupl, fml = fml)
-		#muplu = muhat.fun(muplu, fml = fml)
-	}
-## reverse transform for decreasing
-	if (is.null(th) | !is.numeric(th)) {
-		ang = NULL
-		if (!decrs[1] & !decrs[2]) {
-			if (is.null(ang)) {
-				ang = -40
-			}
-		} else if (decrs[1] & !decrs[2]) { 
-			#k1 = -k1[m1:1]; 
-			mupl = mupl[m1:1, 1:m2]; 
-			#muplu = muplu[m1:1, 1:m2]
-			if (is.null(ang)) {
-				ang = 40
-			}
-		} else if (!decrs[1] & decrs[2]) {
-			#k2 = -k2[m2:1]; 
-			mupl = mupl[1:m1, m2:1];
-			#muplu = muplu[1:m1, m2:1]
-			if (is.null(ang)) {
-				ang = 240
-			}
-		} else if (decrs[1] & decrs[2]) {
-			#k1 = -k1[m1:1]; k2 = -k2[m2:1]; 
-			mupl = mupl[m1:1, m2:1]; 
-			#muplu = muplu[m1:1, m2:1]
-			if (is.null(ang)) {
-				ang = 140
-			}
-		}
-	} else {ang = th}
-	if (is.null(ltheta) | !is.numeric(ltheta)) {
-		ltheta <- -135
-	}
-	if (is.null(categ)) {
-		z_add = 0
-		if (!is.null(znms)) {
-			kzids = length(zid1)
-			for (i in 1:kzids) {
-				pos1 = zid1[i]; pos2 = zid2[i]
-#zi is a factor 
-				zi = zmat0[, pos1:pos2, drop = FALSE]
-				zcoefsi = zcoefs[pos1:pos2]
-				for (j in 1:ncol(zi)){
-#find the 'mode' of the jth column of zi; add the coef corresponding to the 'mode'
-					uzij = unique(zi[,j])
-					kuzij = length(uzij)
-					nmodej = sum(zi[,j] == uzij[1])
-					zij_mode = uzij[1]
-					for (u in 2:kuzij) {
-						if (sum(zi[,j] == uzij[u]) > nmodej) {
-							zij_mode = uzij[u]
-							nmodej = sum(zi[,j] == uzij[u])
-						}
-					}
-					obsuzij = 1:length(uzij)
-					uzhatij = uzij * zcoefsi[j] 
-					zij_add = uzhatij[obsuzij[uzij == zij_mode]]	
-					z_add = z_add + zij_add 
-				}
-			}
-		}
-		mupl = mupl + as.numeric(z_add) + as.numeric(x3_add)
-		#muplu = muplu + as.numeric(z_add)
-#new:
-		if (fml != "gaussian") {
-			for (i1 in 1:m1) {
-				for (i2 in 1:m2) {
-					mupl[i1, i2] = muhat.fun(mupl[i1, i2], fml = fml)	
-					#muplu[i1, i2] = muhat.fun(muplu[i1, i2], fml = fml)	
-				}
-			}
-			#mupl = muhat.fun(mupl, fml = fml)
-			#muplu = muhat.fun(muplu, fml = fml)
-		}
-		mins = min(mupl); maxs = max(mupl)
-		#minsu = min(muplu); maxsu = max(muplu)
-	} else {
-		mupls = muplus = list()
-		mins = maxs = NULL
-		minsu = maxsu = NULL		
-		obsz = 1:kznms
-		zid = obsz[znms == categ]
-		pos1 = zid1[zid]; pos2 = zid2[zid]
-		zcoefsi = zcoefs[pos1:pos2]
-#?include the base level
-		zcoefsi = c(0, zcoefsi)
-		z_add = sort(zcoefsi)
-		kz_add = length(z_add)
-		#print (kz_add)
-		for (iz in 1:kz_add) {
-			mupls[[iz]] = mupl + z_add[iz] + as.numeric(x3_add)
-			mins = c(mins, min(mupls[[iz]]))
-			maxs = c(maxs, max(mupls[[iz]]))		
-			#muplus[[iz]] = muplu + z_add[iz]
-			#minsu = c(minsu, min(muplus[[iz]]))
-			#maxsu = c(maxsu, max(muplus[[iz]]))
-		}
-		if (fml != "gaussian") {
-			for (iz in 1:kz_add) {
-				mupli = mupls[[iz]]
-				#muplui = muplus[[iz]]
-				for (i1 in 1:m1) {
-					for (i2 in 1:m2) {
-						mupli[i1, i2] = muhat.fun(mupli[i1, i2], fml = fml)	
-						#muplui[i1, i2] = muhat.fun(muplui[i1, i2], fml = fml)	
-					}
-				}
-				#mupli = muhat.fun(mupli, fml = fml)	
-				#muplui = muhat.fun(muplui, fml = fml)	
-				mupls[[iz]] = mupli
-				#muplus[[iz]] = muplui
-			}		
-		}
-	}
-	palette = c("peachpuff", "lightblue", "limegreen", "grey", "wheat", "yellowgreen", "seagreen1", "palegreen", "azure", "whitesmoke")
-	if (is.null(xlab)) {
-		xlab = x1nm
-	}
-	if (is.null(ylab)) {
-		ylab = x2nm
-	}
-	if (is.null(zlab)) {
-		if (fml == "binomial") {
-			zlab = paste("Pr(", ynm, ")")
-		} else if (fml == "poisson" | fml == "gaussian" | fml == "Gamma") {
-			zlab = paste("Est mean of", ynm)
-		}		
-	}
-	if (is.null(categ)) {
-		if (is.null(col)) {
-			if (random) {
-				col = sample(palette, size = 1, replace = FALSE)
-			}  else {
-				#col = "white"
-				if (surface == 'C') {
-					musurf = mupl
-				#} else if (surface == 'U') {
-				#	musurf = muplu
-				}
-				nr = nrow(musurf)
-				nc = ncol(musurf)
-				ncol = 100
-				facet = musurf[-1,-1] + musurf[-1,-nc] + musurf[-nr,-1] + musurf[-nr,-nc]
-				#print (facet)
-				facetcol = cut(facet, ncol)
-				col = heat.colors(ncol)[facetcol]
-			}
-		} else if (col == "heat" | col == "topo" | col == "terrain" | col == "cm") {
-				if (surface == 'C') {
-					musurf = mupl
-				#} else if (surface == 'U') {
-				#	musurf = muplu
-				}
-				nr = nrow(musurf)
-				nc = ncol(musurf)
-				ncol = 100
-				facet = musurf[-1,-1] + musurf[-1,-nc] + musurf[-nr,-1] + musurf[-nr,-nc]
-				facetcol = cut(facet, ncol)
-				if (col == "heat") {
-					col = heat.colors(ncol)[facetcol]
-				} else if (col == "topo") {
-					col = topo.colors(ncol)[facetcol]
-				} else if (col == "terrain") {
-					col = terrain.colors(ncol)[facetcol]
-				} else {
-					col = cm.colors(ncol)[facetcol]
-				}
-		} 
-		if (surface == 'C') {
-			musurf = mupl
-			#if (is.null(main)) {
-			#	main = 'Constrained Warped-Plane Spline Surface'
-			#}
-			zlim0 = c(min(mins), max(maxs))
-		#} else if (surface == 'U') {
-		#	musurf = muplu
-			#if (is.null(main)) {
-			#	main =  'Unconstrained Warped-Plane Spline Surface'
-			#}
-			#zlim0 = c(min(minsu), max(maxsu))
-		}
-		#print (head(musurf))
-		xlim = range(x1)
-		ylim = range(x2)
-		#print ('ylim: ')
-		#print (ylim)
-		#print (zlim0)
-		#persp(k1, k2, musurf, xlim = xlim, ylim = ylim, zlim = zlim0, xlab = x1nm, ylab = x2nm, zlab = ynm, theta = ang, ltheta = ltheta, col = col, cex.axis = .75, main = main, ticktype = ticktype,...)
-		persp(k1, k2, musurf, zlim = zlim0, xlab = xlab, ylab = ylab, zlab = zlab, theta = ang, ltheta = ltheta, col = col, cex.axis = .75, main = main, ticktype = ticktype,...)
-	} else {
-		kxgm = length(mupls)
-		if (is.null(col)) {
-			if (random) {
-#new:
-				col = topo.colors(kxgm)
-				#col = sample(palette, size = kxgm, replace = FALSE)
-			} else {
-				if (kxgm > 1 & kxgm < 11) {
-					col = palette[1:kxgm]
-				} else {
-					#integ = floor(kxgm / 10)
-					#rem = kxgm %% 10
-					#kint = length(integ)
-					#col = NULL
-					#for (i in 1:kint) {
-					#	col = c(col, palette)
-					#}
-					#col = c(col, palette[1:rem])
-#new:
-					col = topo.colors(kxgm)
-				}
-			} 
-		} else {
-			col0 = col
-			if (col0 == "heat" | col0 == "topo" | col0 == "terrain" | col0 == "cm") {
-				ncol = 100
-				facets = facetcols = list()
-				if (surface == "C") {
-					xgmats = mupls
-				}
-				#if (surface == "U") {
-				#	xgmats = muplus
-				#}
-				col = list()
-				for (i in 1:kxgm) {
-					nr = nrow(xgmats[[i]])
-					nc = ncol(xgmats[[i]])
-					facets[[i]] = (xgmats[[i]])[-1,-1] + (xgmats[[i]])[-1,-nc] + (xgmats[[i]])[-nr,-1] + (xgmats[[i]])[-nr,-nc]
-					facetcols[[i]] = cut(facets[[i]], ncol)
-					if (col0 == "heat") {
-						col[[i]] = (heat.colors(ncol))[facetcols[[i]]]
-					} else if (col0 == "topo") {
-						col[[i]] = (topo.colors(ncol))[facetcols[[i]]]
-					} else if (col0 == "terrain") {
-						col[[i]] = (terrain.colors(ncol))[facetcols[[i]]]
-					} else {
-						col[[i]] = (cm.colors(ncol))[facetcols[[i]]]
-					}
-				}
-			} else if (length(col0) < kxgm) {
-				#rem = kxgm - length(col)
-				#nrem = length(rem)
-				#rem_col = palette[1:nrem]
-				#col = c(col, rem_col)
-#new:
-				col = topo.colors(kxgm)
-			} else if (length(col0) > kxgm) {
-				col = col[1:kxgm]
-				#print (paste("The first", kxgm, "colors are used!"))
-			}
-			#if (random) {
-				#print ("User defined colors are used!")
-			#}
-		}
-		for (i in 1:kxgm) {
-			mupli = mupls[[i]]
-			#muplui = muplus[[i]]
-			if (surface == 'C') {
-				musurf = mupli
-				#if (is.null(main)) {
-				#	main = 'Constrained Warped-Plane Spline Surface'
-				#}
-				zlim0 = c(min(mins), max(maxs))
-			#} else if (surface == 'U') {
-			#	musurf = muplui
-				#if (is.null(main)) {
-				#	main = 'Unconstrained Warped-Plane Spline Surface' 
-				#}				
-				#zlim0 = c(min(minsu), max(maxsu))
-			}
-			#par(mar = c(4, 2, 2, 2))
-#print (sub)
-#persp(k1, k2, musurf,  sub = sub)
-			if (is.list(col)) {
-				coli = unlist(col[[i]])
-			} else {coli = col[i]}
-			#xlim = range(x1)
-			#ylim = range(x2)
-			#persp(k1, k2, musurf, xlim = xlim, ylim = ylim, zlim = zlim0, xlab = x1nm, ylab = x2nm, zlab = ynm, theta = ang, ltheta = ltheta, col = coli, cex.axis = .75, main = main, ticktype = ticktype,...)
-			persp(k1, k2, musurf, zlim = zlim0, xlab = xlab, ylab = ylab, zlab = zlab, theta = ang, ltheta = ltheta, col = coli, cex.axis = .75, main = main, ticktype = ticktype,...)
-			par(new = TRUE)
-		}
-		par(new = FALSE)
-	}
+    #x2nm = deparse(substitute(x2))
+    #print (x1nm)
+    #print (x2nm)
+    xnms = object$xnms_wp
+    xmat = object$xmat_wp
+    #if (x1nm == "NULL" | x2nm == "NULL") {
+    if (is.null(x1nm) | is.null(x2nm)) {
+        if (length(xnms) >= 2) {
+            x1nm = xnms[1]
+            x2nm = xnms[2]
+            x1id = 1
+            x2id = 2
+            x1 = xmat[, 1]
+            x2 = xmat[, 2]
+        } else {stop ("Number of non-parametric predictors must >= 2!")}
+    }
+    #xnms = object$xnms
+    #xmat = object$xmat
+    labels = object$labels
+    labels = labels[which(grepl("warp", labels, fixed = TRUE))]
+    #new:
+    is_fac = object$is_fac
+    ynm = object$ynm
+    #xmat is delta
+    #delta = object$delta
+    znms = object$znms
+    decrs0 = object$decrs
+    kznms = length(znms)
+    #zmat include 1 vector if only wps + add
+    zmat = object$zmat
+    d0 = object$d0
+    pb = object$pb
+    np_add = object$np_add
+    p = d0 - np_add
+    #print ('call wps')
+    #zmat = zmat[, (pb+1):(pb+d0), drop = FALSE]
+    #check!
+    #zmat = zmat[, (pb+1):(pb+p), drop = FALSE]
+    #print ('zmat')
+    #print (head(zmat))
+    if (any(class(object) == "trispl")) {
+        zmat0 = zmat
+    } else {
+        zmat = zmat[, (pb+1):(pb+p), drop = FALSE]
+        if (d0 > 1) {
+            zmat0 = zmat[, -1, drop = FALSE]
+        } else {zmat0 = NULL}
+    }
+    #print (head(zmat0))
+    if (all(class(object) != "trispl")) {
+        zcoefs = object$zcoefs[-1]
+    } else {zcoefs = object$zcoefs}
+    #print (zcoefs)
+    zid1 = object$zid1
+    zid2 = object$zid2
+    ah = object$coef_wp
+    #ahu = object$coefsu
+    varlist = object$varlist_wps
+    varlist = varlist[-1]
+    kts = object$ks_wps
+    #k1 = object$k1
+    #k2 = object$k2
+    #p = dim(zmat)[2]
+    #p = d0
+    family = object$family
+    fml = family$family
+    cicfamily = CicFamily(family)
+    muhat.fun = cicfamily$muhat.fun
+    #additive
+    thvecs = object$etacomps
+    xnms_add = object$xnms_add
+    xmat_add = object$xmat_add
+    knms = length(xnms_add)
+    x3_add = 0
+    if (knms >= 1) {
+        #x3id <- obs[-c(x1id, x2id)]
+        #kx3 <- length(x3id)
+        for (i in 1:knms) {
+            x3i = xmat_add[, i]
+            x3i_use = max(x3i[x3i <= median(x3i)])
+            x3i_add = min(thvecs[i, x3i == x3i_use])
+            x3_add = x3_add + x3i_add
+        }
+    }
+    #if (!is.null(categ)) {
+    #	if (!is.character(categ)) {
+    #		warning("categ must be a character argument!")
+    #	} else if (!any(znms == categ)) {
+    #print ('TRUE')
+    #		warning(paste(categ, "is not an exact character name defined in the cgam fit!"))
+    #		categ = NULL
+    #	} else {
+    #		obsz = 1:kznms
+    #		zid = obsz[znms == categ]
+    #		if (!(is_fac[zid])) {
+    #			categ = NULL
+    #		}
+    #	}
+    #}
+    if (!is.null(categ)) {
+        if (!is.character(categ)) {
+            warning("categ must be a character argument!")
+        } else if (!any(znms == categ)) {
+            if (any(grepl(categ, znms))) {
+                id = which(grepl(categ, znms))
+                znmi = znms[id]
+                if (grepl("as.factor", znmi)) {
+                    categ = paste("as.factor(", categ, ")", sep = "")
+                } else if (grepl("factor", znmi)) {
+                    categ = paste("factor(", categ, ")", sep = "")
+                } else {print(paste(categ, "is not an exact character name defined in the cgam fit!"))}
+            } else {print(paste(categ, "is not an exact character name defined in the cgam fit!"))}
+        } else {
+            obsz = 1:kznms
+            zid = obsz[znms == categ]
+            #linear term:
+            if (!(is_fac[zid])) {
+                categ = NULL
+            }
+        }
+    }
+    #new: switch xnms
+    if (!is.null(data)) {
+        if (!is.data.frame(data)) {
+            stop ("User need to make the data argument a data frame with names for each variable!")
+        }
+        datnms = names(data)
+        if (!any(datnms == x1nm) | !any(datnms == x2nm)) {
+            stop ("Check the accuracy of the names of x1 and x2!")
+        }
+        x1 = data[ ,which(datnms == x1nm)]
+        x2 = data[ ,which(datnms == x2nm)]
+    } else {
+        if (all(xnms != x1nm)) {
+            #stop (paste(paste("'", x1nm0, "'", sep = ''), "is not an exact predictor name defined in the cgam fit!"))
+            #new: in case of wrong data fame
+            if (length(x1) != nrow(xmat)) {
+                stop ("Number of observations in the data set is not the same as the number of elements in x1!")
+            }
+            bool = apply(xmat, 2, function(x) all(x1 == x))
+            if (any(bool)) {
+                #x1id = obs[bool]
+                x1nm = xnms[bool]
+            } else {
+                stop (paste(paste("'", x1nm, "'", sep = ''), "is not a predictor defined in the wps fit!"))
+            }
+        }
+        if (all(xnms != x2nm)) {
+            #stop (paste(paste("'", x2nm0, "'", sep = ''), "is not an exact predictor name defined in the cgam fit!"))
+            if (length(x2) != nrow(xmat)) {
+                stop ("Number of observations in the data set is not the same as the number of elements in x2!")
+            }
+            bool = apply(xmat, 2, function(x) all(x2 == x))
+            if (any(bool)) {
+                #x2id = obs[bool]
+                x2nm = xnms[bool]
+            } else {
+                stop (paste(paste("'", x2nm, "'", sep = ''), "is not a predictor defined in the wps fit!"))
+            }
+        }
+    }
+    xnm12 = c(x1nm, x2nm)
+    id_lab = which(xnms %in% xnm12)
+    xnm12_lab = labels[id_lab]
+    id1 = id2 = ipr = NULL
+    #print ('id_lab')
+    #print (xnm12_lab)
+    if (length(unique(xnm12_lab)) > 1 | length(id_lab) != 2) {
+        stop ("Two non-parametric predictors do not form a warped-plane surface!")
+    } else {
+        id1 = sort(id_lab)[1]
+        id2 = sort(id_lab)[2]
+        ipr = id2 / 2
+    }
+    decrs = decrs0[[ipr]]
+    ktsi = kts[[ipr]]
+    k1 = ktsi[[1]]
+    k2 = ktsi[[2]]
+    m1 = length(k1)
+    m2 = length(k2)
+    #if (x1nm0 != xnms[1] & x2nm0 != xnms[2]) {
+    #	x1nm = x2nm0
+    #	x2nm = x1nm0
+    #	tmp = x1
+    #	x1 = x2
+    #	x2 = tmp
+    #} else {x1nm = x1nm0; x2nm = x2nm0}
+    #print (paste('id1: ', id1))
+    #print (paste('id2: ', id2))
+    if (x1nm != xnms[id1] & x2nm != xnms[id2]) {
+        nm = x1nm
+        x1nm = x2nm
+        x2nm = nm
+        tmp = x1
+        x1 = x2
+        x2 = tmp
+    }
+    #print (x1nm)
+    #print (x2nm)
+    #print (dim(xmat))
+    apl = 1:(m1 + m2 - 1 + (m1 - 1) * (m2 - 1))
+    #aplu = 1:(m1 + m2 - 1 + (m1 - 1) * (m2 - 1))
+    apl[1] = ah[1]
+    #aplu[1] = ahu[1]
+    #apl[2:(m1 + m2 - 1 + (m1 - 1) * (m2 - 1))] = ah[(p + 1):(m1 + m2 - 1 + (m1 - 1) * (m2 - 1) + p - 1)]
+    #aplu[2:(m1 + m2 - 1 + (m1 - 1) * (m2 - 1))] = ahu[(p + 1):(m1 + m2 - 1 + (m1 - 1) * (m2 - 1) + p - 1)]
+    apl[2:(m1 + m2 - 1 + (m1 - 1) * (m2 - 1))] = (ah[-c(1:p)])[which(varlist == ipr)]
+    #aplu[2:(m1 + m2 - 1 + (m1 - 1) * (m2 - 1))] = (ahu[-1])[which(varlist == ipr)]
+    mupl = matrix(apl[1], nrow = m1, ncol = m2)
+    #muplu = matrix(aplu[1], nrow = m1, ncol = m2)
+    for (i1 in 2:m1) {
+        mupl[i1, ] = mupl[i1, ] + apl[i1]
+        #muplu[i1, ] = muplu[i1, ] + aplu[i1]
+    }
+    for (i2 in 2:m2) {
+        mupl[, i2] = mupl[, i2] + apl[m1 - 1 + i2]
+        #muplu[, i2] = muplu[, i2] + aplu[m1 - 1 + i2]
+    }
+    for (i1 in 2:m1) {
+        for (i2 in 2:m2) {
+            mupl[i1, i2] = mupl[i1, i2] + apl[m1 + m2 - 2 + (i1 - 2) * (m2 - 1) + i2]
+            #muplu[i1, i2] = muplu[i1, i2] + aplu[m1 + m2 - 2 + (i1 - 2) * (m2 - 1) + i2]
+        }
+    }
+    #new: more families
+    if (fml != "gaussian") {
+        for (i1 in 1:m1) {
+            for (i2 in 1:m2) {
+                mupl[i1, i2] = muhat.fun(mupl[i1, i2], fml = fml)
+                #muplu[i1, i2] = muhat.fun(muplu[i1, i2], fml = fml)
+            }
+        }
+        #mupl = muhat.fun(mupl, fml = fml)
+        #muplu = muhat.fun(muplu, fml = fml)
+    }
+    ## reverse transform for decreasing
+    if (is.null(th) | !is.numeric(th)) {
+        ang = NULL
+        if (!decrs[1] & !decrs[2]) {
+            if (is.null(ang)) {
+                ang = -40
+            }
+        } else if (decrs[1] & !decrs[2]) {
+            #k1 = -k1[m1:1];
+            mupl = mupl[m1:1, 1:m2];
+            #muplu = muplu[m1:1, 1:m2]
+            if (is.null(ang)) {
+                ang = 40
+            }
+        } else if (!decrs[1] & decrs[2]) {
+            #k2 = -k2[m2:1];
+            mupl = mupl[1:m1, m2:1];
+            #muplu = muplu[1:m1, m2:1]
+            if (is.null(ang)) {
+                ang = 240
+            }
+        } else if (decrs[1] & decrs[2]) {
+            #k1 = -k1[m1:1]; k2 = -k2[m2:1];
+            mupl = mupl[m1:1, m2:1];
+            #muplu = muplu[m1:1, m2:1]
+            if (is.null(ang)) {
+                ang = 140
+            }
+        }
+    } else {ang = th}
+    if (is.null(ltheta) | !is.numeric(ltheta)) {
+        ltheta <- -135
+    }
+    if (is.null(categ)) {
+        z_add = 0
+        if (!is.null(znms)) {
+            kzids = length(zid1)
+            for (i in 1:kzids) {
+                pos1 = zid1[i]; pos2 = zid2[i]
+                #zi is a factor
+                zi = zmat0[, pos1:pos2, drop = FALSE]
+                zcoefsi = zcoefs[pos1:pos2]
+                for (j in 1:ncol(zi)){
+                    #find the 'mode' of the jth column of zi; add the coef corresponding to the 'mode'
+                    uzij = unique(zi[,j])
+                    kuzij = length(uzij)
+                    nmodej = sum(zi[,j] == uzij[1])
+                    zij_mode = uzij[1]
+                    for (u in 2:kuzij) {
+                        if (sum(zi[,j] == uzij[u]) > nmodej) {
+                            zij_mode = uzij[u]
+                            nmodej = sum(zi[,j] == uzij[u])
+                        }
+                    }
+                    obsuzij = 1:length(uzij)
+                    uzhatij = uzij * zcoefsi[j]
+                    zij_add = uzhatij[obsuzij[uzij == zij_mode]]
+                    z_add = z_add + zij_add
+                }
+            }
+        }
+        mupl = mupl + as.numeric(z_add) + as.numeric(x3_add)
+        #muplu = muplu + as.numeric(z_add)
+        #new:
+        if (fml != "gaussian") {
+            for (i1 in 1:m1) {
+                for (i2 in 1:m2) {
+                    mupl[i1, i2] = muhat.fun(mupl[i1, i2], fml = fml)
+                    #muplu[i1, i2] = muhat.fun(muplu[i1, i2], fml = fml)
+                }
+            }
+            #mupl = muhat.fun(mupl, fml = fml)
+            #muplu = muhat.fun(muplu, fml = fml)
+        }
+        mins = min(mupl); maxs = max(mupl)
+        #minsu = min(muplu); maxsu = max(muplu)
+    } else {
+        mupls = muplus = list()
+        mins = maxs = NULL
+        minsu = maxsu = NULL
+        obsz = 1:kznms
+        zid = obsz[znms == categ]
+        pos1 = zid1[zid]; pos2 = zid2[zid]
+        zcoefsi = zcoefs[pos1:pos2]
+        #?include the base level
+        zcoefsi = c(0, zcoefsi)
+        z_add = sort(zcoefsi)
+        kz_add = length(z_add)
+        #print (kz_add)
+        for (iz in 1:kz_add) {
+            mupls[[iz]] = mupl + z_add[iz] + as.numeric(x3_add)
+            mins = c(mins, min(mupls[[iz]]))
+            maxs = c(maxs, max(mupls[[iz]]))
+            #muplus[[iz]] = muplu + z_add[iz]
+            #minsu = c(minsu, min(muplus[[iz]]))
+            #maxsu = c(maxsu, max(muplus[[iz]]))
+        }
+        if (fml != "gaussian") {
+            for (iz in 1:kz_add) {
+                mupli = mupls[[iz]]
+                #muplui = muplus[[iz]]
+                for (i1 in 1:m1) {
+                    for (i2 in 1:m2) {
+                        mupli[i1, i2] = muhat.fun(mupli[i1, i2], fml = fml)
+                        #muplui[i1, i2] = muhat.fun(muplui[i1, i2], fml = fml)
+                    }
+                }
+                #mupli = muhat.fun(mupli, fml = fml)
+                #muplui = muhat.fun(muplui, fml = fml)
+                mupls[[iz]] = mupli
+                #muplus[[iz]] = muplui
+            }
+        }
+    }
+    palette = c("peachpuff", "lightblue", "limegreen", "grey", "wheat", "yellowgreen", "seagreen1", "palegreen", "azure", "whitesmoke")
+    if (is.null(xlab)) {
+        xlab = x1nm
+    }
+    if (is.null(ylab)) {
+        ylab = x2nm
+    }
+    if (is.null(zlab)) {
+        if (fml == "binomial") {
+            zlab = paste("Pr(", ynm, ")")
+        } else if (fml == "poisson" | fml == "gaussian" | fml == "Gamma") {
+            zlab = paste("Est mean of", ynm)
+        }
+    }
+    if (is.null(categ)) {
+        if (is.null(col)) {
+            if (random) {
+                col = sample(palette, size = 1, replace = FALSE)
+            }  else {
+                #col = "white"
+                if (surface == 'C') {
+                    musurf = mupl
+                    #} else if (surface == 'U') {
+                    #	musurf = muplu
+                }
+                nr = nrow(musurf)
+                nc = ncol(musurf)
+                ncol = 100
+                facet = musurf[-1,-1] + musurf[-1,-nc] + musurf[-nr,-1] + musurf[-nr,-nc]
+                #print (facet)
+                facetcol = cut(facet, ncol)
+                col = heat.colors(ncol)[facetcol]
+            }
+        } else if (col == "heat" | col == "topo" | col == "terrain" | col == "cm") {
+            if (surface == 'C') {
+                musurf = mupl
+                #} else if (surface == 'U') {
+                #	musurf = muplu
+            }
+            nr = nrow(musurf)
+            nc = ncol(musurf)
+            ncol = 100
+            facet = musurf[-1,-1] + musurf[-1,-nc] + musurf[-nr,-1] + musurf[-nr,-nc]
+            facetcol = cut(facet, ncol)
+            if (col == "heat") {
+                col = heat.colors(ncol)[facetcol]
+            } else if (col == "topo") {
+                col = topo.colors(ncol)[facetcol]
+            } else if (col == "terrain") {
+                col = terrain.colors(ncol)[facetcol]
+            } else {
+                col = cm.colors(ncol)[facetcol]
+            }
+        }
+        if (surface == 'C') {
+            musurf = mupl
+            #if (is.null(main)) {
+            #	main = 'Constrained Warped-Plane Spline Surface'
+            #}
+            if (is.null(zlim)) {
+                lwr = min(mins)
+                upp = max(maxs)
+                zlim0 = c(lwr - (upp-lwr)/5, upp + (upp-lwr)/5)
+            } else {
+                zlim0 = zlim
+            }
+            #} else if (surface == 'U') {
+            #	musurf = muplu
+            #if (is.null(main)) {
+            #	main =  'Unconstrained Warped-Plane Spline Surface'
+            #}
+            #zlim0 = c(min(minsu), max(maxsu))
+        }
+        #print (head(musurf))
+        xlim = range(x1)
+        ylim = range(x2)
+        #print ('ylim: ')
+        #print (ylim)
+        #print (zlim0)
+        #persp(k1, k2, musurf, xlim = xlim, ylim = ylim, zlim = zlim0, xlab = x1nm, ylab = x2nm, zlab = ynm, theta = ang, ltheta = ltheta, col = col, cex.axis = .75, main = main, ticktype = ticktype,...)
+        persp(k1, k2, musurf, zlim = zlim0, xlab = xlab, ylab = ylab, zlab = zlab, theta = ang, ltheta = ltheta, col = col, cex.axis = .75, main = main, ticktype = ticktype,...)
+        rslt = list(zlim = zlim0, xlab = xlab, ylab = ylab, zlab = zlab, theta = ang, ltheta = ltheta, col = col, cex.axis = .75, main = main, ticktype = ticktype, z_add = z_add, x3_add = x3_add)
+        invisible(rslt)
+    } else {
+        kxgm = length(mupls)
+        if (is.null(col)) {
+            if (random) {
+                #new:
+                col = topo.colors(kxgm)
+                #col = sample(palette, size = kxgm, replace = FALSE)
+            } else {
+                if (kxgm > 1 & kxgm < 11) {
+                    col = palette[1:kxgm]
+                } else {
+                    #integ = floor(kxgm / 10)
+                    #rem = kxgm %% 10
+                    #kint = length(integ)
+                    #col = NULL
+                    #for (i in 1:kint) {
+                    #	col = c(col, palette)
+                    #}
+                    #col = c(col, palette[1:rem])
+                    #new:
+                    col = topo.colors(kxgm)
+                }
+            } 
+        } else {
+            col0 = col
+            if (col0 == "heat" | col0 == "topo" | col0 == "terrain" | col0 == "cm") {
+                ncol = 100
+                facets = facetcols = list()
+                if (surface == "C") {
+                    xgmats = mupls
+                }
+                #if (surface == "U") {
+                #	xgmats = muplus
+                #}
+                col = list()
+                for (i in 1:kxgm) {
+                    nr = nrow(xgmats[[i]])
+                    nc = ncol(xgmats[[i]])
+                    facets[[i]] = (xgmats[[i]])[-1,-1] + (xgmats[[i]])[-1,-nc] + (xgmats[[i]])[-nr,-1] + (xgmats[[i]])[-nr,-nc]
+                    facetcols[[i]] = cut(facets[[i]], ncol)
+                    if (col0 == "heat") {
+                        col[[i]] = (heat.colors(ncol))[facetcols[[i]]]
+                    } else if (col0 == "topo") {
+                        col[[i]] = (topo.colors(ncol))[facetcols[[i]]]
+                    } else if (col0 == "terrain") {
+                        col[[i]] = (terrain.colors(ncol))[facetcols[[i]]]
+                    } else {
+                        col[[i]] = (cm.colors(ncol))[facetcols[[i]]]
+                    }
+                }
+            } else if (length(col0) < kxgm) {
+                #rem = kxgm - length(col)
+                #nrem = length(rem)
+                #rem_col = palette[1:nrem]
+                #col = c(col, rem_col)
+                #new:
+                col = topo.colors(kxgm)
+            } else if (length(col0) > kxgm) {
+                col = col[1:kxgm]
+                #print (paste("The first", kxgm, "colors are used!"))
+            }
+            #if (random) {
+            #print ("User defined colors are used!")
+            #}
+        }
+        for (i in 1:kxgm) {
+            mupli = mupls[[i]]
+            #muplui = muplus[[i]]
+            if (surface == 'C') {
+                musurf = mupli
+                #if (is.null(main)) {
+                #	main = 'Constrained Warped-Plane Spline Surface'
+                #}
+                if (is.null(zlim)) {
+                    lwr = min(mins)
+                    upp = max(maxs)
+                    zlim0 = c(lwr - (upp-lwr)/5, upp + (upp-lwr)/5)
+                } else {
+                    zlim0 = zlim
+                }
+                #} else if (surface == 'U') {
+                #	musurf = muplui
+                #if (is.null(main)) {
+                #	main = 'Unconstrained Warped-Plane Spline Surface' 
+                #}				
+                #zlim0 = c(min(minsu), max(maxsu))
+            }
+            #par(mar = c(4, 2, 2, 2))
+            #print (sub)
+            #persp(k1, k2, musurf,  sub = sub)
+            if (is.list(col)) {
+                coli = unlist(col[[i]])
+            } else {coli = col[i]}
+            #xlim = range(x1)
+            #ylim = range(x2)
+            #persp(k1, k2, musurf, xlim = xlim, ylim = ylim, zlim = zlim0, xlab = x1nm, ylab = x2nm, zlab = ynm, theta = ang, ltheta = ltheta, col = coli, cex.axis = .75, main = main, ticktype = ticktype,...)
+            persp(k1, k2, musurf, zlim = zlim0, xlab = xlab, ylab = ylab, zlab = zlab, theta = ang, ltheta = ltheta, col = coli, cex.axis = .75, main = main, ticktype = ticktype,...)
+            par(new = TRUE)
+        }
+        par(new = FALSE)
+    }
+}
+
+
+##########################################
+#apply plotpersp on a wps.predict object
+#>=1 wps pair + z + additive
+##########################################
+##########################################
+#apply plotpersp on a wps.predict object
+##########################################
+plotpersp.wpsp = function(object, x1=NULL, x2=NULL, x1nm=NULL, x2nm=NULL, data=NULL, up = TRUE, main=NULL, cex.main=.8, xlab = NULL, ylab = NULL, zlab = NULL, th = NULL, ltheta = NULL, ticktype = "simple",...) {
+    #obj is prediction for wps
+    if (!inherits(object, "wpsp")) {
+        warning("calling plotpersp(<fake-wpsp-object>) ...")
+    }
+    t_col = function(color, percent = 50, name = NULL) {
+        rgb.val <- col2rgb(color)
+        ## Make new color using input color as base and alpha set by transparency
+        t.col <- rgb(rgb.val[1], rgb.val[2], rgb.val[3],
+        maxColorValue = 255,
+        alpha = (100-percent)*255/100,
+        names = name)
+        ## Save the color
+        invisible(t.col)
+    }
+    if (up) {
+        mycol = t_col("green", perc = 90, name = "lt.green")
+    } else {
+        mycol = t_col("pink", perc = 80, name = "lt.pink")
+    }
+    
+    acov = object$acov
+    mult = object$mult
+    #obj is the wps fit
+    obj = object$object
+    ah = obj$coef_wp
+    
+    xnms = obj$xnms_wp
+    xmat = obj$xmat_wp
+    delta = obj$delta
+    decrs = obj$decrs
+    
+    xnms_add = obj$xnms_add
+    xmat_add = obj$xmat_add
+    #if (x1nm == "NULL" | x2nm == "NULL") {
+    if (is.null(x1nm) | is.null(x2nm)) {
+        if (length(xnms) >= 2) {
+            x1nm = xnms[1]
+            x2nm = xnms[2]
+            x1id = 1
+            x2id = 2
+            x1 = xmat[, 1]
+            x2 = xmat[, 2]
+        } else {stop ("Number of non-parametric predictors must >= 2!")}
+    }
+    
+    labels = obj$labels
+    labels = labels[which(grepl("warp", labels, fixed = TRUE))]
+    
+    is_fac = obj$is_fac
+    ynm = obj$ynm
+    
+    varlist = obj$varlist_wps
+    varlist = varlist[-1]
+    
+    kts = obj$ks_wps
+    np = obj$d0
+    #switch xnms
+    if (!is.null(data)) {
+        if (!is.data.frame(data)) {
+            stop ("User need to make the data argument a data frame with names for each variable!")
+        }
+        datnms = names(data)
+        if (!any(datnms == x1nm) | !any(datnms == x2nm)) {
+            stop ("Check the accuracy of the names of x1 and x2!")
+        }
+        x1 = data[ ,which(datnms == x1nm)]
+        x2 = data[ ,which(datnms == x2nm)]
+    } else {
+        if (all(xnms != x1nm)) {
+            #stop (paste(paste("'", x1nm0, "'", sep = ''), "is not an exact predictor name defined in the cgam fit!"))
+            #new: in case of wrong data fame
+            if (length(x1) != nrow(xmat)) {
+                stop ("Number of observations in the data set is not the same as the number of elements in x1!")
+            }
+            bool = apply(xmat, 2, function(x) all(x1 == x))
+            if (any(bool)) {
+                #x1id = obs[bool]
+                x1nm = xnms[bool]
+            } else {
+                stop (paste(paste("'", x1nm, "'", sep = ''), "is not a predictor defined in the wps fit!"))
+            }
+        }
+        if (all(xnms != x2nm)) {
+            #stop (paste(paste("'", x2nm0, "'", sep = ''), "is not an exact predictor name defined in the cgam fit!"))
+            if (length(x2) != nrow(xmat)) {
+                stop ("Number of observations in the data set is not the same as the number of elements in x2!")
+            }
+            bool = apply(xmat, 2, function(x) all(x2 == x))
+            if (any(bool)) {
+                #x2id = obs[bool]
+                x2nm = xnms[bool]
+            } else {
+                stop (paste(paste("'", x2nm, "'", sep = ''), "is not a predictor defined in the wps fit!"))
+            }
+        }
+    }
+    xnm12 = c(x1nm, x2nm)
+    id_lab = which(xnms %in% xnm12)
+    xnm12_lab = labels[id_lab]
+    #new:
+    xnm_other = xnms[-id_lab]
+    id1 = id2 = ipr = NULL
+    
+    if (length(unique(xnm12_lab)) > 1 | length(id_lab) != 2) {
+        stop ("Two non-parametric predictors do not form a warped-plane surface!")
+    } else {
+        id1 = sort(id_lab)[1]
+        id2 = sort(id_lab)[2]
+        ipr = id2 / 2
+    }
+    
+    #find the pairs to be plotted
+    decrs_use = decrs[[ipr]]
+    kts_use = kts[[ipr]]
+    x1p = kts_use[[1]]
+    x2p = kts_use[[2]]
+    
+    k1 = length(x1p)
+    k2 = length(x2p)
+    if (x1nm != xnms[id1] & x2nm != xnms[id2]) {
+        nm = x1nm
+        x1nm = x2nm
+        x2nm = nm
+        tmp = x1
+        x1 = x2
+        x2 = tmp
+        #new:
+        xnm12 = c(x1nm, x2nm)
+    }
+    newData = expand.grid(x1p,x2p)
+    
+    #find the names of the pair
+    colnames(newData) = xnm12
+    
+    #ignore z if there's any
+    #temp:
+    newz = object$newz
+    npr = round(length(xnms) / 2, 0L)
+    
+    if (npr > 1) {
+        new_other = matrix(0, nrow=nrow(newData), ncol=(2*(npr-1)))
+        kts_other = kts[-ipr]
+        for (i in 1:(npr-1)) {
+            for (j in 1:2) {
+                newi = mean(kts_other[[i]][[j]])
+                new_other[,(i-1)*2+j] = newi
+            }
+        }
+        newd = cbind(newData, new_other)
+        colnames(newd) = c(xnm12, xnm_other)
+        newData = as.data.frame(newd)
+    }
+    
+    if (length(xnms_add) > 0) {
+        #new_add = matrix(0, nrow=nrow(newData), ncol=ncol(xmat_add))
+        means = apply(xmat_add, 2, mean)
+        new_add = matrix(rep(means, nrow(newData)), ncol=ncol(xmat_add), byrow=T)
+        nms = colnames(newData)
+        newd = cbind(newData, new_add)
+        colnames(newd) = c(nms, xnms_add)
+        newData = as.data.frame(newd)
+    }
+    
+    if (!is.null(newz)) {
+        znms = obj$znms
+        nz = matrix(0, nrow=nrow(newData), ncol=ncol(newz))
+        nznm = gsub("[\\(\\)]", "", regmatches(znms, gregexpr("\\(.*?\\)", znms))[[1]])
+        nms = colnames(newData)
+        newData = cbind(newData, nz)
+        colnames(newData) = c(nms, nznm)
+    }
+    
+    #print (head(x1))
+    #print (x1nm)
+    #print (x2nm)
+    #print (colnames(newData))
+    #determine zlim beforehand
+    pfit.knots = predict.wps(obj, newData, interval='none')
+    
+    #get the spline for each pair
+    xmatpr = pfit.knots$xmatpr
+    spls = pfit.knots$spls
+    #ignore z
+    spl_use = cbind(1, spls[[ipr]])
+    
+    #get the fit for each pair
+    mus = pfit.knots$mus
+    #muhat_use = mus[[ipr]]
+    #test more:
+    muhat_use = spl_use%*%ah[c(1, which(varlist == ipr)+np)]
+    
+    #get the acov for each pair
+    if (length(xnms_add) > 0) {
+        k_add = length(obj$coef_add)
+        k_conv = sum(obj$shapes == 11 || obj$shapes == 12)
+        acov_use = acov[c(1, which(varlist == ipr)+np+k_conv+k_add), c(1, which(varlist == ipr)+np+k_conv+k_add)]
+    } else {
+        acov_use = acov[c(1, which(varlist == ipr)+np), c(1, which(varlist == ipr)+np)]
+    }
+    
+    lower = muhat_use - mult*sqrt(diag(spl_use%*%acov_use%*%t(spl_use)))
+    upper = muhat_use + mult*sqrt(diag(spl_use%*%acov_use%*%t(spl_use)))
+    #lower = pfit.knots$lower
+    #upper = pfit.knots$upper
+    
+    #zlwr = min(object$lower) - (max(object$fit) - min(object$fit)) / 5 + x3_add
+    #zupp = max(object$upper) + (max(object$fit) - min(object$fit)) / 5 + x3_add
+    
+    res = plotpersp.wps(obj, x1=x1, x2=x2, x1nm, x2nm, col='white', xlab=xlab, ylab=ylab, zlab=zlab, th=th, ltheta=ltheta, ticktype=ticktype)
+    
+    surf = matrix(0, k1, k2)
+    for(i2 in 1:k2) {
+        for(i1 in 1:k1) {
+            if (up) {
+                surf[i1,i2] = upper[(i2-1)*k1 + i1]
+            } else {
+                surf[i1,i2] = lower[(i2-1)*k1 + i1]
+            }
+        }
+    }
+    z_add = res$z_add
+    x3_add = res$x3_add
+    surf = surf + z_add + x3_add
+    if (up) {
+        if (is.null(main)) {
+            main = "Warped-Plane Surface with Upper 95% Confidence Surface"
+        }
+    }
+    if (!up) {
+        if (is.null(main)) {
+            main = "Warped-Plane Surface with Lower 95% Confidence Surface"
+        }
+    }
+    par(new = TRUE)
+    #persp(x1p, x2p, surf, zlim = res$zlim, xlab = res$xlab, ylab = res$ylab, zlab = res$zlab, theta = res$theta, ltheta = res$ltheta, cex.axis = res$cex.axis, main = main, cex.main = cex.main, ticktype = res$ticktype, col=mycol)
+    persp(x1p, x2p, surf, zlim = res$zlim, xlab = "", ylab = "", zlab = "", theta = res$theta, ltheta = res$ltheta, cex.axis = res$cex.axis, main = main, cex.main = cex.main, ticktype = res$ticktype, col=mycol, box=FALSE, axes=FALSE)
+    par(new=FALSE)
 }
 
 #####
@@ -5546,7 +7001,7 @@ if (!wt.iter) {
 	ans$zcoefs = zcoefs
 	ans$zmat = zmat 	
 	#ans$zmat_0 = zmat_0
-	ans$sighat = sig2hat
+	ans$sig2hat = sig2hat
 	ans$delta = xmat
 	ans$pen = ps	
 	ans$d0 = p + np_add
@@ -5565,6 +7020,10 @@ if (!wt.iter) {
 	ans$cic = cic
 	ans$varlist = varlist
 	ans$etacomps = thvecs
+    #new:
+    ans$amat = amat
+    ans$dmat = dmat
+    ans$vmat = vmat
 	return (ans)
 }
 
@@ -5646,154 +7105,156 @@ s.decr.decr <- function(x1, x2, numknots = c(0, 0), knots = list(k1 = 0, k2 = 0)
 ###############################################################
 #makedelta_wps: make delta to a pair of warped-plane variables#
 ###############################################################
-makedelta_wps <- function(x1t, x2t, m1_0 = 0, m2_0 = 0, k1 = 0, k2 = 0, space = c("E", "E"), decreasing = c(FALSE, FALSE))
+makedelta_wps <- function(x1t, x2t, m1_0 = 0, m2_0 = 0, k1 = 0, k2 = 0, space = c("E", "E"), decreasing = c(FALSE, FALSE), interp = FALSE)
 {
-# x1 and x2 no need to sort
-# if decreasing  (all calculations done for doubly-increasing case)
-	n = length(x1t)
-	if (decreasing[1]) {
-#print (k1 != 0)
-		x1 = -x1t
-		#if (!is.null(k1)) {
-		if (k1 != 0) { 
-			m1 = length(k1); k1 = -k1[m1:1] 
-		}
-	} else {x1 = x1t}
-	if (decreasing[2]) {
-		x2 = -x2t
-		#if (!is.null(k2)) {
-		if (k2 != 0) {
-			m2 = length(k2); k2 = -k2[m2:1]
-		}
-	} else {x2 = x2t}
-# determine whether to use default knots or user-defined knots
-# check if k1 and k2 > 1 elems
-	make1 = FALSE   
-	#if (is.null(k1)) {
-	#if (k1 == 0) {
-	if (all(k1 == 0)) {
-		make1 = TRUE
-	} else if (min(k1) > min(x1) | max(k1) < max(x1)) {
-		warning ('Predictor should be within the range of the knots! User-defined knots not used!')
-		make1 = TRUE
-# new:	at least 4 kts?
-	}# else if (length(k1) < 4) {
-	#	make1 = TRUE
-	#} else if (m1_0 >= 4) {
-	#	make1 = TRUE
-	#}
-	make2 = FALSE
-	#if (is.null(k2)) {
-	#if (k2 == 0) {
-	if (all(k2 == 0)) {
-		make2 = TRUE
-	} else if (min(k2) > min(x2) | max(k2) < max(x2)) {
-		warning ('Predictor should be within the range of the knots! User-defined knots not used!')
-		make2 = TRUE
-	}# else if (length(k2) < 4) {
-	#	make2 = TRUE
-	#} else if (m2_0 >= 4) {
-	#	make2 = TRUE
-	#}
-# add quantile part in it
-	if (make1) {
-# new:
-#print (m1_0 == 12L)? !is.integer(m1_0) not work
-#print (m1_0)
-		if (m1_0  < 4 | round(m1_0, 0) != m1_0) {
-		#if (m1_0  < 4) {
-			if (m1_0 != 0) {
-				warning ('At least four knots should be used! Number of knots is re-defined!')
-			}
-			m1 = 2 * round(n^(1/6)) + 4 
-		} else {m1 = m1_0}
-		if (space[1] == "Q") {
-			k1 = quantile(unique(x1), probs = seq(0, 1, length = m1), names = FALSE)
-		}
-		if (space[1] == "E") {
-			k1 = 0:(m1 - 1) / (m1 - 1) * (max(x1) - min(x1)) + min(x1)
-		} 
-		#k1 = 0:(m1 - 1) / (m1 - 1) * (max(x1) - min(x1)) + min(x1)
-	} else { m1 = length(k1) }
-	if (make2) {
-#new:
-		if (m2_0 < 4 | round(m2_0, 0) != m2_0) {
-			if (m2_0 != 0) {
-				warning ('At least four knots should be used! Number of knots is re-defined!')
-			}
-			m2 = 2 * round(n^(1/6)) + 4 
-		} else {m2 = m2_0}
-		if (space[2] == "Q") {
-			k2 = quantile(unique(x2), probs = seq(0, 1, length = m2), names = FALSE)
-		}
-		if (space[2] == "E") {
-			k2 = 0:(m2 - 1) / (m2 - 1) * (max(x2) - min(x2)) + min(x2)
-		} 
-		#k2 = 0:(m2 - 1) / (m2 - 1) * (max(x2) - min(x2)) + min(x2)	
-	} else { m2 = length(k2) }
-## check to see if empty knot intervals
-	rm1 = k1[m1]; rm2 = k2[m2]
-	keep = 1:m1 > 0
-	for (i in 2:m1) {
-		if (sum(x1 >= k1[i-1] & x1 < k1[i]) == 0) {
-			keep[i] = FALSE
-		}
-	}
-	k1 = k1[keep]; m1 = length(k1); k1[m1] = rm1
-	keep = 1:m2 > 0
-	for (i in 2:m2) {
-		if (sum(x2 >= k2[i-1] & x2 < k2[i]) == 0) {
-			keep[i] = FALSE
-		}
-	}
-	k2 = k2[keep]; m2 = length(k2); k2[m2] = rm2
-# make the basis functions
-	b1 = matrix(0, nrow = n, ncol = m1)
-	b2 = matrix(0, nrow = n, ncol = m2)
-	for (i in 2:(m1 - 1)) {
-		i1 = x1 >= k1[i-1] & x1 <= k1[i]
-		b1[i1, i] = (x1[i1] - k1[i-1]) / (k1[i] - k1[i-1])
-		i2 = x1 > k1[i] & x1 <= k1[i+1]
-		b1[i2, i] = (k1[i+1] - x1[i2]) / (k1[i+1] - k1[i])
-	}
-	i1 = x1 >= k1[1] & x1 <= k1[2]
-	b1[i1, 1] = (k1[2] - x1[i1]) / (k1[2] - k1[1])
-	i2 = x1 > k1[m1-1] & x1 <= k1[m1]
-	b1[i2, m1] = (x1[i2] - k1[m1-1]) / (k1[m1] - k1[m1-1])
-
-	for (i in 2:(m2 - 1)) {
-		i1 = x2 >= k2[i-1] & x2 <= k2[i]
-		b2[i1, i] = (x2[i1] - k2[i-1]) / (k2[i] - k2[i-1])
-		i2 = x2 > k2[i] & x2 <= k2[i+1]
-		b2[i2, i] = (k2[i+1] - x2[i2]) / (k2[i+1] - k2[i])
-	}
-	i1 = x2 >= k2[1] & x2 <= k2[2]
-	b2[i1, 1] = (k2[2] - x2[i1]) / (k2[2] - k2[1])
-	i2 = x2 > k2[m2-1] & x2 <= k2[m2]
-	b2[i2, m2] = (x2[i2] - k2[m2-1]) / (k2[m2] - k2[m2-1])
-## design matrix
-	xmat0 = matrix(nrow = n, ncol = m1 + m2 - 1 + (m1 - 1) * (m2 - 1))
-	xmat0[ ,1] = 1:n*0 + 1
-	xmat0[ ,2:m1] = b1[ ,2:m1]
-	xmat0[ ,(m1 + 1):(m1 + m2 - 1)] = b2[ ,2:m2]
-	for (i in 1:(m1 - 1)) {
-		xmat0[ ,(m1 + m2 + (i - 1) * (m2 - 1)):(m1 + m2 - 1 + i * (m2 - 1))] = b1[ ,i + 1] * b2[ ,2:m2]
-	}
-	#if (dim(zmat)[2] > 1) {
-	#	xmat = cbind(zmat, xmat0[ ,2:(m1 + m2 - 1 + (m1 - 1) * (m2 - 1))])
-	#} else {xmat = xmat0}
-	#bmat = xmat0[ ,2:(m1 + m2 - 1 + (m1 - 1) * (m2 - 1))]
-# ignore the zmat for now
-	xmat = xmat0
-# columns of delta are edges, different from other make_delta in cgam	
-	delta = xmat
-	ans = new.env()
-	ans$delta = delta
-	ans$k1 = k1
-	ans$k2 = k2
-	return (ans)	
-	#attr(delta, "shape") = "warp"
-	#delta
+    # x1 and x2 no need to sort
+    # if decreasing  (all calculations done for doubly-increasing case)
+    n = length(x1t)
+    if (decreasing[1]) {
+        #print (k1 != 0)
+        x1 = -x1t
+        #if (!is.null(k1)) {
+        if (!all(k1 == 0)) {
+            m1 = length(k1); k1 = -k1[m1:1]
+        }
+    } else {x1 = x1t}
+    if (decreasing[2]) {
+        x2 = -x2t
+        #if (!is.null(k2)) {
+        if (!all(k2 == 0)) {
+            m2 = length(k2); k2 = -k2[m2:1]
+        }
+    } else {x2 = x2t}
+    # determine whether to use default knots or user-defined knots
+    # check if k1 and k2 > 1 elems
+    make1 = FALSE
+    #if (is.null(k1)) {
+    #if (k1 == 0) {
+    if (all(k1 == 0)) {
+        make1 = TRUE
+    } else if (min(k1) > min(x1) | max(k1) < max(x1)) {
+        warning ('Predictor should be within the range of the knots! User-defined knots not used!')
+        make1 = TRUE
+        # new:	at least 4 kts?
+    }# else if (length(k1) < 4) {
+    #	make1 = TRUE
+    #} else if (m1_0 >= 4) {
+    #	make1 = TRUE
+    #}
+    make2 = FALSE
+    #if (is.null(k2)) {
+    #if (k2 == 0) {
+    if (all(k2 == 0)) {
+        make2 = TRUE
+    } else if (min(k2) > min(x2) | max(k2) < max(x2)) {
+        warning ('Predictor should be within the range of the knots! User-defined knots not used!')
+        make2 = TRUE
+    }# else if (length(k2) < 4) {
+    #	make2 = TRUE
+    #} else if (m2_0 >= 4) {
+    #	make2 = TRUE
+    #}
+    # add quantile part in it
+    if (make1) {
+        # new:
+        #print (m1_0 == 12L)? !is.integer(m1_0) not work
+        #print (m1_0)
+        if (m1_0  < 4 | round(m1_0, 0) != m1_0) {
+            #if (m1_0  < 4) {
+            if (m1_0 != 0) {
+                warning ('At least four knots should be used! Number of knots is re-defined!')
+            }
+            m1 = 2 * round(n^(1/6)) + 4
+        } else {m1 = m1_0}
+        if (space[1] == "Q") {
+            k1 = quantile(unique(x1), probs = seq(0, 1, length = m1), names = FALSE)
+        }
+        if (space[1] == "E") {
+            k1 = 0:(m1 - 1) / (m1 - 1) * (max(x1) - min(x1)) + min(x1)
+        }
+        #k1 = 0:(m1 - 1) / (m1 - 1) * (max(x1) - min(x1)) + min(x1)
+    } else { m1 = length(k1) }
+    if (make2) {
+        #new:
+        if (m2_0 < 4 | round(m2_0, 0) != m2_0) {
+            if (m2_0 != 0) {
+                warning ('At least four knots should be used! Number of knots is re-defined!')
+            }
+            m2 = 2 * round(n^(1/6)) + 4
+        } else {m2 = m2_0}
+        if (space[2] == "Q") {
+            k2 = quantile(unique(x2), probs = seq(0, 1, length = m2), names = FALSE)
+        }
+        if (space[2] == "E") {
+            k2 = 0:(m2 - 1) / (m2 - 1) * (max(x2) - min(x2)) + min(x2)
+        }
+        #k2 = 0:(m2 - 1) / (m2 - 1) * (max(x2) - min(x2)) + min(x2)
+    } else { m2 = length(k2) }
+    ## check to see if empty knot intervals
+    #new: if it's for prediction, then skip
+    if (!interp) {
+        rm1 = k1[m1]; rm2 = k2[m2]
+        keep = 1:m1 > 0
+        for (i in 2:m1) {
+            if (sum(x1 >= k1[i-1] & x1 < k1[i]) == 0) {
+                keep[i] = FALSE
+            }
+        }
+        k1 = k1[keep]; m1 = length(k1); k1[m1] = rm1
+        keep = 1:m2 > 0
+        for (i in 2:m2) {
+            if (sum(x2 >= k2[i-1] & x2 < k2[i]) == 0) {
+                keep[i] = FALSE
+            }
+        }
+        k2 = k2[keep]; m2 = length(k2); k2[m2] = rm2
+    }
+    # make the basis functions
+    b1 = matrix(0, nrow = n, ncol = m1)
+    b2 = matrix(0, nrow = n, ncol = m2)
+    for (i in 2:(m1 - 1)) {
+        i1 = x1 >= k1[i-1] & x1 <= k1[i]
+        b1[i1, i] = (x1[i1] - k1[i-1]) / (k1[i] - k1[i-1])
+        i2 = x1 > k1[i] & x1 <= k1[i+1]
+        b1[i2, i] = (k1[i+1] - x1[i2]) / (k1[i+1] - k1[i])
+    }
+    i1 = x1 >= k1[1] & x1 <= k1[2]
+    b1[i1, 1] = (k1[2] - x1[i1]) / (k1[2] - k1[1])
+    i2 = x1 > k1[m1-1] & x1 <= k1[m1]
+    b1[i2, m1] = (x1[i2] - k1[m1-1]) / (k1[m1] - k1[m1-1])
+    
+    for (i in 2:(m2 - 1)) {
+        i1 = x2 >= k2[i-1] & x2 <= k2[i]
+        b2[i1, i] = (x2[i1] - k2[i-1]) / (k2[i] - k2[i-1])
+        i2 = x2 > k2[i] & x2 <= k2[i+1]
+        b2[i2, i] = (k2[i+1] - x2[i2]) / (k2[i+1] - k2[i])
+    }
+    i1 = x2 >= k2[1] & x2 <= k2[2]
+    b2[i1, 1] = (k2[2] - x2[i1]) / (k2[2] - k2[1])
+    i2 = x2 > k2[m2-1] & x2 <= k2[m2]
+    b2[i2, m2] = (x2[i2] - k2[m2-1]) / (k2[m2] - k2[m2-1])
+    ## design matrix
+    xmat0 = matrix(nrow = n, ncol = m1 + m2 - 1 + (m1 - 1) * (m2 - 1))
+    xmat0[ ,1] = 1:n*0 + 1
+    xmat0[ ,2:m1] = b1[ ,2:m1]
+    xmat0[ ,(m1 + 1):(m1 + m2 - 1)] = b2[ ,2:m2]
+    for (i in 1:(m1 - 1)) {
+        xmat0[ ,(m1 + m2 + (i - 1) * (m2 - 1)):(m1 + m2 - 1 + i * (m2 - 1))] = b1[ ,i + 1] * b2[ ,2:m2]
+    }
+    #if (dim(zmat)[2] > 1) {
+    #	xmat = cbind(zmat, xmat0[ ,2:(m1 + m2 - 1 + (m1 - 1) * (m2 - 1))])
+    #} else {xmat = xmat0}
+    #bmat = xmat0[ ,2:(m1 + m2 - 1 + (m1 - 1) * (m2 - 1))]
+    # ignore the zmat for now
+    xmat = xmat0
+    # columns of delta are edges, different from other make_delta in cgam
+    ans = new.env()
+    ans$delta = xmat
+    ans$k1 = k1
+    ans$k2 = k2
+    return (ans)	
+    #attr(delta, "shape") = "warp"
+    #delta
 }
 
 #######################
@@ -9375,6 +10836,12 @@ if (!is.null(vmat)) {
 	ans$trimat_lst = trimat_lst
 	ans$bmat_lst = bmat_lst
 	ans$capk_lst = capk_lst
+    
+    #new
+    ans$dmatc = dmatc
+    ans$pmatc = pmatc
+    ans$amatc = amatc
+    ans$sig2hat = sig2hat
 	ans
 }
 
@@ -9388,6 +10855,50 @@ tri_getedf = function(cf = NULL, atil, dmatc, uinv, nc) {
 	edf = sum(diag(bigpr))
 	return (edf)
 }
+
+
+
+###
+#trispl makedelta: used in predict.trispl
+###
+makedelta_tri = function(x1, x2, m1 = 0, m2 = 0, k1 = NULL, k2 = NULL, trimat = NULL, capk = NULL, space = c("E",
+"E"), cvs = c(TRUE, TRUE), interp = TRUE) {
+    n = length(x1)
+    xmat = cbind(x1, x2)
+    delta = NULL
+    #### now determine which triangle contains each point
+    xtri = 1:n*0;still = 1:n>0
+    ntri = (m2 - 1) * (2 * m1 - 1)
+    knots = cbind(k1, k2)
+    for (j in 1:ntri) {
+        for (i in 1:n) {
+            if (still[i]) {
+                if (intri(xmat[i,],knots[trimat[j,1],],knots[trimat[j,2],],knots[trimat[j,3],])) {
+                    still[i] = FALSE
+                    xtri[i] = j
+                }
+            }
+        }
+    }
+    ### make the design matrix
+    dmat = matrix(0, nrow = n, ncol = capk)
+    bmat = matrix(1, nrow = 3, ncol = 3)
+    a = 1:3
+    for (i in 1:n) {
+        for (j in 1:3) {
+            a[j] = trimat[xtri[i],j]
+            bmat[j,2] = knots[a[j],1]
+            bmat[j,3] = knots[a[j],2]
+        }
+        binv = solve(bmat)
+        for (j in 1:3) {
+            dmat[i,a[j]] = binv[1,j] + binv[2,j]*x1[i] + binv[3,j]*x2[i]
+        }
+    }
+    delta = cbind(delta, dmat)
+    return (delta)
+}
+
 
 ##
 s.conv.conv <- function(x1, x2, numknots = c(0, 0), knots = list(k1 = 0, k2 = 0), space = c("E", "E"))
@@ -9511,466 +11022,716 @@ s.conc.conc <- function(x1, x2, numknots = c(0, 0), knots = list(k1 = 0, k2 = 0)
 
 #################
 #plotpersp.tri#
-################ 
-plotpersp.trispl = function(object, x1 = NULL, x2 = NULL, x1nm = NULL, x2nm = NULL, data = NULL, surface = "C", categ = NULL, col = NULL, random = FALSE, ngrid = 12, xlim = range(x1), ylim = range(x2), zlim = NULL, xlab = NULL, ylab = NULL, zlab = NULL, th = NULL, ltheta = NULL, main = NULL, ticktype = "detailed",...) {
-	if (!inherits(object, "trispl")) { 
-	        warning("calling plotpersp(<fake-trisp-object>) ...")
+################
+plotpersp.trispl = function(object, x1 = NULL, x2 = NULL, x1nm = NULL, x2nm = NULL, data = NULL, surface = "C", categ = NULL, col = NULL, random = FALSE, ngrid = 12, xlim = range(x1), ylim = range(x2), zlim = NULL, xlab = NULL, ylab = NULL, zlab = NULL, th = NULL, ltheta = NULL, main = NULL, ticktype = "simple",...) {
+    if (!inherits(object, "trispl")) {
+        warning("calling plotpersp(<fake-trisp-object>) ...")
     }
     #x1nm = deparse(substitute(x1))
-	#x2nm = deparse(substitute(x2))
-	xnms = object$xnms_tri
-	xmat = object$xmat_tri
-	#if (x1nm == "NULL" | x2nm == "NULL") {
-	if (is.null(x1nm) | is.null(x2nm)) {
-		if (length(xnms) >= 2) {
-			x1nm = xnms[1]
-			x2nm = xnms[2]	
-			x1id = 1
-			x2id = 2
-			x1 = xmat[, 1]
-			x2 = xmat[, 2]
-		} else {stop ("Number of non-parametric predictors must >= 2!")}
-	}
-	#x1nm0 = xnms[1]
-	#x2nm0 = xnms[2]
-	#x1 = xmat[, 1]
-	#x2 = xmat[, 2]
-	is_fac = object$is_fac
-	ynm = object$ynm
-#xmat is delta
-	#delta = object$delta
-	znms = object$znms
-	kznms = length(znms)
-#zmat not include 1 vector
-	zmat = object$zmat
-	#zmat0 = zmat[, -1, drop = FALSE]
-	zmat0 = zmat
-	#zcoefs = object$zcoefs[-1]
-	zcoefs = object$zcoefs
-	zid1 = object$zid1
-	zid2 = object$zid2
-	p = object$d0
-	cvss = object$cvss
-	labels = object$labels
-	labels = labels[which(grepl("tri", labels, fixed = TRUE))]
-	varlist = object$varlist_tri
-	#varlist = varlist[-1]
-	#knots = object$kts
-	#trimat = object$trimat
-	family = object$family
-	fml = family$family
-	#print (family)
-	cicfamily = CicFamily(family)
-	muhat.fun = cicfamily$muhat.fun
-	#if (!is.null(categ)) {
-	#	if (!is.character(categ)) {
-	#		warning("categ must be a character argument!")
-	#	} else if (!any(znms == categ)) {
-#print ('TRUE')	
-	#		warning(paste(categ, "is not an exact character name defined in the cgam fit!"))
-	#		categ = NULL
-	#	} else {
-	#		obsz = 1:kznms
-	#		zid = obsz[znms == categ]
-	#		if (!(is_fac[zid])) {
-	#			categ = NULL
-	#		}
-	#	}
-	#}
-	if (!is.null(categ)) {
-		if (!is.character(categ)) {
-			warning("categ must be a character argument!")
-		} else if (!any(znms == categ)) {
-			if (any(grepl(categ, znms))) {
-				id = which(grepl(categ, znms))
-				znmi = znms[id] 
-				if (grepl("as.factor", znmi)) {
-					categ = paste("as.factor(", categ, ")", sep = "")
-				} else if (grepl("factor", znmi)) {
-					categ = paste("factor(", categ, ")", sep = "")
-				} else {print(paste(categ, "is not an exact character name defined in the cgam fit!"))}
-			} else {print(paste(categ, "is not an exact character name defined in the cgam fit!"))}
-		} else {
-			obsz = 1:kznms
-			zid = obsz[znms == categ]
-#linear term:
-			if (!(is_fac[zid])) {
-				categ = NULL
-			}
-		}
-	}
-#new: switch xnms
-	if (!is.null(data)) {
-		if (!is.data.frame(data)) {
-			stop ("User need to make the data argument a data frame with names for each variable!")
-		}
-		datnms = names(data)
-		if (!any(datnms == x1nm) | !any(datnms == x2nm)) {
-			stop ("Check the accuracy of the names of x1 and x2!")
-		}
-		x1 = data[ ,which(datnms == x1nm)]
-		x2 = data[ ,which(datnms == x2nm)]
-	} else {
-		if (all(xnms != x1nm)) {
-			#stop (paste(paste("'", x1nm0, "'", sep = ''), "is not an exact predictor name defined in the cgam fit!"))
-#new: in case of wrong data fame
-			if (length(x1) != nrow(xmat)) {
-				stop ("Number of observations in the data set is not the same as the number of elements in x1!")
-			}
-			bool = apply(xmat, 2, function(x) all(x1 == x))
-			if (any(bool)) {
-				#x1id = obs[bool]
-				x1nm = xnms[bool] 
-			} else {
-				stop (paste(paste("'", x1nm, "'", sep = ''), "is not a predictor defined in the wps fit!"))
-			}
-		} 
-		if (all(xnms != x2nm)) {
-			#stop (paste(paste("'", x2nm0, "'", sep = ''), "is not an exact predictor name defined in the cgam fit!"))
-			if (length(x2) != nrow(xmat)) {
-				stop ("Number of observations in the data set is not the same as the number of elements in x2!")
-			}
-			bool = apply(xmat, 2, function(x) all(x2 == x))
-			if (any(bool)) {
-				#x2id = obs[bool]
-				x2nm = xnms[bool] 
-			} else {
-				stop (paste(paste("'", x2nm, "'", sep = ''), "is not a predictor defined in the wps fit!"))
-			}
-		} 
-	} 
-	xnm12 = c(x1nm, x2nm)
-	#print (xnms)
-	#print(xnm12)	
-	id_lab = which(xnms %in% xnm12)
-	#print (labels)
-	#print (xnm12)
-	xnm12_lab = labels[id_lab]
-	id1 = id2 = ipr = NULL
-	if (length(unique(xnm12_lab)) > 1 | length(id_lab) != 2) {
-		stop ("Two non-parametric predictors do not form a triangle-spline surface!")
-	} else {
-		id1 = sort(id_lab)[1]
-		id2 = sort(id_lab)[2]
-		ipr = id2 / 2
-	}
-	#decrs = decrs0[[ipr]]
-	#ktsi = kts[[ipr]]
-	#k1 = ktsi[[1]]
-	#k2 = ktsi[[2]]
-	knots_lst = object$knots_lst
-	trimat_lst = object$trimat_lst
-	bmat_lst = object$bmat_lst
-	thhat_all = object$coef_tri
-	capk_lst = object$capk_lst
-	
-	knots = knots_lst[[ipr]]
-	trimat = trimat_lst[[ipr]]
-	bmat = bmat_lst[[ipr]]
-	capk = capk_lst[[ipr]]
-	cvs = cvss[[ipr]]
-	thhat = thhat_all[which(varlist == ipr)]
-if (p > 0) {
-	thhat = c(thhat, zcoefs)
+    #x2nm = deparse(substitute(x2))
+    xnms = object$xnms_tri
+    xmat = object$xmat_tri
+    #if (x1nm == "NULL" | x2nm == "NULL") {
+    if (is.null(x1nm) | is.null(x2nm)) {
+        if (length(xnms) >= 2) {
+            x1nm = xnms[1]
+            x2nm = xnms[2]
+            x1id = 1
+            x2id = 2
+            x1 = xmat[, 1]
+            x2 = xmat[, 2]
+        } else {stop ("Number of non-parametric predictors must >= 2!")}
+    }
+    #x1nm0 = xnms[1]
+    #x2nm0 = xnms[2]
+    #x1 = xmat[, 1]
+    #x2 = xmat[, 2]
+    is_fac = object$is_fac
+    ynm = object$ynm
+    #xmat is delta
+    #delta = object$delta
+    znms = object$znms
+    kznms = length(znms)
+    #zmat not include 1 vector
+    zmat = object$zmat
+    #zmat0 = zmat[, -1, drop = FALSE]
+    zmat0 = zmat
+    #zcoefs = object$zcoefs[-1]
+    zcoefs = object$zcoefs
+    zid1 = object$zid1
+    zid2 = object$zid2
+    p = object$d0
+    cvss = object$cvss
+    labels = object$labels
+    labels = labels[which(grepl("tri", labels, fixed = TRUE))]
+    varlist = object$varlist_tri
+    #varlist = varlist[-1]
+    #knots = object$kts
+    #trimat = object$trimat
+    family = object$family
+    fml = family$family
+    #print (family)
+    cicfamily = CicFamily(family)
+    muhat.fun = cicfamily$muhat.fun
+    #if (!is.null(categ)) {
+    #	if (!is.character(categ)) {
+    #		warning("categ must be a character argument!")
+    #	} else if (!any(znms == categ)) {
+    #print ('TRUE')
+    #		warning(paste(categ, "is not an exact character name defined in the cgam fit!"))
+    #		categ = NULL
+    #	} else {
+    #		obsz = 1:kznms
+    #		zid = obsz[znms == categ]
+    #		if (!(is_fac[zid])) {
+    #			categ = NULL
+    #		}
+    #	}
+    #}
+    if (!is.null(categ)) {
+        if (!is.character(categ)) {
+            warning("categ must be a character argument!")
+        } else if (!any(znms == categ)) {
+            if (any(grepl(categ, znms))) {
+                id = which(grepl(categ, znms))
+                znmi = znms[id]
+                if (grepl("as.factor", znmi)) {
+                    categ = paste("as.factor(", categ, ")", sep = "")
+                } else if (grepl("factor", znmi)) {
+                    categ = paste("factor(", categ, ")", sep = "")
+                } else {print(paste(categ, "is not an exact character name defined in the cgam fit!"))}
+            } else {print(paste(categ, "is not an exact character name defined in the cgam fit!"))}
+        } else {
+            obsz = 1:kznms
+            zid = obsz[znms == categ]
+            #linear term:
+            if (!(is_fac[zid])) {
+                categ = NULL
+            }
+        }
+    }
+    #new: switch xnms
+    if (!is.null(data)) {
+        if (!is.data.frame(data)) {
+            stop ("User need to make the data argument a data frame with names for each variable!")
+        }
+        datnms = names(data)
+        if (!any(datnms == x1nm) | !any(datnms == x2nm)) {
+            stop ("Check the accuracy of the names of x1 and x2!")
+        }
+        x1 = data[ ,which(datnms == x1nm)]
+        x2 = data[ ,which(datnms == x2nm)]
+    } else {
+        if (all(xnms != x1nm)) {
+            #stop (paste(paste("'", x1nm0, "'", sep = ''), "is not an exact predictor name defined in the cgam fit!"))
+            #new: in case of wrong data fame
+            if (length(x1) != nrow(xmat)) {
+                stop ("Number of observations in the data set is not the same as the number of elements in x1!")
+            }
+            bool = apply(xmat, 2, function(x) all(x1 == x))
+            if (any(bool)) {
+                #x1id = obs[bool]
+                x1nm = xnms[bool]
+            } else {
+                stop (paste(paste("'", x1nm, "'", sep = ''), "is not a predictor defined in the wps fit!"))
+            }
+        }
+        if (all(xnms != x2nm)) {
+            #stop (paste(paste("'", x2nm0, "'", sep = ''), "is not an exact predictor name defined in the cgam fit!"))
+            if (length(x2) != nrow(xmat)) {
+                stop ("Number of observations in the data set is not the same as the number of elements in x2!")
+            }
+            bool = apply(xmat, 2, function(x) all(x2 == x))
+            if (any(bool)) {
+                #x2id = obs[bool]
+                x2nm = xnms[bool]
+            } else {
+                stop (paste(paste("'", x2nm, "'", sep = ''), "is not a predictor defined in the wps fit!"))
+            }
+        }
+    }
+    xnm12 = c(x1nm, x2nm)
+    #print (xnms)
+    #print(xnm12)
+    id_lab = which(xnms %in% xnm12)
+    #print (labels)
+    #print (xnm12)
+    xnm12_lab = labels[id_lab]
+    id1 = id2 = ipr = NULL
+    if (length(unique(xnm12_lab)) > 1 | length(id_lab) != 2) {
+        stop ("Two non-parametric predictors do not form a triangle-spline surface!")
+    } else {
+        id1 = sort(id_lab)[1]
+        id2 = sort(id_lab)[2]
+        ipr = id2 / 2
+    }
+    #decrs = decrs0[[ipr]]
+    #ktsi = kts[[ipr]]
+    #k1 = ktsi[[1]]
+    #k2 = ktsi[[2]]
+    knots_lst = object$knots_lst
+    trimat_lst = object$trimat_lst
+    bmat_lst = object$bmat_lst
+    thhat_all = object$coef_tri
+    capk_lst = object$capk_lst
+    
+    knots = knots_lst[[ipr]]
+    trimat = trimat_lst[[ipr]]
+    bmat = bmat_lst[[ipr]]
+    capk = capk_lst[[ipr]]
+    cvs = cvss[[ipr]]
+    thhat = thhat_all[which(varlist == ipr)]
+    if (p > 0) {
+        thhat = c(thhat, zcoefs)
+    }
+    #additive
+    thvecs = object$etacomps
+    xnms_add = object$xnms_add
+    xmat_add = object$xmat_add
+    knms = length(xnms_add)
+    x3_add = 0
+    if (knms >= 1) {
+        #x3id <- obs[-c(x1id, x2id)]
+        #kx3 <- length(x3id)
+        for (i in 1:knms) {
+            x3i = xmat_add[, i]
+            x3i_use = max(x3i[x3i <= median(x3i)])
+            x3i_add = min(thvecs[i, x3i == x3i_use])
+            x3_add = x3_add + x3i_add
+        }
+    }
+    ntri = nrow(trimat)
+    if (x1nm != xnms[1] & x2nm != xnms[2]) {
+        nm = x1nm
+        x1nm = x2nm
+        x2nm = nm
+        tmp = x1
+        x1 = x2
+        x2 = tmp
+    } else {x1nm = x1nm; x2nm = x2nm}
+    
+    if (is.null(th) | !is.numeric(th)) {
+        ang = NULL
+        if (cvs[1] & cvs[2]) {
+            if (is.null(ang)) {
+                ang = 140
+            }
+        } else if (!cvs[1] & !cvs[2]) {
+            if (is.null(ang)) {
+                ang = 25
+            }
+        }
+    } else {ang = th}
+    if (is.null(ltheta) | !is.numeric(ltheta)) {
+        ltheta <- -135
+    }
+    #make the surface
+    g = ngrid
+    ng = g^2
+    x1g = 0:(g-1)/(g-1) * (max(x1)-min(x1)) + min(x1)
+    x2g = 0:(g-1)/(g-1) * (max(x2)-min(x2)) + min(x2)
+    gg = matrix(0, nrow = ng, ncol = 2)
+    for (i in 1:g) {
+        gg[((i-1) * g + 1):(i * g),1] = x1g
+        gg[((i-1) * g + 1):(i * g),2] = 1:g * 0 + x2g[i]
+    }
+    gtri = 1:ng * 0
+    still = 1:ng>0
+    for (j in 1:ntri) {
+        for (i in 1:ng) {
+            if (still[i]) {
+                if (intri(gg[i,],knots[trimat[j,1],],knots[trimat[j,2],],knots[trimat[j,3],])) {
+                    still[i] = FALSE
+                    gtri[i] = j
+                }
+            }
+        }
+    }
+    gmat = matrix(0,nrow = ng,ncol = capk)
+    #print (gmat)
+    bmat = matrix(1,nrow = 3,ncol = 3)
+    a = 1:3
+    for (i in 1:ng) {
+        for (j in 1:3) {
+            #if (gtri[i] > 0) {
+            a[j] = trimat[gtri[i],j]
+            bmat[j,2] = knots[a[j],1]
+            bmat[j,3] = knots[a[j],2]
+            #}
+        }
+        binv = solve(bmat)
+        for (j in 1:3) {
+            gmat[i,a[j]] = binv[1,j] + binv[2,j] * gg[i,1] + binv[3,j] * gg[i,2]
+        }
+    }
+    #?
+    #if (p > 0) {
+    g0 = matrix(0,nrow = dim(gmat)[1],ncol = p)
+    #} else {g0 = NULL}
+    #print (g0)
+    #print (dim(gmat))
+    #print (dim(thhat))
+    gvals = cbind(gmat, g0) %*% thhat
+    #print (gvals)
+    mupl = matrix(gvals, nrow = g)
+    m1 = g
+    m2 = ncol(mupl)
+    if (fml != "gaussian") {
+        for (i1 in 1:m1) {
+            for (i2 in 1:m2) {
+                mupl[i1, i2] = muhat.fun(mupl[i1, i2], fml = fml)
+            }
+        }
+        #mupl = muhat.fun(mupl, fml = fml)
+    }
+    if (is.null(categ)) {
+        z_add = 0
+        if (!is.null(znms)) {
+            #if (p > 0) {
+            #print ('skip')
+            kzids = length(zid1)
+            for (i in 1:kzids) {
+                pos1 = zid1[i]; pos2 = zid2[i]
+                #zi is a factor
+                zi = zmat0[, pos1:pos2, drop = FALSE]
+                zcoefsi = zcoefs[pos1:pos2]
+                for (j in 1:ncol(zi)){
+                    #find the 'mode' of the jth column of zi; add the coef corresponding to the 'mode'
+                    uzij = unique(zi[,j])
+                    kuzij = length(uzij)
+                    nmodej = sum(zi[,j] == uzij[1])
+                    zij_mode = uzij[1]
+                    for (u in 2:kuzij) {
+                        if (sum(zi[,j] == uzij[u]) > nmodej) {
+                            zij_mode = uzij[u]
+                            nmodej = sum(zi[,j] == uzij[u])
+                        }
+                    }
+                    obsuzij = 1:length(uzij)
+                    uzhatij = uzij * zcoefsi[j]
+                    zij_add = uzhatij[obsuzij[uzij == zij_mode]]
+                    z_add = z_add + zij_add
+                }
+            }
+        }
+        mupl = mupl + as.numeric(z_add) + as.numeric(x3_add)
+        #print (mupl)
+        m1 = nrow(mupl)
+        m2 = ncol(mupl)
+        if (fml != "gaussian") {
+            for (i1 in 1:m1) {
+                for (i2 in 1:m2) {
+                    mupl[i1, i2] = muhat.fun(mupl[i1, i2], fml = fml)
+                }
+            }
+            #mupl = muhat.fun(mupl, fml = fml)
+        }
+        mins = min(mupl); maxs = max(mupl)
+    } else {
+        mupls = list()
+        mins = maxs = NULL
+        obsz = 1:kznms
+        zid = obsz[znms == categ]
+        pos1 = zid1[zid]; pos2 = zid2[zid]
+        zcoefsi = zcoefs[pos1:pos2]
+        #include the base level
+        zcoefsi = c(0, zcoefsi)
+        z_add = sort(zcoefsi)
+        kz_add = length(z_add)
+        for (iz in 1:kz_add) {
+            mupls[[iz]] = mupl + z_add[iz] + as.numeric(x3_add)
+            mins = c(mins, min(mupls[[iz]]))
+            maxs = c(maxs, max(mupls[[iz]]))
+        }
+        m1 = nrow(mupl)
+        m2 = ncol(mupl)
+        if (fml != "gaussian") {
+            for (iz in 1:kz_add) {
+                mupli = mupls[[iz]]
+                for (i1 in 1:m1) {
+                    for (i2 in 1:m2) {
+                        mupli[i1, i2] = muhat.fun(mupli[i1, i2], fml = fml)
+                    }
+                }
+                #mupli = muhat.fun(mupli, fml = fml)
+                mupls[[iz]] = mupli
+            }
+        }
+    }
+    palette = c("peachpuff", "lightblue", "limegreen", "grey", "wheat", "yellowgreen", "seagreen1", "palegreen", "azure", "whitesmoke")
+    if (is.null(xlab)) {
+        xlab = x1nm
+    }
+    if (is.null(ylab)) {
+        ylab = x2nm
+    }
+    if (is.null(zlab)) {
+        if (fml == "binomial") {
+            zlab = paste("Pr(", ynm, ")")
+        } else if (fml == "poisson" | fml == "gaussian" | fml == "Gamma") {
+            zlab = paste("Est mean of", ynm)
+        }
+    }
+    if (is.null(categ)) {
+        if (is.null(col)) {
+            if (random) {
+                col = sample(palette, size = 1, replace = FALSE)
+            } else {
+                #col = "white"
+                musurf = mupl
+                nr = nrow(musurf)
+                nc = ncol(musurf)
+                ncol = 100
+                facet = musurf[-1,-1] + musurf[-1,-nc] + musurf[-nr,-1] + musurf[-nr,-nc]
+                #print (facet)
+                facetcol = cut(facet, ncol)
+                col = heat.colors(ncol)[facetcol]
+            }
+        } else {
+            if (col == "heat" | col == "topo" | col == "terrain" | col == "cm") {
+                nr = nrow(mupl)
+                nc = ncol(mupl)
+                ncol = 100
+                facet = mupl[-1,-1] + mupl[-1,-nc] + mupl[-nr,-1] + mupl[-nr,-nc]
+                facetcol = cut(facet, ncol)
+                if (col == "heat") {
+                    col = heat.colors(ncol)[facetcol]
+                } else if (col == "topo") {
+                    col = topo.colors(ncol)[facetcol]
+                } else if (col == "terrain") {
+                    col = terrain.colors(ncol)[facetcol]
+                } else {
+                    col = cm.colors(ncol)[facetcol]
+                }
+            }
+            if (random) {
+                print ("User defined color is used!")
+            }
+        }
+        #if (surface == 'C') {
+        musurf = mupl
+        #if (is.null(main)) {
+        #	main = 'Constrained Warped-Plane Spline Surface'
+        #}
+        if (is.null(zlim)) {
+            lwr = min(mins)
+            upp = max(maxs)
+            zlim0 = c(lwr - (upp-lwr)/5, upp + (upp-lwr)/5)
+        } else {
+            zlim0 = zlim
+        }
+        #}
+        #persp(k1, k2, musurf, xlim = xlim, ylim = ylim, zlim = zlim0, xlab = x1nm, ylab = x2nm, zlab = ynm, theta = ang, ltheta = ltheta, col = col, cex.axis = .75, main = main, ticktype = ticktype,...)
+        persp(x1g, x2g, musurf, xlim = xlim, ylim = ylim, zlim = zlim0, xlab = x1nm, ylab = x2nm, zlab = ynm, theta = ang, ltheta = ltheta, col = col, cex.axis = .75, main = main, ticktype = ticktype,...)
+        res = list(musurf = mupl, gg = gg, x1g=x1g, x2g=x2g, z_add = z_add, x3_add = x3_add, xlim = xlim, ylim = ylim, zlim = zlim0, xlab = x1nm, ylab = x2nm, zlab = ynm, theta = ang, ltheta = ltheta, col = col, cex.axis = .75, main = main, ticktype = ticktype)
+        invisible(res)
+    } else {
+        kxgm = length(mupls)
+        if (is.null(col)) {
+            if (random) {
+                #new:
+                col = topo.colors(kxgm)
+            } else {
+                if (kxgm > 1 & kxgm < 11) {
+                    col = palette[1:kxgm]
+                } else {
+                    #new:
+                    col = topo.colors(kxgm)
+                }
+            } 
+        } else {
+            col0 = col
+            if (col0 == "heat" | col0 == "topo" | col0 == "terrain" | col0 == "cm") {
+                #col0 <- col
+                ncol = 100
+                facets = facetcols = list()
+                col = list()
+                for (i in 1:kxgm) {
+                    nr = nrow(mupls[[i]])
+                    nc = ncol(mupls[[i]])
+                    facets[[i]] = (mupls[[i]])[-1,-1] + (mupls[[i]])[-1,-nc] + (mupls[[i]])[-nr,-1] + (mupls[[i]])[-nr,-nc]
+                    facetcols[[i]] = cut(facets[[i]], ncol)
+                    #print (head(facetcols[[i]]))
+                    if (col0 == "heat") {
+                        col[[i]] = (heat.colors(ncol))[facetcols[[i]]]
+                        #print (head(col[[i]]))
+                    } else if (col0 == "topo") {
+                        col[[i]] = (topo.colors(ncol))[facetcols[[i]]]
+                    } else if (col0 == "terrain") {
+                        col[[i]] = (terrain.colors(ncol))[facetcols[[i]]]
+                    } else {
+                        col[[i]] = (cm.colors(ncol))[facetcols[[i]]]
+                    }
+                }
+            } else if (length(col0) < kxgm) {
+                #new:
+                col = topo.colors(kxgm)
+            } else if (length(col0) > kxgm) {
+                col = col0[1:kxgm]
+            }
+        }
+        for (i in 1:kxgm) {
+            mupli = mupls[[i]]
+            #if (surface == 'C') {
+            musurf = mupli
+            #if (is.null(main)) {
+            #	main = 'Constrained Warped-Plane Spline Surface'
+            #}
+            if (is.null(zlim)) {
+                lwr = min(mins)
+                upp = max(maxs)
+                zlim0 = c(lwr - (upp-lwr)/5, upp + (upp-lwr)/5)
+            } else {
+                zlim0 = zlim
+            }
+            #}
+            if (is.list(col)) {
+                coli = unlist(col[[i]])
+                #print (head(coli))
+            } else {coli = col[i]}
+            #persp(k1, k2, musurf, xlim = xlim, ylim = ylim, zlim = zlim0, xlab = x1nm, ylab = x2nm, zlab = ynm, theta = ang, ltheta = ltheta, col = col[i], cex.axis = .75, main = main, ticktype = ticktype,...)
+            persp(x1g, x2g, musurf, xlim = xlim, ylim = ylim, zlim = zlim0, xlab = x1nm, ylab = x2nm, zlab = ynm, theta = ang, ltheta = ltheta, col = coli, cex.axis = .75, main = main, ticktype = ticktype,...)
+            par(new = TRUE)
+        }
+        par(new = FALSE)
+    }
 }
-#additive
-	thvecs = object$etacomps
-	xnms_add = object$xnms_add
-	xmat_add = object$xmat_add
-	knms = length(xnms_add)
-	x3_add = 0
-	if (knms >= 1) {
-		#x3id <- obs[-c(x1id, x2id)]
-		#kx3 <- length(x3id)
-		for (i in 1:knms) {
-			x3i = xmat_add[, i]
-			x3i_use = max(x3i[x3i <= median(x3i)])
-			x3i_add = min(thvecs[i, x3i == x3i_use])			
-			x3_add = x3_add + x3i_add
-		}
-	} 
-	ntri = nrow(trimat)
-	if (x1nm != xnms[1] & x2nm != xnms[2]) {
-		nm = x1nm
-		x1nm = x2nm
-		x2nm = nm
-		tmp = x1
-		x1 = x2
-		x2 = tmp
-	} else {x1nm = x1nm; x2nm = x2nm}
 
-	if (is.null(th) | !is.numeric(th)) {
-		ang = NULL
-		if (cvs[1] & cvs[2]) {
-			if (is.null(ang)) {
-				ang = 140
-			}
-		} else if (!cvs[1] & !cvs[2]) { 
-			if (is.null(ang)) {
-				ang = 25
-			}
-		} 
-	} else {ang = th}
-	if (is.null(ltheta) | !is.numeric(ltheta)) {
-		ltheta <- -135
-	}
-#make the surface
-	g = ngrid
-	ng = g^2
-	x1g = 0:(g-1)/(g-1) * (max(x1)-min(x1)) + min(x1)
-	x2g = 0:(g-1)/(g-1) * (max(x2)-min(x2)) + min(x2)
-	gg = matrix(0, nrow = ng, ncol = 2)
-	for (i in 1:g) {
-		gg[((i-1) * g + 1):(i * g),1] = x1g
-		gg[((i-1) * g + 1):(i * g),2] = 1:g * 0 + x2g[i]
-	}
-	gtri = 1:ng * 0
-	still = 1:ng>0
-	for (j in 1:ntri) {
-		for (i in 1:ng) {
-			if (still[i]) {
-				if (intri(gg[i,],knots[trimat[j,1],],knots[trimat[j,2],],knots[trimat[j,3],])) {
-					still[i] = FALSE
-					gtri[i] = j
-				}
-			}
-		}
-	}
-	gmat = matrix(0,nrow = ng,ncol = capk)
-	#print (gmat)
-	bmat = matrix(1,nrow = 3,ncol = 3)
-	a = 1:3
-	for (i in 1:ng) {
-		for (j in 1:3) {
-			#if (gtri[i] > 0) {
-				a[j] = trimat[gtri[i],j]
-				bmat[j,2] = knots[a[j],1]
-				bmat[j,3] = knots[a[j],2]
-			#}
-		}
-		binv = solve(bmat)
-		for (j in 1:3) {
-			gmat[i,a[j]] = binv[1,j] + binv[2,j] * gg[i,1] + binv[3,j] * gg[i,2]
-		}
-	}
-#?
-	#if (p > 0) {
-		g0 = matrix(0,nrow = dim(gmat)[1],ncol = p)
-	#} else {g0 = NULL}
-	#print (g0)
-	#print (dim(gmat))
-	#print (dim(thhat))
-	gvals = cbind(gmat, g0) %*% thhat
-	#print (gvals)
-	mupl = matrix(gvals, nrow = g)
-	m1 = g
-	m2 = ncol(mupl)
-	if (fml != "gaussian") {
-		for (i1 in 1:m1) {
-			for (i2 in 1:m2) {
-				mupl[i1, i2] = muhat.fun(mupl[i1, i2], fml = fml)	
-			}
-		}
-		#mupl = muhat.fun(mupl, fml = fml)	
-	}
-	if (is.null(categ)) {
-		z_add = 0
-		if (!is.null(znms)) {
-		#if (p > 0) {
-			#print ('skip')
-			kzids = length(zid1)
-			for (i in 1:kzids) {
-				pos1 = zid1[i]; pos2 = zid2[i]
-#zi is a factor 
-				zi = zmat0[, pos1:pos2, drop = FALSE]
-				zcoefsi = zcoefs[pos1:pos2]
-				for (j in 1:ncol(zi)){
-#find the 'mode' of the jth column of zi; add the coef corresponding to the 'mode'
-					uzij = unique(zi[,j])
-					kuzij = length(uzij)
-					nmodej = sum(zi[,j] == uzij[1])
-					zij_mode = uzij[1]
-					for (u in 2:kuzij) {
-						if (sum(zi[,j] == uzij[u]) > nmodej) {
-							zij_mode = uzij[u]
-							nmodej = sum(zi[,j] == uzij[u])
-						}
-					}
-					obsuzij = 1:length(uzij)
-					uzhatij = uzij * zcoefsi[j] 
-					zij_add = uzhatij[obsuzij[uzij == zij_mode]]	
-					z_add = z_add + zij_add 
-				}
-			}
-		}
-		mupl = mupl + as.numeric(z_add) + as.numeric(x3_add)
-		#print (mupl)
-		m1 = nrow(mupl)
-		m2 = ncol(mupl)
-		if (fml != "gaussian") {
-			for (i1 in 1:m1) {
-				for (i2 in 1:m2) {
-					mupl[i1, i2] = muhat.fun(mupl[i1, i2], fml = fml)	
-				}
-			}
-			#mupl = muhat.fun(mupl, fml = fml)	
-		}
-		mins = min(mupl); maxs = max(mupl)
-	} else {
-		mupls = list()
-		mins = maxs = NULL	
-		obsz = 1:kznms
-		zid = obsz[znms == categ]
-		pos1 = zid1[zid]; pos2 = zid2[zid]
-		zcoefsi = zcoefs[pos1:pos2]
-#include the base level
-		zcoefsi = c(0, zcoefsi)
-		z_add = sort(zcoefsi)
-		kz_add = length(z_add)
-		for (iz in 1:kz_add) {
-			mupls[[iz]] = mupl + z_add[iz] + as.numeric(x3_add)
-			mins = c(mins, min(mupls[[iz]]))
-			maxs = c(maxs, max(mupls[[iz]]))		
-		}
-		m1 = nrow(mupl)
-		m2 = ncol(mupl)
-		if (fml != "gaussian") {
-			for (iz in 1:kz_add) {
-				mupli = mupls[[iz]]
-				for (i1 in 1:m1) {
-					for (i2 in 1:m2) {
-						mupli[i1, i2] = muhat.fun(mupli[i1, i2], fml = fml)	
-					}
-				}
-				#mupli = muhat.fun(mupli, fml = fml)	
-				mupls[[iz]] = mupli
-			}		
-		}
-	}
-	palette = c("peachpuff", "lightblue", "limegreen", "grey", "wheat", "yellowgreen", "seagreen1", "palegreen", "azure", "whitesmoke")
-	if (is.null(xlab)) {
-		xlab = x1nm
-	}
-	if (is.null(ylab)) {
-		ylab = x2nm
-	}
-	if (is.null(zlab)) {
-		if (fml == "binomial") {
-			zlab = paste("Pr(", ynm, ")")
-		} else if (fml == "poisson" | fml == "gaussian" | fml == "Gamma") {
-			zlab = paste("Est mean of", ynm)
-		}		
-	}
-	if (is.null(categ)) {
-		if (is.null(col)) {
-			if (random) {
-				col = sample(palette, size = 1, replace = FALSE)
-			} else {
-				#col = "white"
-				musurf = mupl
-				nr = nrow(musurf)
-				nc = ncol(musurf)
-				ncol = 100
-				facet = musurf[-1,-1] + musurf[-1,-nc] + musurf[-nr,-1] + musurf[-nr,-nc]
-				#print (facet)
-				facetcol = cut(facet, ncol)
-				col = heat.colors(ncol)[facetcol]
-			}
-		} else {
-			if (col == "heat" | col == "topo" | col == "terrain" | col == "cm") {
-				nr = nrow(mupl)
-				nc = ncol(mupl)
-				ncol = 100
-				facet = mupl[-1,-1] + mupl[-1,-nc] + mupl[-nr,-1] + mupl[-nr,-nc]
-				facetcol = cut(facet, ncol)
-				if (col == "heat") {
-					col = heat.colors(ncol)[facetcol]
-				} else if (col == "topo") {
-					col = topo.colors(ncol)[facetcol]
-				} else if (col == "terrain") {
-					col = terrain.colors(ncol)[facetcol]
-				} else {
-					col = cm.colors(ncol)[facetcol]
-				}
-			} 
-			if (random) {
-				print ("User defined color is used!")
-			} 
-		}
-		#if (surface == 'C') {
-			musurf = mupl
-			#if (is.null(main)) {
-			#	main = 'Constrained Warped-Plane Spline Surface'
-			#}
-			zlim0 = c(min(mins), max(maxs))
-		#} 
-		#persp(k1, k2, musurf, xlim = xlim, ylim = ylim, zlim = zlim0, xlab = x1nm, ylab = x2nm, zlab = ynm, theta = ang, ltheta = ltheta, col = col, cex.axis = .75, main = main, ticktype = ticktype,...)
-		persp(x1g, x2g, musurf, xlim = xlim, ylim = ylim, zlim = zlim0, xlab = x1nm, ylab = x2nm, zlab = ynm, theta = ang, ltheta = ltheta, col = col, cex.axis = .75, main = main, ticktype = ticktype,...)
-	} else {
-		kxgm = length(mupls)
-		if (is.null(col)) {
-			if (random) {
-#new:
-				col = topo.colors(kxgm)
-			} else {
-				if (kxgm > 1 & kxgm < 11) {
-					col = palette[1:kxgm]
-				} else {
-#new:
-					col = topo.colors(kxgm)
-				}
-			} 
-		} else {
-			col0 = col
-			if (col0 == "heat" | col0 == "topo" | col0 == "terrain" | col0 == "cm") {
-				#col0 <- col
-				ncol = 100
-				facets = facetcols = list()
-				col = list()
-				for (i in 1:kxgm) {
-					nr = nrow(mupls[[i]])
-					nc = ncol(mupls[[i]])
-					facets[[i]] = (mupls[[i]])[-1,-1] + (mupls[[i]])[-1,-nc] + (mupls[[i]])[-nr,-1] + (mupls[[i]])[-nr,-nc]
-					facetcols[[i]] = cut(facets[[i]], ncol)
-					#print (head(facetcols[[i]]))
-					if (col0 == "heat") {
-						col[[i]] = (heat.colors(ncol))[facetcols[[i]]]
-						#print (head(col[[i]]))
-					} else if (col0 == "topo") {
-						col[[i]] = (topo.colors(ncol))[facetcols[[i]]]
-					} else if (col0 == "terrain") {
-						col[[i]] = (terrain.colors(ncol))[facetcols[[i]]]
-					} else {
-						col[[i]] = (cm.colors(ncol))[facetcols[[i]]]
-					}
-				}
-			} else if (length(col0) < kxgm) {
-#new:
-				col = topo.colors(kxgm)
-			} else if (length(col0) > kxgm) {
-				col = col0[1:kxgm]
-			}
-		}
-		for (i in 1:kxgm) {
-			mupli = mupls[[i]]
-			#if (surface == 'C') {
-				musurf = mupli
-				#if (is.null(main)) {
-				#	main = 'Constrained Warped-Plane Spline Surface'
-				#}
-				zlim0 = c(min(mins), max(maxs))
-			#} 
-			if (is.list(col)) {
-				coli = unlist(col[[i]])
-				#print (head(coli))
-			} else {coli = col[i]}
-			#persp(k1, k2, musurf, xlim = xlim, ylim = ylim, zlim = zlim0, xlab = x1nm, ylab = x2nm, zlab = ynm, theta = ang, ltheta = ltheta, col = col[i], cex.axis = .75, main = main, ticktype = ticktype,...)
-			persp(x1g, x2g, musurf, xlim = xlim, ylim = ylim, zlim = zlim0, xlab = x1nm, ylab = x2nm, zlab = ynm, theta = ang, ltheta = ltheta, col = coli, cex.axis = .75, main = main, ticktype = ticktype,...)
-			par(new = TRUE)
-		}
-		par(new = FALSE)
-	}
+
+##########################################
+#apply plotpersp on a trispl.predict object
+#not done: >= 1 tri pair + additive + z, ignore wps
+#one pair + z only
+##########################################
+plotpersp.trisplp = function(object, x1=NULL, x2=NULL, x1nm=NULL, x2nm=NULL, data=NULL, up = TRUE, main=NULL, cex.main=.8, xlab = NULL, ylab = NULL, zlab = NULL, th = NULL, ltheta = NULL, ticktype = "simple",...) {
+    #obj is prediction for trispl
+    if (!inherits(object, "trisplp")) {
+        warning("calling plotpersp(<fake-trisplp-object>) ...")
+    }
+    t_col = function(color, percent = 50, name = NULL) {
+        rgb.val <- col2rgb(color)
+        ## Make new color using input color as base and alpha set by transparency
+        t.col <- rgb(rgb.val[1], rgb.val[2], rgb.val[3],
+        maxColorValue = 255,
+        alpha = (100-percent)*255/100,
+        names = name)
+        ## Save the color
+        invisible(t.col)
+    }
+    if (up) {
+        mycol = t_col("green", perc = 90, name = "lt.green")
+    } else {
+        mycol = t_col("pink", perc = 80, name = "lt.pink")
+    }
+    
+    acov = object$acov
+    mult = object$mult
+    #obj is the wps fit
+    obj = object$object
+    
+    xnms = obj$xnms_tri
+    xmat = obj$xmat_tri
+    xnms_add = obj$xnms_add
+    xmat_add = obj$xmat_add
+    delta = obj$dmatc
+    #if (x1nm == "NULL" | x2nm == "NULL") {
+    if (is.null(x1nm) | is.null(x2nm)) {
+        if (length(xnms) >= 2) {
+            x1nm = xnms[1]
+            x2nm = xnms[2]
+            x1id = 1
+            x2id = 2
+            x1 = xmat[, 1]
+            x2 = xmat[, 2]
+        } else {stop ("Number of non-parametric predictors must >= 2!")}
+    }
+    
+    labels = obj$labels
+    labels = labels[which(grepl("tri", labels, fixed = TRUE))]
+    
+    is_fac = obj$is_fac
+    ynm = obj$ynm
+    
+    varlist = obj$varlist_tri
+    
+    kts = obj$knots_lst
+    np = obj$d0
+    #switch xnms
+    if (!is.null(data)) {
+        if (!is.data.frame(data)) {
+            stop ("User need to make the data argument a data frame with names for each variable!")
+        }
+        datnms = names(data)
+        if (!any(datnms == x1nm) | !any(datnms == x2nm)) {
+            stop ("Check the accuracy of the names of x1 and x2!")
+        }
+        x1 = data[ ,which(datnms == x1nm)]
+        x2 = data[ ,which(datnms == x2nm)]
+    } else {
+        if (all(xnms != x1nm)) {
+            #stop (paste(paste("'", x1nm0, "'", sep = ''), "is not an exact predictor name defined in the cgam fit!"))
+            #new: in case of wrong data fame
+            if (length(x1) != nrow(xmat)) {
+                stop ("Number of observations in the data set is not the same as the number of elements in x1!")
+            }
+            bool = apply(xmat, 2, function(x) all(x1 == x))
+            if (any(bool)) {
+                #x1id = obs[bool]
+                x1nm = xnms[bool]
+            } else {
+                stop (paste(paste("'", x1nm, "'", sep = ''), "is not a predictor defined in the wps fit!"))
+            }
+        }
+        if (all(xnms != x2nm)) {
+            #stop (paste(paste("'", x2nm0, "'", sep = ''), "is not an exact predictor name defined in the cgam fit!"))
+            if (length(x2) != nrow(xmat)) {
+                stop ("Number of observations in the data set is not the same as the number of elements in x2!")
+            }
+            bool = apply(xmat, 2, function(x) all(x2 == x))
+            if (any(bool)) {
+                #x2id = obs[bool]
+                x2nm = xnms[bool]
+            } else {
+                stop (paste(paste("'", x2nm, "'", sep = ''), "is not a predictor defined in the wps fit!"))
+            }
+        }
+    }
+    xnm12 = c(x1nm, x2nm)
+    id_lab = which(xnms %in% xnm12)
+    xnm12_lab = labels[id_lab]
+    #new:
+    xnm_other = xnms[-id_lab]
+    id1 = id2 = ipr = NULL
+    
+    if (length(unique(xnm12_lab)) > 1 | length(id_lab) != 2) {
+        stop ("Two non-parametric predictors do not form a triangle-spline surface!")
+    } else {
+        id1 = sort(id_lab)[1]
+        id2 = sort(id_lab)[2]
+        ipr = id2 / 2
+    }
+    
+    #find the pairs to be plotted
+    if (x1nm != xnms[1] & x2nm != xnms[2]) {
+        nm = x1nm
+        x1nm = x2nm
+        x2nm = nm
+        tmp = x1
+        x1 = x2
+        x2 = tmp
+        #new:
+        xnm12 = c(x1nm, x2nm)
+    } else {x1nm = x1nm; x2nm = x2nm}
+    
+    newz = object$newz
+    npr = round(length(xnms) / 2, 0L)
+    
+    #zlwr = min(object$lower) - (max(object$fit) - min(object$fit)) / 4
+    #zupp = max(object$upper) + (max(object$fit) - min(object$fit)) / 4
+    
+    res = plotpersp.trispl(obj, x1, x2, ngrid = 7, col='white', xlab=xlab, ylab=ylab, zlab=zlab, th=th, ltheta=ltheta, ticktype=ticktype)
+    
+    newData = as.data.frame(res$gg)
+    
+    #if (!is.null(newz)) {
+    #    znms = obj$znms
+    #    nz = matrix(0, nrow=nrow(gg), ncol=ncol(newz))
+    #    nznm = gsub("[\\(\\)]", "", regmatches(znms, gregexpr("\\(.*?\\)", znms))[[1]])
+    #    gg = cbind(gg, nz)
+    #    colnames(gg) = c(x1nm, x2nm, nznm)
+    #} else {
+    #    colnames(gg) = c(x1nm, x2nm)
+    #}
+    
+    if (npr > 1) {
+        new_other = matrix(0, nrow=nrow(newData), ncol=(2*(npr-1)))
+        kts_other = kts[,-c(ipr*2-1,ipr*2)]
+        for (i in 1:(npr-1)) {
+            for (j in 1:2) {
+                newi = mean(kts_other[,(i-1)*2+j])
+                new_other[,(i-1)*2+j] = newi
+            }
+        }
+        newd = cbind(newData, new_other)
+        colnames(newd) = c(xnm12, xnm_other)
+        newData = as.data.frame(newd)
+    }
+    
+    if (length(xnms_add) > 0) {
+        #new_add = matrix(0, nrow=nrow(newData), ncol=ncol(xmat_add))
+        means = apply(xmat_add, 2, mean)
+        new_add = matrix(rep(means, nrow(newData)), ncol=ncol(xmat_add), byrow=T)
+        nms = colnames(newData)
+        newd = cbind(newData, new_add)
+        colnames(newd) = c(nms, xnms_add)
+        newData = as.data.frame(newd)
+    }
+    
+    if (!is.null(newz)) {
+        znms = obj$znms
+        nz = matrix(0, nrow=nrow(newData), ncol=ncol(newz))
+        nznm = gsub("[\\(\\)]", "", regmatches(znms, gregexpr("\\(.*?\\)", znms))[[1]])
+        nms = colnames(newData)
+        newData = cbind(newData, nz)
+        colnames(newData) = c(nms, nznm)
+    }
+    
+    gg = newData
+    pfit.gg = predict.trispl(obj, gg, interval='none')
+    #upper = pfit.gg$upper
+    #lower = pfit.gg$lower
+    
+    xmatpr = pfit.gg$xmatpr
+    muhat = pfit.gg$fit
+    lower = muhat - mult*sqrt(diag(xmatpr%*%acov%*%t(xmatpr)))
+    upper = muhat + mult*sqrt(diag(xmatpr%*%acov%*%t(xmatpr)))
+    
+    #spls = pfit.bb$spls
+    #ignore z
+    #spl_use = cbind(1, spls[[ipr]])
+    #get the fit for each pair
+    #mus = pfit.knots$mus
+    #muhat_use = mus[[ipr]]
+    #get the acov for each pair
+    #acov_use = acov[c(1, which(varlist == ipr)+np), c(1, which(varlist == ipr)+np)]
+    
+    #lower = muhat_use - mult*sqrt(diag(spl_use%*%acov_use%*%t(spl_use)))
+    #upper = muhat_use + mult*sqrt(diag(spl_use%*%acov_use%*%t(spl_use)))
+    
+    x1g = res$x1g
+    x2g = res$x2g
+    k1 = length(x1g)
+    k2 = length(x2g)
+    
+    surf = matrix(0, k1, k2)
+    for(i2 in 1:k2) {
+        for(i1 in 1:k1) {
+            if (up) {
+                surf[i1,i2] = upper[(i2-1)*k1 + i1]
+            } else {
+                surf[i1,i2] = lower[(i2-1)*k1 + i1]
+            }
+        }
+    }
+    #gaussian only
+    z_add = res$z_add
+    x3_add = res$x3_add
+    surf = surf + z_add + x3_add
+    if (up) {
+        if (is.null(main)) {
+            main = "Triangle-Spline Surface with Upper 95% Confidence Surface"
+        }
+    }
+    if (!up) {
+        if (is.null(main)) {
+            main = "Triangle-Spline Surface with Lower 95% Confidence Surface"
+        }
+    }
+    par(new = TRUE)
+    persp(x1g, x2g, surf, zlim = res$zlim, xlab = "", ylab = "", zlab = "", theta = res$theta, ltheta = res$ltheta, cex.axis = res$cex.axis, main = main, cex.main = cex.main, ticktype = res$ticktype, col=mycol, box=FALSE, axes=FALSE)
+    par(new=FALSE)
 }
+
 
 #####################################################################################
 #### SUBROUTINES
