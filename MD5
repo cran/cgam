@@ -1,7 +1,7 @@
 7938df23bd6e3599c5e87acb50dbe17f *ChangeLog
-1a325a7021c908eb8a70a7106667c8df *DESCRIPTION
-f635528febd0353881fd770a8c4ed301 *NAMESPACE
-30393d48337f7f714c4cb22ea97a0df1 *R/cgam.R
+a9310b0495261d77f263bf56511e270d *DESCRIPTION
+7f76eafae7c2d8334629ff7184c91c9c *NAMESPACE
+c970b3b4c7eb2c73e7cf5109bf1d4bdc *R/cgam.R
 0668a864c3fd19daa6b9a16df2ec83b7 *R/cgamm.R
 30371bbfb1b09c61689e34133389c96b *data/COforest.rda
 a0db33d4a416d9f938daadefe0e246d8 *data/cubic.rda
@@ -12,7 +12,7 @@ d9f2ee13227a283ca8900777e6d62afe *man/COforest.Rd
 883e5898cac424e9164fe2ce815d579c *man/Ord.Rd
 87ca4718d9883f4f4e95d9e64b563014 *man/ShapeSelect.Rd
 defec4599769cfb4e78ccc7abb8175e8 *man/best.fit.Rd
-1201da88bb4cbe4fa1edb38f0eccd23c *man/cgam.Rd
+421cc78ef27a86c6d536af66a1ba5015 *man/cgam.Rd
 546408cc1a0d317a5bf1beb8e059ec9b *man/cgamm.Rd
 02dfead6a50ea3d987075cdfc314332d *man/conc.Rd
 49444d5af949917f6772fa3025d26e0c *man/conv.Rd
@@ -26,7 +26,7 @@ c530c556b13d86a14b835be7d7f58ef6 *man/incr.Rd
 f8c670516d35684c34511851b2dcfe6a *man/incr.conv.Rd
 5e31e813762d0157e7b659d694a2f545 *man/mental.Rd
 1a8fa2f3659519856fddfc62fde89978 *man/plasma.Rd
-bf27094bf62dd4478d4821eb62af899a *man/plotpersp.Rd
+56fea10f1d413f5c96fe12cdf5309cbe *man/plotpersp.Rd
 8beadb01c69a198bdb33b9b372d29e5c *man/predict.cgam.Rd
 ea6719955a499d76abd87ce540ce7222 *man/s.Rd
 94e48b038d1cba48c81a419a5bcf945a *man/s.conc.Rd
@@ -36,13 +36,13 @@ f60e0690c5c7e4b80ae31bc2f0225fdb *man/s.conv.conv.Rd
 27d4a96eecfdb18687e63fe435a73ce0 *man/s.decr.Rd
 9f4b9d33c8db6bfa574b2d952bccd811 *man/s.decr.conc.Rd
 fe95307ced4d32cd10602802bf9b9bf5 *man/s.decr.conv.Rd
-dd593b644b9f5694365c2d3fcd62f701 *man/s.decr.decr.Rd
-65bb0657c0691942ba45ee13a664d5a0 *man/s.decr.incr.Rd
+6f79eca28f4d26027fd897c548b06c04 *man/s.decr.decr.Rd
+f1ed0cf91b38768a3d98033ed5d11c0c *man/s.decr.incr.Rd
 19949396ab09155ebafc961f834ad3d7 *man/s.incr.Rd
 7022b1e1ad79fcd6b7edb78b4a73b32e *man/s.incr.conc.Rd
 9797ce240dc5ede9e038c23313d33abf *man/s.incr.conv.Rd
-37b901d5c77e602bee7a3de1b7a48488 *man/s.incr.decr.Rd
-153d257761b40748c4c0c252e86340de *man/s.incr.incr.Rd
+62f4e9383416587d6cabddefc65476a6 *man/s.incr.decr.Rd
+fefc40df95cc8698d49693e7424e9e4b *man/s.incr.incr.Rd
 836052fb92469502e2caed29a32701a0 *man/shapes.Rd
 23aabd09022aff40accf844153cda0e1 *man/tree.Rd
 413da2c5d8d914721a923c2b386b0df4 *man/umbrella.Rd

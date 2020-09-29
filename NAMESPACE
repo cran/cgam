@@ -3,6 +3,8 @@ import("coneproj", "svDialogs", "lme4", "splines")
 importFrom("stats", "fitted", "delete.response", "gaussian", "median", "model.frame", "model.matrix", "model.response", "pchisq", "printCoefmat", "pt", "quantile", "rnorm", "rpois", "runif", "as.formula", "sd", "Gamma", "binomial", "coef", "make.link", "rgamma",
 "rlogis", "optim", "qnorm", "pbeta", "pf", "qchisq", "uniroot")
 importFrom("utils", "head")
+importFrom("stats", "predict")
+importFrom("stats", "var")
 importFrom("Matrix", "bdiag", "rankMatrix")
 importFrom("graphics", "par", "persp", "grid", "legend", "plot", "points", "segments")
 importFrom("grDevices", "topo.colors", "cm.colors", "heat.colors", "terrain.colors", "rgb","col2rgb")  

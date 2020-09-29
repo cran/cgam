@@ -8,8 +8,9 @@
   The partial linear generalized additive model is fitted using the method of maximum likelihood, where shape or order restrictions can be imposed on the non-parametrically modelled predictors with optional smoothing, and no restrictions are imposed on the optional parametrically modelled covariate. 
 }
 
-\usage{cgam(formula, nsim = 100, family = gaussian, cpar = 1.2, data = NULL, weights = NULL, 
-sc_x = FALSE, sc_y = FALSE, pnt = TRUE, pen = 0, var.est = NULL)}
+\usage{cgam(formula, cic = FALSE, nsim = 100, family = gaussian, cpar = 1.5, 
+	data = NULL, weights = NULL, sc_x = FALSE, sc_y = FALSE, pnt = TRUE, 
+	pen = 0, var.est = NULL, gcv = FALSE, pvf = TRUE)}
 
 \arguments{
   \item{formula}{
@@ -38,6 +39,11 @@ sc_x = FALSE, sc_y = FALSE, pnt = TRUE, pen = 0, var.est = NULL)}
     \item{umbrella(x): }{\eqn{\eta} has an umbrella-ordering in \eqn{x}. See \code{\link{umbrella}} for more details.}
     }
 }
+
+\item{cic}{Logical flag indicating if or not simulations are used to get the cic value. 
+	The default is cic = FALSE
+}
+
   \item{nsim}{
   The number of simulations used to get the cic parameter. The default is nsim = 100. 
 }
@@ -59,6 +65,8 @@ sc_x = FALSE, sc_y = FALSE, pnt = TRUE, pen = 0, var.est = NULL)}
   \item{pen}{User-defined penalty parameter. It must be non-negative. It will only be used in a warped-plane spline fit or a triangle spline fit. The default is pen = 0.}
   \item{pnt}{Logical flag indicating if or not penalized constrained regression splines are used. It will only be used in a warped-plane spline fit or a triangle spline fit. The default is pnt = TRUE.}
   \item{var.est}{To do a monotonic variance function estimation, the user can set var.est = s.incr(x) or var.est = s.decr(x). See \code{\link{s.incr}} and \code{\link{s.decr}} for more details. The default is var.est = NULL.}
+  \item{gcv}{Logical flag indicating if or not gcv is used to choose a penalty term in warped-plane surface fit. The default is gcv = FALSE.}
+  \item{pvf}{Logical flag indicating if or not simulations are used to find the p-value of the test of linear vs double monotone in warped plane surface fit.}
 }
 
 \details{

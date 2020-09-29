@@ -44,6 +44,7 @@ Meyer, M. C. (2017) Estimation and inference for regression surfaces using shape
 
 
 \examples{
+\dontrun{
   # generate data
   n <- 100
   set.seed(123)
@@ -56,7 +57,8 @@ Meyer, M. C. (2017) Estimation and inference for regression surfaces using shape
   ans <- cgam(y ~ s.decr.decr(x1, x2), pnt = TRUE)
 
   # make a 3D plot of the constrained surface
-  plotpersp(ans)
+  plotpersp(ans)	
+}
 }
 
 \keyword{shape routine}

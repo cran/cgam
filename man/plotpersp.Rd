@@ -110,6 +110,7 @@ sub = "Categorical Variable: Vitamin Use", categ = "factor(vituse)")
 categ = "as.factor(addl)", data = plasma)
 
 # Example 4.
+\dontrun{
   n <- 100
   set.seed(123)
   x1 <- sort(runif(n))
@@ -122,6 +123,7 @@ categ = "as.factor(addl)", data = plasma)
 
 # plot the constrained surface
   plotpersp(ans)
+ }
 }
 
 
