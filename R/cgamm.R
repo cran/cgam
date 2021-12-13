@@ -2038,656 +2038,664 @@ print.summary.cgamm <- function(x,...) {
 ###########################################
 #create a 3D plot for a cgam or wps object#
 ###########################################
-plotpersp <- function(object, x1 = NULL, x2 = NULL,...) {
-    x1nm <- deparse(substitute(x1))
-    x2nm <- deparse(substitute(x2))
-    if (inherits(object, "cgamp")) {
-        xnms_add <- object$object$xnms_add
-    } else {
-        xnms_add <- object$xnms_add
-    }
-    if (inherits(object, "wpsp")) {
-        xnms_wp <- object$object$xnms_wp
-    } else {
-        xnms_wp <- object$xnms_wp
-    }
-    if (inherits(object, "trisplp")) {
-        xnms_tri <- object$object$xnms_tri
-    } else {
-        xnms_tri <- object$xnms_tri
-    }
-    is_add <- all(c(any(grepl(x1nm, xnms_add, fixed = TRUE)), any(grepl(x2nm, xnms_add, fixed = TRUE))))
-    #print (is_add)
-    is_wps <- all(c(any(grepl(x1nm, xnms_wp, fixed = TRUE)), any(grepl(x2nm, xnms_wp, fixed = TRUE))))
-    #print (is_wps)
-    is_tri <- all(c(any(grepl(x1nm, xnms_tri, fixed = TRUE)), any(grepl(x2nm, xnms_tri, fixed = TRUE))))
-    #print (is_tri)
-    if (missing(x1) | missing(x2)) {
-        UseMethod("plotpersp")
-    } else {
-        cs = class(object)
-        if (length(cs) == 1 & is.null(x1nm) & is.null(x2nm)) {
-            UseMethod("plotpersp")
-        } else {
-            if (is_wps) {
-                #print (x1)
-                #print (x2nm)
-                if (inherits(object, "wpsp")) {
-                    #print (x1nm)
-                    #print (x2nm)
-                    #print (head(x1))
-                    plotpersp.wpsp(object, x1, x2, x1nm, x2nm,...)
-                } else {
-                    plotpersp.wps(object, x1, x2, x1nm, x2nm,...)
-                }
-            } else if (is_add) {
-                if (inherits(object, "cgamp")){
-                    plotpersp.cgamp(object, x1, x2, x1nm, x2nm,...)
-                } else {
-                    plotpersp.cgam(object, x1, x2, x1nm, x2nm,...)
-                }
-            } else if (is_tri) {
-                if (inherits(object, "trisplp")) {
-                    plotpersp.trisplp(object, x1, x2, x1nm, x2nm,...)
-                } else {
-                    plotpersp.trispl(object, x1, x2, x1nm, x2nm,...)
-                }
-            } else {
-                stop ("Nonparametric components must be from the same class!")
-            }
-        }
-    }
+plotpersp <- function(object,...) {
+  UseMethod("plotpersp", object)
 }
+# 
+# plotpersp <- function(object, x1 = NULL, x2 = NULL,...) {
+#     x1nm <- deparse(substitute(x1))
+#     x2nm <- deparse(substitute(x2))
+#     if (inherits(object, "cgamp")) {
+#         xnms_add <- object$object$xnms_add
+#     } else {
+#         xnms_add <- object$xnms_add
+#     }
+#     if (inherits(object, "wpsp")) {
+#         xnms_wp <- object$object$xnms_wp
+#     } else {
+#         xnms_wp <- object$xnms_wp
+#     }
+#     if (inherits(object, "trisplp")) {
+#         xnms_tri <- object$object$xnms_tri
+#     } else {
+#         xnms_tri <- object$xnms_tri
+#     }
+#     is_add <- all(c(any(grepl(x1nm, xnms_add, fixed = TRUE)), any(grepl(x2nm, xnms_add, fixed = TRUE))))
+#     #print (is_add)
+#     is_wps <- all(c(any(grepl(x1nm, xnms_wp, fixed = TRUE)), any(grepl(x2nm, xnms_wp, fixed = TRUE))))
+#     #print (is_wps)
+#     is_tri <- all(c(any(grepl(x1nm, xnms_tri, fixed = TRUE)), any(grepl(x2nm, xnms_tri, fixed = TRUE))))
+#     #print (is_tri)
+#     if (missing(x1) | missing(x2)) {
+#         UseMethod("plotpersp")
+#     } else {
+#         cs = class(object)
+#         if (length(cs) == 1 & is.null(x1nm) & is.null(x2nm)) {
+#             UseMethod("plotpersp")
+#         } else {
+#             if (is_wps) {
+#                 #print (x1)
+#                 #print (x2nm)
+#                 if (inherits(object, "wpsp")) {
+#                     #print (x1nm)
+#                     #print (x2nm)
+#                     #print (head(x1))
+#                     plotpersp.wpsp(object, x1, x2, x1nm, x2nm,...)
+#                 } else {
+#                     plotpersp.wps(object, x1, x2, x1nm, x2nm,...)
+#                 }
+#             } else if (is_add) {
+#                 if (inherits(object, "cgamp")){
+#                     plotpersp.cgamp(object, x1, x2, x1nm, x2nm,...)
+#                 } else {
+#                     plotpersp.cgam(object, x1, x2, x1nm, x2nm,...)
+#                 }
+#             } else if (is_tri) {
+#                 if (inherits(object, "trisplp")) {
+#                     plotpersp.trisplp(object, x1, x2, x1nm, x2nm,...)
+#                 } else {
+#                     plotpersp.trispl(object, x1, x2, x1nm, x2nm,...)
+#                 }
+#             } else {
+#                 stop ("Nonparametric components must be from the same class!")
+#             }
+#         }
+#     }
+# }
 
 
 ################
 #plotpersp.cgam#
 ################
-plotpersp.cgam <- function(object, x1 = NULL, x2 = NULL, x1nm = NULL, x2nm = NULL, data = NULL, surface = "mu", categ = NULL, col = NULL, random = FALSE, ngrid = 12, xlim = range(x1), ylim = range(x2), zlim = NULL, xlab = NULL, ylab = NULL, zlab = NULL, th = NULL, ltheta = NULL, main = NULL, ticktype = "simple",...) {
-    #if (class(object) == "list") {
-    #	object <- object[[1]]
-    #}
-    #print (class(object))
-    if (!inherits(object, "cgam")) {
-        warning("calling plotpersp(<fake-cgam-object>) ...")
-    }
-    #xmat <- object$xmat
-    #cl <- match.call()
-    #nms <- cl[-c(1, 2)]
-    #lnms <- length(nms)
-    #x1nm <- nms[1]$x
-    #x1nm <- deparse(x1nm)
-    #x2nm <- nms[2]$x
-    #x2nm <- deparse(x2nm)
-    #new: default is plotpersp(object)
-    #x1nm <- deparse(substitute(x1))
-    #x2nm <- deparse(substitute(x2))
-    #print (x1nm)
-    #print (x2nm)
-    #stop (print (x1nm))
-    xnms <- object$xnms_add
-    xmat <- object$xmat_add
-    #if (x1nm == "NULL" | x2nm == "NULL") {
-    if (is.null(x1nm) | is.null(x2nm)) {
-        if (length(xnms) >= 2) {
-            x1nm <- xnms[1]
-            x2nm <- xnms[2]
-            x1id <- 1
-            x2id <- 2
-            x1 <- xmat[, 1]
-            x2 <- xmat[, 2]
-        } else {stop ("Number of non-parametric predictors must >= 2!")}
-    }
-    ynm <- object$ynm
-    #xmat <- object$xmat
-    #print (dim(xmat))
-    is_fac <- object$is_fac
-    is_param <- object$is_param
-    family <- object$family
-    fml <- family$family
-    cicfamily <- CicFamily(family)
-    muhat.fun <- cicfamily$muhat.fun
-    znms <- object$znms
-    kznms <- length(znms)
-    if (!is.null(categ)) {
-        if (!is.character(categ)) {
-            warning("categ must be a character argument!")
-        } else if (!any(znms == categ)) {
-            #in.or.out case
-            #if (!is.null(attr(object, "sub"))) {
-            #	if (!is.null(categ)) {
-            #		categ = paste("factor(", categ, ")", sep = "")
-            #	}
-            #} else {
-            #	warning(paste(categ, "is not an exact character name defined in the cgam fit!"))
-            #	categ = NULL
-            #}
-            if (any(grepl(categ, znms))) {
-                id = which(grepl(categ, znms))
-                znmi = znms[id]
-                if (grepl("as.factor", znmi)) {
-                    categ = paste("as.factor(", categ, ")", sep = "")
-                } else if (grepl("factor", znmi)) {
-                    categ = paste("factor(", categ, ")", sep = "")
-                } else {print(paste(categ, "is not an exact character name defined in the cgam fit!"))}
-            } else {print(paste(categ, "is not an exact character name defined in the cgam fit!"))}
-        } else {
-            obsz = 1:kznms
-            zid = obsz[znms == categ]
-            #linear term:
-            if (!(is_fac[zid])) {
-                categ = NULL
-            }
-        }
-    }
-    shapes <- object$shapes
-    #new:
-    #zid1 = object$zid1 - 1 - length(shapes)
-    #zid2 = object$zid2 - 1 - length(shapes)
-    zid1 <- object$zid1
-    zid2 <- object$zid2
-    kznms <- length(znms)
-    zmat <- object$zmat
-    if (any(class(object) == "wps")) {
-        d0 <- object$d0
-        np_add <- object$np_add
-        p <- d0 - np_add
-        pb <- object$pb
-        zmat <- zmat[, (pb+1):(pb+p), drop = FALSE]
-        #remove the one
-        zmat <- zmat[, -1, drop = FALSE]
-        #print (head(zmat))
-    }
-    #zcoefs = object$zcoefs
-    #new: exclude the coef for the one vector
-    #temp:trispl not include one
-    if (fml != "ordered" & all(class(object) != "trispl")) {
-        zcoefs <- object$zcoefs[-1]
-    } else {
-        zcoefs <- object$zcoefs
-    }
-    #print (zcoefs)
-    #xmatnms <- object$xmatnms
-    knms <- length(xnms)
-    obs <- 1:knms
-    #if (!any(xmatnms == x1nm)) {
-    #	warning(paste(x1nm, "is not an exact character name defined in the cgam fit!"))
-    #}
-    #if (!any(xmatnms == x2nm)) {
-    #	warning(paste(x2nm, "is not an exact character name defined in the cgam fit!"))
-    #}
-    #x1id = obs[xmatnms == x1nm]
-    #x2id = obs[xmatnms == x2nm]
-    if (!is.null(data)) {
-        if (!is.data.frame(data)) {
-            stop ("User need to make the data argument a data frame with names for each variable!")
-        }
-        datnms <- names(data)
-        if (!any(datnms == x1nm) | !any(datnms == x2nm)) {
-            stop ("Check the accuracy of the names of x1 and x2!")
-        }
-        x1 <- data[ ,which(datnms == x1nm)]
-        x2 <- data[ ,which(datnms == x2nm)]
-        if (length(x1) != nrow(xmat)) {
-            warning ("Number of observations in the data set is not the same as the number of elements in x1!")
-        }
-        #bool <- apply(xmat, 2, function(x) all(x1 == x))
-        #if (any(bool)) {
-        x1id <- obs[xnms == x1nm]
-        #}
-        if (length(x2) != nrow(xmat)) {
-            warning ("Number of observations in the data set is not the same as the number of elements in x2!")
-        }
-        #bool <- apply(xmat, 2, function(x) all(x2 == x))
-        #if (any(bool)) {
-        x2id <- obs[xnms == x2nm]
-        #}
-    } else {
-        #if (any(xmatnms == x1nm)) {
-        #	x1id <- obs[xmatnms == x1nm]
-        #} else {
-        #	bool <- apply(xmat, 2, function(x) all(x1 == x))
-        #	if (any(bool)) {
-        #		x1id <- obs[bool]
-        #	}
-        #}
-        #if (any(xmatnms == x2nm)) {
-        #	x2id <- obs[xmatnms == x2nm]
-        #} else {
-        #	bool <- apply(xmat, 2, function(x) all(x2 == x))
-        #	if (any(bool)) {
-        #		x2id <- obs[bool]
-        #	}
-        #}
-        #new: x1 and x2 are in .Globe, not in formula
-        if (all(xnms != x1nm)) {
-            if (length(x1) != nrow(xmat)) {
-                stop ("Number of observations in the data set is not the same as the number of elements in x1!")
-            }
-            bool <- apply(xmat, 2, function(x) all(x1 == x))
-            if (any(bool)) {
-                x1id <- obs[bool]
-                #change x1nm to be the one in formula
-                x1nm <- xnms[bool]
-            } else {
-                stop (paste(paste("'", x1nm, "'", sep = ''), "is not a predictor defined in the cgam fit!"))
-            }
-        } else {
-            x1id <- obs[xnms == x1nm]
-        }
-        if (all(xnms != x2nm)) {
-            if (length(x2) != nrow(xmat)) {
-                stop ("Number of observations in the data set is not the same as the number of elements in x2!")
-            }
-            bool <- apply(xmat, 2, function(x) all(x2 == x))
-            if (any(bool)) {
-                x2id <- obs[bool]
-                x2nm <- xnms[bool]
-            } else {
-                stop (paste(paste("'", x2nm, "'", sep = ''), "is not a predictor defined in the cgam fit!"))
-            }
-        } else {
-            x2id <- obs[xnms == x2nm]
-        }
-    }
-    #xmat is not the one in fit
-    #print (length(x1))
-    #print (length(x2))
-    #xm <- cbind(x1, x2)
-    xm <- xmat[, c(x1id, x2id)]
-    #print (all(xm == cbind(x1, x2)))
-    #print (head(cbind(x1, x2)))
-    x_grid <- ngrid
-    y_grid <- ngrid
-    x1g <- 0:x_grid / x_grid * .95 * (max(xm[,1]) - min(xm[,1])) + min(xm[,1]) + .025 * (max(xm[,1]) - min(xm[,1]))
-    n1 <- length(x1g)
-    x2g <- 0:y_grid / y_grid * .95 * (max(xm[,2]) - min(xm[,2])) + min(xm[,2]) + .025 * (max(xm[,2]) - min(xm[,2]))
-    n2 <- length(x2g)
-    xgmat <- matrix(nrow = n1, ncol = n2)
-    eta0 <- object$coefs[1]
-    thvecs <- object$etacomps
-    #print ('thvecs')
-    for (i2 in 1:n2) {
-        for (i1 in 1:n1) {
-            x1a <- max(xm[xm[,1] <= x1g[i1], 1])
-            x1b <- min(xm[xm[,1] > x1g[i1], 1])
-            v1a <- min(thvecs[x1id, xm[,1] == x1a])
-            v1b <- min(thvecs[x1id, xm[,1] == x1b])
-            alp <- (x1g[i1] - x1a) / (x1b - x1a)
-            th1add <- (1 - alp) * v1a + alp * v1b
-            x2a <- max(xm[xm[,2] <= x2g[i2],2])
-            x2b <- min(xm[xm[,2] > x2g[i2],2])
-            v2a <- min(thvecs[x2id, xm[,2] == x2a])
-            v2b <- min(thvecs[x2id, xm[,2] == x2b])
-            alp <- (x2g[i2] - x2a) / (x2b - x2a)
-            th2add <- (1 - alp) * v2a + alp * v2b
-            xgmat[i1,i2] <- eta0 + th1add + th2add
-        }
-    }
-    x3_add <- 0
-    if (knms >= 3) {
-        x3id <- obs[-c(x1id, x2id)]
-        kx3 <- length(x3id)
-        for (i in 1:kx3) {
-            x3i <- xmat[, x3id[i]]
-            x3i_use <- max(x3i[x3i <= median(x3i)])
-            x3i_add <- min(thvecs[x3id[i], x3i == x3i_use])
-            x3_add <- x3_add + x3i_add
-        }
-    }
-    if (surface == "eta") {
-        xgmat <- xgmat + as.numeric(x3_add)
-    }
-    if (is.null(categ) & surface == "mu") {
-        z_add <- 0
-        if (!is.null(znms)) {
-            kzids <- length(zid1)
-            for (i in 1:kzids) {
-                pos1 <- zid1[i]; pos2 <- zid2[i]
-                zi <- zmat[, pos1:pos2, drop = FALSE]
-                zcoefsi <- zcoefs[pos1:pos2]
-                for (j in 1:ncol(zi)){
-                    uzij <- unique(zi[,j])
-                    kuzij <- length(uzij)
-                    nmodej <- sum(zi[,j] == uzij[1])
-                    zij_mode <- uzij[1]
-                    for (u in 2:kuzij) {
-                        if (sum(zi[,j] == uzij[u]) > nmodej) {
-                            zij_mode <- uzij[u]
-                            nmodej <- sum(zi[,j] == uzij[u])
-                        }
-                    }
-                    obsuzij <- 1:length(uzij)
-                    uzhatij <- uzij * zcoefsi[j]
-                    zij_add <- uzhatij[obsuzij[uzij == zij_mode]]
-                    z_add <- z_add + zij_add
-                }
-            }
-        }
-        xgmat <- xgmat + as.numeric(x3_add) + as.numeric(z_add)
-        #xgmat <- muhat.fun(xgmat, fml = fml)
-        if (fml != "gaussian" & fml != "ordered") {
-            for (i2 in 1:n2) {
-                for (i1 in 1:n1) {
-                    xgmat[i1, i2] <- muhat.fun(xgmat[i1, i2], fml = fml)
-                }
-            }
-        }
-    } else if (!is.null(categ) & surface == "mu"){
-        xgmats <- list()
-        mins <- NULL; maxs <- NULL
-        obsz <- 1:kznms
-        zid <- obsz[znms == categ]
-        #print (class(znms[znms == categ]))
-        pos1 <- zid1[zid]; pos2 <- zid2[zid]
-        #print (pos1)
-        #print (pos2)
-        #zi <- zmat[, pos1:pos2, drop = FALSE]
-        #z_add <- 1:nrow(zi)*0
-        #zcoefsi <- zcoefs[pos1:pos2]
-        #print (zcoefsi)
-        zcoefsi = zcoefs[pos1:pos2]
-        #include the base level
-        zcoefsi = c(0, zcoefsi)
-        z_add = sort(zcoefsi)
-        kz_add <- length(z_add)
-        #for (j in 1:ncol(zi)) {
-        #	zij <- zi[,j]
-        #	zijhat <- zij * zcoefsi[j]
-        #	z_add <- z_add + zijhat
-        #}
-        #z_add <- unique(z_add)
-        #kz_add <- length(z_add)
-        #new: plot the smallest one first:
-        #z_add <- z_add[order(z_add)]
-        #print (z_add)
-        for (iz in 1:kz_add) {
-            xgmats[[iz]] <- xgmat + as.numeric(x3_add) + z_add[iz]
-            #mins <- c(mins, min(xgmats[[iz]]))
-            #maxs <- c(maxs, max(xgmats[[iz]]))
-            if (fml != "gaussian" & fml != "ordered") {
-                for (i2 in 1:n2) {
-                    for (i1 in 1:n1) {
-                        xgmats[[iz]][i1, i2] <- muhat.fun(xgmats[[iz]][i1, i2], fml = fml)
-                    }
-                }
-            }
-            #xgmat[[iz]] <- muhat.fun(xgmat[[iz]], fml = fml)
-            mins <- c(mins, min(xgmats[[iz]]))
-            maxs <- c(maxs, max(xgmats[[iz]]))
-        }
-    }
-    if (is.null(xlab)) {
-        #xlab = deparse(x1nm)
-        xlab <- x1nm
-    }
-    if (is.null(ylab)) {
-        #ylab = deparse(x2nm)
-        ylab <- x2nm
-    }
-    if (is.null(zlab)) {
-        if (surface == "mu") {
-            if (fml == "binomial") {
-                zlab <- paste("Pr(", ynm, ")")
-            } else if (fml == "poisson" | fml == "gaussian" | fml == "Gamma") {
-                zlab <- paste("Est mean of", ynm)
-            }
-        }
-        if (surface == "eta") {
-            if (fml == "binomial") {
-                zlab <- paste("Est log odds ratio of", ynm)
-            }  else if (fml == "poisson" | fml == "Gamma") {
-                zlab <- paste("Est log mean of", ynm)
-            } else if (fml == "gaussian") {
-                zlab <- paste("Est mean of", ynm)
-            }
-        }
-    }
-    #if (is.null(zlim)) {
-    #	zlim <- range(xgmat, na.rm = TRUE)
-    #}
-    palette <- c("peachpuff", "lightblue", "limegreen", "grey", "wheat", "yellowgreen", "seagreen1", "palegreen", "azure", "whitesmoke")
-    if (!is.null(categ) & surface == "mu") {
-        #palette = c("peachpuff", "lightblue", "grey", "wheat", "yellowgreen", "plum", "limegreen", "paleturqoise", "azure", "whitesmoke")
-        kxgm <- length(xgmats)
-        if (is.null(col)) {
-            #if (kxgm == 2) {
-            #	col = c("peachpuff", "lightblue")
-            #} else if (kxgm == 3) {
-            #	col = c("peachpuff", "lightblue", "grey")
-            #} else if (kxgm > 3 & kxgm < 11) {
-            #	col = sample(palette, replace = FALSE)
-            if (random) {
-                col <- topo.colors(kxgm)
-                #col <- sample(palette, size = kxgm, replace = FALSE)
-                #print (col)
-            } else {
-                #print (kxgm)
-                if (kxgm > 1 & kxgm < 11) {
-                    col <- palette[1:kxgm]
-                } else {
-                    #integ <- floor(kxgm / 10)
-                    #rem <- kxgm %% 10
-                    #kint <- length(integ)
-                    #col = character(length = kxgm)
-                    #print (col)
-                    #col <- NULL
-                    #for (i in 1:kint) {
-                    #print (col[1 + (i - 1) * 10: i * 10])
-                    #print (palette)
-                    #col[1 + (i - 1) * 10: i * 10] = palette
-                    #	col <- c(col, palette)
-                    #}
-                    #print (col)
-                    #col[(kint * 10 + 1):kxgm] = palette[(kint * 10 + 1):kxgm]
-                    #col <- c(col, palette[1:rem])
-                    #print ((kint * 10 + 1):kxgm)
-                    #print (col)
-                    #print (integ)
-                    #new: use rainbow
-                    col <- topo.colors(kxgm)
-                }
-            }
-        } else {
-            col0 <- col
-            if (col0 == "heat" | col0 == "topo" | col0 == "terrain" | col0 == "cm") {
-                #col0 <- col
-                ncol <- 100
-                facets <- facetcols <- list()
-                col <- list()
-                for (i in 1:kxgm) {
-                    nr <- nrow(xgmats[[i]])
-                    nc <- ncol(xgmats[[i]])
-                    facets[[i]] <- (xgmats[[i]])[-1,-1] + (xgmats[[i]])[-1,-nc] + (xgmats[[i]])[-nr,-1] + (xgmats[[i]])[-nr,-nc]
-                    facetcols[[i]] <- cut(facets[[i]], ncol)
-                    #print (head(facetcols[[i]]))
-                    if (col0 == "heat") {
-                        col[[i]] <- (heat.colors(ncol))[facetcols[[i]]]
-                        #print (head(col[[i]]))
-                    } else if (col0 == "topo") {
-                        col[[i]] <- (topo.colors(ncol))[facetcols[[i]]]
-                    } else if (col0 == "terrain") {
-                        col[[i]] <- (terrain.colors(ncol))[facetcols[[i]]]
-                    } else {
-                        col[[i]] <- (cm.colors(ncol))[facetcols[[i]]]
-                    }
-                }
-            } else if (length(col0) < kxgm) {
-                rem <- kxgm - length(col0)
-                nrem <- length(rem)
-                rem_col <- palette[1:nrem]
-                col <- c(col0, rem_col)
-                #new:
-                #nr <- nrow(xgmat)
-                #nc <- ncol(xgmat)
-                #ncol <- 100
-                #facet <- xgmat[-1,-1] + xgmat[-1,-nc] + xgmat[-nr,-1] + xgmat[-nr,-nc]
-                #facetcol <- cut[facet, ncol]
-                #col <- topo.colors[facetcol]
-                
-            } else if (length(col0) > kxgm) {
-                col <- col0[1:kxgm]
-                #print (paste("The first", kxgm, "colors are used!"))
-            }
-            if (random) {
-                print ("User defined colors are used!")
-            }
-        }
-        #print (col[[1]][1:10])
-        #print (kxgm)
-        #new: set th for decr or incr
-        decrs = shapes[c(x1id, x2id)] %in% c(2, 6, 8, 10, 15, 16)
-        incrs = shapes[c(x1id, x2id)] %in% c(1, 5, 7, 9, 13, 14)
-        if (is.null(th) | !is.numeric(th)) {
-            ang = NULL
-            if (incrs[1] & incrs[2]) {
-                if (is.null(ang)) {
-                    ang = -40
-                }
-            } else if (decrs[1] & incrs[2]) {
-                if (is.null(ang)) {
-                    ang = 40
-                }
-            } else if (incrs[1] & decrs[2]) {
-                if (is.null(ang)) {
-                    ang = 240
-                }
-            } else if (decrs[1] & decrs[2]) {
-                if (is.null(ang)) {
-                    ang = 140
-                }
-            } else {ang = -37}
-        } else {ang = th}
-        if (is.null(ltheta) | !is.numeric(ltheta)) {
-            ltheta <- -135
-        }
-        #print (col[[1]][1:10])
-        for (i in 1:kxgm) {
-            #print (col[i])
-            #i = 1
-            #print (i)
-            #print (length(col))
-            xgmat <- xgmats[[i]]
-            #if (is.null(th) | !is.numeric(th)) {
-            #	th <- -40
-            #}
-            #if (is.null(ltheta) | !is.numeric(ltheta)) {
-            #	ltheta <- -135
-            #}
-            #persp(x1g, x2g, xgmat, xlim = xlim, ylim = ylim, theta = th)
-            #new: avoid thick labs
-            box = TRUE
-            axes = TRUE
-            if (i > 1) {
-                xlab = ylab = zlab = " "
-                box = FALSE
-                axes = FALSE
-            }
-            #print (length(col))
-            if (is.list(col)) {
-                coli = unlist(col[[i]])
-                #print (head(coli))
-            } else {coli = col[i]}
-            #print (head(coli))
-            #print (head(xgmat[[i]]))
-            #print (head(col[[1]]))
-            if (is.null(zlim)) {
-                lwr = min(mins)
-                upp = max(maxs)
-                zlim0 = c(lwr - (upp-lwr)/3, upp + (upp-lwr)/3)
-            } else {
-                zlim0 = zlim
-            }
-            persp(x1g, x2g, xgmat, xlim = xlim, ylim = ylim, zlim = zlim0, xlab = xlab, ylab = ylab, zlab = zlab, col = coli, main = main, theta = ang, ltheta = ltheta, ticktype = ticktype, box = box, axes = axes,...)
-            par(new = TRUE)
-        }
-        par(new = FALSE)
-    } else {
-        if (is.null(col)) {
-            if (random) {
-                col <- sample(palette, size = 1, replace = FALSE)
-            } else {
-                #col <- "white"
-                #col <- color[facetcol]
-                nr <- nrow(xgmat)
-                nc <- ncol(xgmat)
-                ncol <- 100
-                facet <- xgmat[-1,-1] + xgmat[-1,-nc] + xgmat[-nr,-1] + xgmat[-nr,-nc]
-                #print (facet)
-                facetcol <- cut(facet, ncol)
-                col <- heat.colors(ncol)[facetcol]
-            }
-        } else {
-            #if (length(col) > 1) {
-            #	col <- col[1]
-            #	print ("The first color is used!")
-            #	col <- heat.colors(x_grid*y_grid)
-            #}
-            if (col == "heat" | col == "topo" | col == "terrain" | col == "cm") {
-                nr <- nrow(xgmat)
-                nc <- ncol(xgmat)
-                ncol <- 100
-                facet <- xgmat[-1,-1] + xgmat[-1,-nc] + xgmat[-nr,-1] + xgmat[-nr,-nc]
-                facetcol <- cut(facet, ncol)
-                if (col == "heat") {
-                    col <- heat.colors(ncol)[facetcol]
-                } else if (col == "topo") {
-                    col <- topo.colors(ncol)[facetcol]
-                } else if (col == "terrain") {
-                    col <- terrain.colors(ncol)[facetcol]
-                } else {
-                    col <- cm.colors(ncol)[facetcol]
-                }
-            } 
-            if (random) {
-                print ("User defined color is used!")
-            } 
-        }
-        #if (is.null(th) | !is.numeric(th)) {
-        #	th <- -40
-        #}
-        #if (is.null(ltheta) | !is.numeric(ltheta)) {
-        #	ltheta <- -135
-        #}
-        #new: set th for decr or incr
-        decrs = shapes[c(x1id, x2id)] %in% c(2, 6, 8, 10, 15, 16)
-        incrs = shapes[c(x1id, x2id)] %in% c(1, 5, 7, 9, 13, 14)
-        if (is.null(th) | !is.numeric(th)) {
-            ang = NULL
-            if (incrs[1] & incrs[2]) {
-                if (is.null(ang)) {
-                    ang = -40
-                }
-            } else if (decrs[1] & incrs[2]) { 
-                if (is.null(ang)) {
-                    ang = 40
-                }
-            } else if (incrs[1] & decrs[2]) {
-                if (is.null(ang)) {
-                    ang = 240
-                }
-            } else if (decrs[1] & decrs[2]) {
-                if (is.null(ang)) {
-                    ang = 140
-                }
-            } else {ang = -37}
-        } else {ang = th}
-        if (is.null(ltheta) | !is.numeric(ltheta)) {
-            ltheta <- -135
-        }
-        if (is.null(zlim)) {
-            lwr = min(xgmat)
-            upp = max(xgmat)
-            zlim0 = c(lwr - (upp-lwr)/3, upp + (upp-lwr)/3)
-        } else {
-            zlim0 = zlim
-        }
-        persp(x1g, x2g, xgmat, xlim = xlim, ylim = ylim, zlim = zlim0, xlab = xlab, ylab = ylab, zlab = zlab, col = col, main = main, theta = ang, ltheta = ltheta, ticktype = ticktype,...)
-        rslt = list(zlim = zlim0, xlab = xlab, ylab = ylab, zlab = zlab, theta = ang, ltheta = ltheta, col = col, cex.axis = .75, main = main, ticktype = ticktype, z_add = z_add, x3_add = x3_add)
-        invisible(rslt)
-    }
-    #print (col)
-}
+# plotpersp.cgam <- function(object, x1 = NULL, x2 = NULL, x1nm = NULL, x2nm = NULL,
+#                            data = NULL, surface = "mu", categ = NULL, col = NULL,
+#                            random = FALSE, ngrid = 12, xlim = range(x1), 
+#                            ylim = range(x2), zlim = NULL, xlab = NULL, ylab = NULL, 
+#                            zlab = NULL, th = NULL, ltheta = NULL, main = NULL, ticktype = "simple",...) {
+#     #if (class(object) == "list") {
+#     #	object <- object[[1]]
+#     #}
+#     #print (class(object))
+#     if (!inherits(object, "cgam")) {
+#         warning("calling plotpersp(<fake-cgam-object>) ...")
+#     }
+#     #xmat <- object$xmat
+#     #cl <- match.call()
+#     #nms <- cl[-c(1, 2)]
+#     #lnms <- length(nms)
+#     #x1nm <- nms[1]$x
+#     #x1nm <- deparse(x1nm)
+#     #x2nm <- nms[2]$x
+#     #x2nm <- deparse(x2nm)
+#     #new: default is plotpersp(object)
+#     #x1nm <- deparse(substitute(x1))
+#     #x2nm <- deparse(substitute(x2))
+#     #print (x1nm)
+#     #print (x2nm)
+#     #stop (print (x1nm))
+#     xnms <- object$xnms_add
+#     xmat <- object$xmat_add
+#     #if (x1nm == "NULL" | x2nm == "NULL") {
+#     if (is.null(x1nm) | is.null(x2nm)) {
+#         if (length(xnms) >= 2) {
+#             x1nm <- xnms[1]
+#             x2nm <- xnms[2]
+#             x1id <- 1
+#             x2id <- 2
+#             x1 <- xmat[, 1]
+#             x2 <- xmat[, 2]
+#         } else {stop ("Number of non-parametric predictors must >= 2!")}
+#     }
+#     ynm <- object$ynm
+#     #xmat <- object$xmat
+#     #print (dim(xmat))
+#     is_fac <- object$is_fac
+#     is_param <- object$is_param
+#     family <- object$family
+#     fml <- family$family
+#     cicfamily <- CicFamily(family)
+#     muhat.fun <- cicfamily$muhat.fun
+#     znms <- object$znms
+#     kznms <- length(znms)
+#     if (!is.null(categ)) {
+#         if (!is.character(categ)) {
+#             warning("categ must be a character argument!")
+#         } else if (!any(znms == categ)) {
+#             #in.or.out case
+#             #if (!is.null(attr(object, "sub"))) {
+#             #	if (!is.null(categ)) {
+#             #		categ = paste("factor(", categ, ")", sep = "")
+#             #	}
+#             #} else {
+#             #	warning(paste(categ, "is not an exact character name defined in the cgam fit!"))
+#             #	categ = NULL
+#             #}
+#             if (any(grepl(categ, znms))) {
+#                 id = which(grepl(categ, znms))
+#                 znmi = znms[id]
+#                 if (grepl("as.factor", znmi)) {
+#                     categ = paste("as.factor(", categ, ")", sep = "")
+#                 } else if (grepl("factor", znmi)) {
+#                     categ = paste("factor(", categ, ")", sep = "")
+#                 } else {print(paste(categ, "is not an exact character name defined in the cgam fit!"))}
+#             } else {print(paste(categ, "is not an exact character name defined in the cgam fit!"))}
+#         } else {
+#             obsz = 1:kznms
+#             zid = obsz[znms == categ]
+#             #linear term:
+#             if (!(is_fac[zid])) {
+#                 categ = NULL
+#             }
+#         }
+#     }
+#     shapes <- object$shapes
+#     #new:
+#     #zid1 = object$zid1 - 1 - length(shapes)
+#     #zid2 = object$zid2 - 1 - length(shapes)
+#     zid1 <- object$zid1
+#     zid2 <- object$zid2
+#     kznms <- length(znms)
+#     zmat <- object$zmat
+#     if (any(class(object) == "wps")) {
+#         d0 <- object$d0
+#         np_add <- object$np_add
+#         p <- d0 - np_add
+#         pb <- object$pb
+#         zmat <- zmat[, (pb+1):(pb+p), drop = FALSE]
+#         #remove the one
+#         zmat <- zmat[, -1, drop = FALSE]
+#         #print (head(zmat))
+#     }
+#     #zcoefs = object$zcoefs
+#     #new: exclude the coef for the one vector
+#     #temp:trispl not include one
+#     if (fml != "ordered" & all(class(object) != "trispl")) {
+#         zcoefs <- object$zcoefs[-1]
+#     } else {
+#         zcoefs <- object$zcoefs
+#     }
+#     #print (zcoefs)
+#     #xmatnms <- object$xmatnms
+#     knms <- length(xnms)
+#     obs <- 1:knms
+#     #if (!any(xmatnms == x1nm)) {
+#     #	warning(paste(x1nm, "is not an exact character name defined in the cgam fit!"))
+#     #}
+#     #if (!any(xmatnms == x2nm)) {
+#     #	warning(paste(x2nm, "is not an exact character name defined in the cgam fit!"))
+#     #}
+#     #x1id = obs[xmatnms == x1nm]
+#     #x2id = obs[xmatnms == x2nm]
+#     if (!is.null(data)) {
+#         if (!is.data.frame(data)) {
+#             stop ("User need to make the data argument a data frame with names for each variable!")
+#         }
+#         datnms <- names(data)
+#         if (!any(datnms == x1nm) | !any(datnms == x2nm)) {
+#             stop ("Check the accuracy of the names of x1 and x2!")
+#         }
+#         x1 <- data[ ,which(datnms == x1nm)]
+#         x2 <- data[ ,which(datnms == x2nm)]
+#         if (length(x1) != nrow(xmat)) {
+#             warning ("Number of observations in the data set is not the same as the number of elements in x1!")
+#         }
+#         #bool <- apply(xmat, 2, function(x) all(x1 == x))
+#         #if (any(bool)) {
+#         x1id <- obs[xnms == x1nm]
+#         #}
+#         if (length(x2) != nrow(xmat)) {
+#             warning ("Number of observations in the data set is not the same as the number of elements in x2!")
+#         }
+#         #bool <- apply(xmat, 2, function(x) all(x2 == x))
+#         #if (any(bool)) {
+#         x2id <- obs[xnms == x2nm]
+#         #}
+#     } else {
+#         #if (any(xmatnms == x1nm)) {
+#         #	x1id <- obs[xmatnms == x1nm]
+#         #} else {
+#         #	bool <- apply(xmat, 2, function(x) all(x1 == x))
+#         #	if (any(bool)) {
+#         #		x1id <- obs[bool]
+#         #	}
+#         #}
+#         #if (any(xmatnms == x2nm)) {
+#         #	x2id <- obs[xmatnms == x2nm]
+#         #} else {
+#         #	bool <- apply(xmat, 2, function(x) all(x2 == x))
+#         #	if (any(bool)) {
+#         #		x2id <- obs[bool]
+#         #	}
+#         #}
+#         #new: x1 and x2 are in .Globe, not in formula
+#         if (all(xnms != x1nm)) {
+#             if (length(x1) != nrow(xmat)) {
+#                 stop ("Number of observations in the data set is not the same as the number of elements in x1!")
+#             }
+#             bool <- apply(xmat, 2, function(x) all(x1 == x))
+#             if (any(bool)) {
+#                 x1id <- obs[bool]
+#                 #change x1nm to be the one in formula
+#                 x1nm <- xnms[bool]
+#             } else {
+#                 stop (paste(paste("'", x1nm, "'", sep = ''), "is not a predictor defined in the cgam fit!"))
+#             }
+#         } else {
+#             x1id <- obs[xnms == x1nm]
+#         }
+#         if (all(xnms != x2nm)) {
+#             if (length(x2) != nrow(xmat)) {
+#                 stop ("Number of observations in the data set is not the same as the number of elements in x2!")
+#             }
+#             bool <- apply(xmat, 2, function(x) all(x2 == x))
+#             if (any(bool)) {
+#                 x2id <- obs[bool]
+#                 x2nm <- xnms[bool]
+#             } else {
+#                 stop (paste(paste("'", x2nm, "'", sep = ''), "is not a predictor defined in the cgam fit!"))
+#             }
+#         } else {
+#             x2id <- obs[xnms == x2nm]
+#         }
+#     }
+#     #xmat is not the one in fit
+#     #print (length(x1))
+#     #print (length(x2))
+#     #xm <- cbind(x1, x2)
+#     xm <- xmat[, c(x1id, x2id)]
+#     #print (all(xm == cbind(x1, x2)))
+#     #print (head(cbind(x1, x2)))
+#     x_grid <- ngrid
+#     y_grid <- ngrid
+#     x1g <- 0:x_grid / x_grid * .95 * (max(xm[,1]) - min(xm[,1])) + min(xm[,1]) + .025 * (max(xm[,1]) - min(xm[,1]))
+#     n1 <- length(x1g)
+#     x2g <- 0:y_grid / y_grid * .95 * (max(xm[,2]) - min(xm[,2])) + min(xm[,2]) + .025 * (max(xm[,2]) - min(xm[,2]))
+#     n2 <- length(x2g)
+#     xgmat <- matrix(nrow = n1, ncol = n2)
+#     eta0 <- object$coefs[1]
+#     thvecs <- object$etacomps
+#     #print ('thvecs')
+#     for (i2 in 1:n2) {
+#         for (i1 in 1:n1) {
+#             x1a <- max(xm[xm[,1] <= x1g[i1], 1])
+#             x1b <- min(xm[xm[,1] > x1g[i1], 1])
+#             v1a <- min(thvecs[x1id, xm[,1] == x1a])
+#             v1b <- min(thvecs[x1id, xm[,1] == x1b])
+#             alp <- (x1g[i1] - x1a) / (x1b - x1a)
+#             th1add <- (1 - alp) * v1a + alp * v1b
+#             x2a <- max(xm[xm[,2] <= x2g[i2],2])
+#             x2b <- min(xm[xm[,2] > x2g[i2],2])
+#             v2a <- min(thvecs[x2id, xm[,2] == x2a])
+#             v2b <- min(thvecs[x2id, xm[,2] == x2b])
+#             alp <- (x2g[i2] - x2a) / (x2b - x2a)
+#             th2add <- (1 - alp) * v2a + alp * v2b
+#             xgmat[i1,i2] <- eta0 + th1add + th2add
+#         }
+#     }
+#     x3_add <- 0
+#     if (knms >= 3) {
+#         x3id <- obs[-c(x1id, x2id)]
+#         kx3 <- length(x3id)
+#         for (i in 1:kx3) {
+#             x3i <- xmat[, x3id[i]]
+#             x3i_use <- max(x3i[x3i <= median(x3i)])
+#             x3i_add <- min(thvecs[x3id[i], x3i == x3i_use])
+#             x3_add <- x3_add + x3i_add
+#         }
+#     }
+#     if (surface == "eta") {
+#         xgmat <- xgmat + as.numeric(x3_add)
+#     }
+#     if (is.null(categ) & surface == "mu") {
+#         z_add <- 0
+#         if (!is.null(znms)) {
+#             kzids <- length(zid1)
+#             for (i in 1:kzids) {
+#                 pos1 <- zid1[i]; pos2 <- zid2[i]
+#                 zi <- zmat[, pos1:pos2, drop = FALSE]
+#                 zcoefsi <- zcoefs[pos1:pos2]
+#                 for (j in 1:ncol(zi)){
+#                     uzij <- unique(zi[,j])
+#                     kuzij <- length(uzij)
+#                     nmodej <- sum(zi[,j] == uzij[1])
+#                     zij_mode <- uzij[1]
+#                     for (u in 2:kuzij) {
+#                         if (sum(zi[,j] == uzij[u]) > nmodej) {
+#                             zij_mode <- uzij[u]
+#                             nmodej <- sum(zi[,j] == uzij[u])
+#                         }
+#                     }
+#                     obsuzij <- 1:length(uzij)
+#                     uzhatij <- uzij * zcoefsi[j]
+#                     zij_add <- uzhatij[obsuzij[uzij == zij_mode]]
+#                     z_add <- z_add + zij_add
+#                 }
+#             }
+#         }
+#         xgmat <- xgmat + as.numeric(x3_add) + as.numeric(z_add)
+#         #xgmat <- muhat.fun(xgmat, fml = fml)
+#         if (fml != "gaussian" & fml != "ordered") {
+#             for (i2 in 1:n2) {
+#                 for (i1 in 1:n1) {
+#                     xgmat[i1, i2] <- muhat.fun(xgmat[i1, i2], fml = fml)
+#                 }
+#             }
+#         }
+#     } else if (!is.null(categ) & surface == "mu"){
+#         xgmats <- list()
+#         mins <- NULL; maxs <- NULL
+#         obsz <- 1:kznms
+#         zid <- obsz[znms == categ]
+#         #print (class(znms[znms == categ]))
+#         pos1 <- zid1[zid]; pos2 <- zid2[zid]
+#         #print (pos1)
+#         #print (pos2)
+#         #zi <- zmat[, pos1:pos2, drop = FALSE]
+#         #z_add <- 1:nrow(zi)*0
+#         #zcoefsi <- zcoefs[pos1:pos2]
+#         #print (zcoefsi)
+#         zcoefsi = zcoefs[pos1:pos2]
+#         #include the base level
+#         zcoefsi = c(0, zcoefsi)
+#         z_add = sort(zcoefsi)
+#         kz_add <- length(z_add)
+#         #for (j in 1:ncol(zi)) {
+#         #	zij <- zi[,j]
+#         #	zijhat <- zij * zcoefsi[j]
+#         #	z_add <- z_add + zijhat
+#         #}
+#         #z_add <- unique(z_add)
+#         #kz_add <- length(z_add)
+#         #new: plot the smallest one first:
+#         #z_add <- z_add[order(z_add)]
+#         #print (z_add)
+#         for (iz in 1:kz_add) {
+#             xgmats[[iz]] <- xgmat + as.numeric(x3_add) + z_add[iz]
+#             #mins <- c(mins, min(xgmats[[iz]]))
+#             #maxs <- c(maxs, max(xgmats[[iz]]))
+#             if (fml != "gaussian" & fml != "ordered") {
+#                 for (i2 in 1:n2) {
+#                     for (i1 in 1:n1) {
+#                         xgmats[[iz]][i1, i2] <- muhat.fun(xgmats[[iz]][i1, i2], fml = fml)
+#                     }
+#                 }
+#             }
+#             #xgmat[[iz]] <- muhat.fun(xgmat[[iz]], fml = fml)
+#             mins <- c(mins, min(xgmats[[iz]]))
+#             maxs <- c(maxs, max(xgmats[[iz]]))
+#         }
+#     }
+#     if (is.null(xlab)) {
+#         #xlab = deparse(x1nm)
+#         xlab <- x1nm
+#     }
+#     if (is.null(ylab)) {
+#         #ylab = deparse(x2nm)
+#         ylab <- x2nm
+#     }
+#     if (is.null(zlab)) {
+#         if (surface == "mu") {
+#             if (fml == "binomial") {
+#                 zlab <- paste("Pr(", ynm, ")")
+#             } else if (fml == "poisson" | fml == "gaussian" | fml == "Gamma") {
+#                 zlab <- paste("Est mean of", ynm)
+#             }
+#         }
+#         if (surface == "eta") {
+#             if (fml == "binomial") {
+#                 zlab <- paste("Est log odds ratio of", ynm)
+#             }  else if (fml == "poisson" | fml == "Gamma") {
+#                 zlab <- paste("Est log mean of", ynm)
+#             } else if (fml == "gaussian") {
+#                 zlab <- paste("Est mean of", ynm)
+#             }
+#         }
+#     }
+#     #if (is.null(zlim)) {
+#     #	zlim <- range(xgmat, na.rm = TRUE)
+#     #}
+#     palette <- c("peachpuff", "lightblue", "limegreen", "grey", "wheat", "yellowgreen", "seagreen1", "palegreen", "azure", "whitesmoke")
+#     if (!is.null(categ) & surface == "mu") {
+#         #palette = c("peachpuff", "lightblue", "grey", "wheat", "yellowgreen", "plum", "limegreen", "paleturqoise", "azure", "whitesmoke")
+#         kxgm <- length(xgmats)
+#         if (is.null(col)) {
+#             #if (kxgm == 2) {
+#             #	col = c("peachpuff", "lightblue")
+#             #} else if (kxgm == 3) {
+#             #	col = c("peachpuff", "lightblue", "grey")
+#             #} else if (kxgm > 3 & kxgm < 11) {
+#             #	col = sample(palette, replace = FALSE)
+#             if (random) {
+#                 col <- topo.colors(kxgm)
+#                 #col <- sample(palette, size = kxgm, replace = FALSE)
+#                 #print (col)
+#             } else {
+#                 #print (kxgm)
+#                 if (kxgm > 1 & kxgm < 11) {
+#                     col <- palette[1:kxgm]
+#                 } else {
+#                     #integ <- floor(kxgm / 10)
+#                     #rem <- kxgm %% 10
+#                     #kint <- length(integ)
+#                     #col = character(length = kxgm)
+#                     #print (col)
+#                     #col <- NULL
+#                     #for (i in 1:kint) {
+#                     #print (col[1 + (i - 1) * 10: i * 10])
+#                     #print (palette)
+#                     #col[1 + (i - 1) * 10: i * 10] = palette
+#                     #	col <- c(col, palette)
+#                     #}
+#                     #print (col)
+#                     #col[(kint * 10 + 1):kxgm] = palette[(kint * 10 + 1):kxgm]
+#                     #col <- c(col, palette[1:rem])
+#                     #print ((kint * 10 + 1):kxgm)
+#                     #print (col)
+#                     #print (integ)
+#                     #new: use rainbow
+#                     col <- topo.colors(kxgm)
+#                 }
+#             }
+#         } else {
+#             col0 <- col
+#             if (col0 == "heat" | col0 == "topo" | col0 == "terrain" | col0 == "cm") {
+#                 #col0 <- col
+#                 ncol <- 100
+#                 facets <- facetcols <- list()
+#                 col <- list()
+#                 for (i in 1:kxgm) {
+#                     nr <- nrow(xgmats[[i]])
+#                     nc <- ncol(xgmats[[i]])
+#                     facets[[i]] <- (xgmats[[i]])[-1,-1] + (xgmats[[i]])[-1,-nc] + (xgmats[[i]])[-nr,-1] + (xgmats[[i]])[-nr,-nc]
+#                     facetcols[[i]] <- cut(facets[[i]], ncol)
+#                     #print (head(facetcols[[i]]))
+#                     if (col0 == "heat") {
+#                         col[[i]] <- (heat.colors(ncol))[facetcols[[i]]]
+#                         #print (head(col[[i]]))
+#                     } else if (col0 == "topo") {
+#                         col[[i]] <- (topo.colors(ncol))[facetcols[[i]]]
+#                     } else if (col0 == "terrain") {
+#                         col[[i]] <- (terrain.colors(ncol))[facetcols[[i]]]
+#                     } else {
+#                         col[[i]] <- (cm.colors(ncol))[facetcols[[i]]]
+#                     }
+#                 }
+#             } else if (length(col0) < kxgm) {
+#                 rem <- kxgm - length(col0)
+#                 nrem <- length(rem)
+#                 rem_col <- palette[1:nrem]
+#                 col <- c(col0, rem_col)
+#                 #new:
+#                 #nr <- nrow(xgmat)
+#                 #nc <- ncol(xgmat)
+#                 #ncol <- 100
+#                 #facet <- xgmat[-1,-1] + xgmat[-1,-nc] + xgmat[-nr,-1] + xgmat[-nr,-nc]
+#                 #facetcol <- cut[facet, ncol]
+#                 #col <- topo.colors[facetcol]
+#                 
+#             } else if (length(col0) > kxgm) {
+#                 col <- col0[1:kxgm]
+#                 #print (paste("The first", kxgm, "colors are used!"))
+#             }
+#             if (random) {
+#                 print ("User defined colors are used!")
+#             }
+#         }
+#         #print (col[[1]][1:10])
+#         #print (kxgm)
+#         #new: set th for decr or incr
+#         decrs = shapes[c(x1id, x2id)] %in% c(2, 6, 8, 10, 15, 16)
+#         incrs = shapes[c(x1id, x2id)] %in% c(1, 5, 7, 9, 13, 14)
+#         if (is.null(th) | !is.numeric(th)) {
+#             ang = NULL
+#             if (incrs[1] & incrs[2]) {
+#                 if (is.null(ang)) {
+#                     ang = -40
+#                 }
+#             } else if (decrs[1] & incrs[2]) {
+#                 if (is.null(ang)) {
+#                     ang = 40
+#                 }
+#             } else if (incrs[1] & decrs[2]) {
+#                 if (is.null(ang)) {
+#                     ang = 240
+#                 }
+#             } else if (decrs[1] & decrs[2]) {
+#                 if (is.null(ang)) {
+#                     ang = 140
+#                 }
+#             } else {ang = -37}
+#         } else {ang = th}
+#         if (is.null(ltheta) | !is.numeric(ltheta)) {
+#             ltheta <- -135
+#         }
+#         #print (col[[1]][1:10])
+#         for (i in 1:kxgm) {
+#             #print (col[i])
+#             #i = 1
+#             #print (i)
+#             #print (length(col))
+#             xgmat <- xgmats[[i]]
+#             #if (is.null(th) | !is.numeric(th)) {
+#             #	th <- -40
+#             #}
+#             #if (is.null(ltheta) | !is.numeric(ltheta)) {
+#             #	ltheta <- -135
+#             #}
+#             #persp(x1g, x2g, xgmat, xlim = xlim, ylim = ylim, theta = th)
+#             #new: avoid thick labs
+#             box = TRUE
+#             axes = TRUE
+#             if (i > 1) {
+#                 xlab = ylab = zlab = " "
+#                 box = FALSE
+#                 axes = FALSE
+#             }
+#             #print (length(col))
+#             if (is.list(col)) {
+#                 coli = unlist(col[[i]])
+#                 #print (head(coli))
+#             } else {coli = col[i]}
+#             #print (head(coli))
+#             #print (head(xgmat[[i]]))
+#             #print (head(col[[1]]))
+#             if (is.null(zlim)) {
+#                 lwr = min(mins)
+#                 upp = max(maxs)
+#                 zlim0 = c(lwr - (upp-lwr)/3, upp + (upp-lwr)/3)
+#             } else {
+#                 zlim0 = zlim
+#             }
+#             persp(x1g, x2g, xgmat, xlim = xlim, ylim = ylim, zlim = zlim0, xlab = xlab, ylab = ylab, zlab = zlab, col = coli, main = main, theta = ang, ltheta = ltheta, ticktype = ticktype, box = box, axes = axes,...)
+#             par(new = TRUE)
+#         }
+#         par(new = FALSE)
+#     } else {
+#         if (is.null(col)) {
+#             if (random) {
+#                 col <- sample(palette, size = 1, replace = FALSE)
+#             } else {
+#                 #col <- "white"
+#                 #col <- color[facetcol]
+#                 nr <- nrow(xgmat)
+#                 nc <- ncol(xgmat)
+#                 ncol <- 100
+#                 facet <- xgmat[-1,-1] + xgmat[-1,-nc] + xgmat[-nr,-1] + xgmat[-nr,-nc]
+#                 #print (facet)
+#                 facetcol <- cut(facet, ncol)
+#                 col <- heat.colors(ncol)[facetcol]
+#             }
+#         } else {
+#             #if (length(col) > 1) {
+#             #	col <- col[1]
+#             #	print ("The first color is used!")
+#             #	col <- heat.colors(x_grid*y_grid)
+#             #}
+#             if (col == "heat" | col == "topo" | col == "terrain" | col == "cm") {
+#                 nr <- nrow(xgmat)
+#                 nc <- ncol(xgmat)
+#                 ncol <- 100
+#                 facet <- xgmat[-1,-1] + xgmat[-1,-nc] + xgmat[-nr,-1] + xgmat[-nr,-nc]
+#                 facetcol <- cut(facet, ncol)
+#                 if (col == "heat") {
+#                     col <- heat.colors(ncol)[facetcol]
+#                 } else if (col == "topo") {
+#                     col <- topo.colors(ncol)[facetcol]
+#                 } else if (col == "terrain") {
+#                     col <- terrain.colors(ncol)[facetcol]
+#                 } else {
+#                     col <- cm.colors(ncol)[facetcol]
+#                 }
+#             } 
+#             if (random) {
+#                 print ("User defined color is used!")
+#             } 
+#         }
+#         #if (is.null(th) | !is.numeric(th)) {
+#         #	th <- -40
+#         #}
+#         #if (is.null(ltheta) | !is.numeric(ltheta)) {
+#         #	ltheta <- -135
+#         #}
+#         #new: set th for decr or incr
+#         decrs = shapes[c(x1id, x2id)] %in% c(2, 6, 8, 10, 15, 16)
+#         incrs = shapes[c(x1id, x2id)] %in% c(1, 5, 7, 9, 13, 14)
+#         if (is.null(th) | !is.numeric(th)) {
+#             ang = NULL
+#             if (incrs[1] & incrs[2]) {
+#                 if (is.null(ang)) {
+#                     ang = -40
+#                 }
+#             } else if (decrs[1] & incrs[2]) { 
+#                 if (is.null(ang)) {
+#                     ang = 40
+#                 }
+#             } else if (incrs[1] & decrs[2]) {
+#                 if (is.null(ang)) {
+#                     ang = 240
+#                 }
+#             } else if (decrs[1] & decrs[2]) {
+#                 if (is.null(ang)) {
+#                     ang = 140
+#                 }
+#             } else {ang = -37}
+#         } else {ang = th}
+#         if (is.null(ltheta) | !is.numeric(ltheta)) {
+#             ltheta <- -135
+#         }
+#         if (is.null(zlim)) {
+#             lwr = min(xgmat)
+#             upp = max(xgmat)
+#             zlim0 = c(lwr - (upp-lwr)/3, upp + (upp-lwr)/3)
+#         } else {
+#             zlim0 = zlim
+#         }
+#         persp(x1g, x2g, xgmat, xlim = xlim, ylim = ylim, zlim = zlim0, xlab = xlab, ylab = ylab, zlab = zlab, col = col, main = main, theta = ang, ltheta = ltheta, ticktype = ticktype,...)
+#         rslt = list(zlim = zlim0, xlab = xlab, ylab = ylab, zlab = zlab, theta = ang, ltheta = ltheta, col = col, cex.axis = .75, main = main, ticktype = ticktype, z_add = z_add, x3_add = x3_add)
+#         invisible(rslt)
+#     }
+#     #print (col)
+# }
 
 #############################################################
 #apply plotpersp on a predict.cgam or predict.cgamm object

@@ -11,7 +11,6 @@ bibentry(bibtype = "Article",
   volume       = "89",
   number       = "5",
   pages        = "1--24",
-  doi          = "10.18637/jss.v089.i05",
 
   header       = "To cite cgam in publications use:"
 )

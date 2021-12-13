@@ -33,3 +33,6 @@
 
 1.16
 * Add plotpersp in cgamm.R 
+
+1.17
+* Change plotpersp to have methods for cgamm and csvy

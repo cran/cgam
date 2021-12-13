@@ -15,16 +15,16 @@ This routine is an extension of the generic R graphics routine persp. See the do
 }
 
 \usage{
-plotpersp(object, x1 = NULL, x2 = NULL,...)
+  plotpersp(object,...)
 }
 
 \arguments{
   \item{object}{An object of the cgam class with at least two non-parametrically modelled predictors.}
-    \item{x1}{A non-parametrically modelled predictor in a cgam fit. If the user omits x1 and x2, then the first two non-parametric predictors in a cgam formula will be used.}
-  \item{x2}{A non-parametrically modelled predictor in a cgam fit. If the user omits x1 and x2, then the first two non-parametric predictors in a cgam formula will be used.}
 \item{...}{
 Arguments to be passed to the S3 method for the cgam class:
 \itemize{
+    \item{x1}{A non-parametrically modelled predictor in a cgam fit. If the user omits x1 and x2, then the first two non-parametric predictors in a cgam formula will be used.}
+  \item{x2}{A non-parametrically modelled predictor in a cgam fit. If the user omits x1 and x2, then the first two non-parametric predictors in a cgam formula will be used.}
   \item{x1nm: }{Character name of x1.}
   \item{x2nm: }{Character name of x2.}
   \item{data: }{The data frame based on which the user get a cgam fit.}
@@ -50,8 +50,6 @@ Arguments to be passed to the S3 method for the cgam class:
 }
 
 \value{The routine plotpersp returns a 3D plot of an object of the cgam class. The \eqn{x} lab and \eqn{y} lab represent a set of non-parametrically modelled predictors used in a cgam formula, and the \eqn{z} lab represents the estimated mean value or the estimated systematic component value.}
-
-\references{The official documentation for the generic R routine persp: \url{http://stat.ethz.ch/R-manual/R-patched/library/graphics/html/persp.html}}
 
 \author{
  Mary C. Meyer and Xiyue Liao

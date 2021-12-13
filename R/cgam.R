@@ -4765,72 +4765,80 @@ makedelta_tri = function(x1, x2, m1 = 0, m2 = 0, k1 = NULL, k2 = NULL, trimat = 
 ###########################################
 #create a 3D plot for a cgam or wps object#
 ###########################################
-plotpersp <- function(object, x1 = NULL, x2 = NULL,...) {
-    x1nm <- deparse(substitute(x1))
-    x2nm <- deparse(substitute(x2))
-    if (inherits(object, "cgamp")) {
-        xnms_add <- object$object$xnms_add
-    } else {
-        xnms_add <- object$xnms_add
-    }
-    if (inherits(object, "wpsp")) {
-        xnms_wp <- object$object$xnms_wp
-    } else {
-        xnms_wp <- object$xnms_wp
-    }
-    if (inherits(object, "trisplp")) {
-        xnms_tri <- object$object$xnms_tri
-    } else {
-        xnms_tri <- object$xnms_tri
-    }
-    is_add <- all(c(any(grepl(x1nm, xnms_add, fixed = TRUE)), any(grepl(x2nm, xnms_add, fixed = TRUE))))
-    #print (is_add)
-    is_wps <- all(c(any(grepl(x1nm, xnms_wp, fixed = TRUE)), any(grepl(x2nm, xnms_wp, fixed = TRUE))))
-    #print (is_wps)
-    is_tri <- all(c(any(grepl(x1nm, xnms_tri, fixed = TRUE)), any(grepl(x2nm, xnms_tri, fixed = TRUE))))
-    #print (is_tri)
-    if (missing(x1) | missing(x2)) {
-        UseMethod("plotpersp")
-    } else {
-        cs = class(object)
-        if (length(cs) == 1 & is.null(x1nm) & is.null(x2nm)) {
-            UseMethod("plotpersp")
-        } else {
-            if (is_wps) {
-                #print (x1)
-                #print (x2nm)
-                if (inherits(object, "wpsp")) {
-                    #print (x1nm)
-                    #print (x2nm)
-                    #print (head(x1))
-                    plotpersp.wpsp(object, x1, x2, x1nm, x2nm,...)
-                } else {
-                    plotpersp.wps(object, x1, x2, x1nm, x2nm,...)
-                }
-            } else if (is_add) {
-                if (inherits(object, "cgamp")){
-                    plotpersp.cgamp(object, x1, x2, x1nm, x2nm,...)
-                } else {
-                    plotpersp.cgam(object, x1, x2, x1nm, x2nm,...)
-                }
-            } else if (is_tri) {
-                if (inherits(object, "trisplp")) {
-                    plotpersp.trisplp(object, x1, x2, x1nm, x2nm,...)
-                } else {
-                    plotpersp.trispl(object, x1, x2, x1nm, x2nm,...)
-                }
-            } else {
-                stop ("Nonparametric components must be from the same class!")
-            }
-        }
-    }
+plotpersp <- function(object,...) {
+  UseMethod("plotpersp", object)
 }
+# plotpersp <- function(object, x1 = NULL, x2 = NULL,...) {
+#     x1nm <- deparse(substitute(x1))
+#     x2nm <- deparse(substitute(x2))
+#     if (inherits(object, "cgamp")) {
+#         xnms_add <- object$object$xnms_add
+#     } else {
+#         xnms_add <- object$xnms_add
+#     }
+#     if (inherits(object, "wpsp")) {
+#         xnms_wp <- object$object$xnms_wp
+#     } else {
+#         xnms_wp <- object$xnms_wp
+#     }
+#     if (inherits(object, "trisplp")) {
+#         xnms_tri <- object$object$xnms_tri
+#     } else {
+#         xnms_tri <- object$xnms_tri
+#     }
+#     is_add <- all(c(any(grepl(x1nm, xnms_add, fixed = TRUE)), any(grepl(x2nm, xnms_add, fixed = TRUE))))
+#     #print (is_add)
+#     is_wps <- all(c(any(grepl(x1nm, xnms_wp, fixed = TRUE)), any(grepl(x2nm, xnms_wp, fixed = TRUE))))
+#     #print (is_wps)
+#     is_tri <- all(c(any(grepl(x1nm, xnms_tri, fixed = TRUE)), any(grepl(x2nm, xnms_tri, fixed = TRUE))))
+#     #print (is_tri)
+#     if (missing(x1) | missing(x2)) {
+#         UseMethod("plotpersp")
+#     } else {
+#         cs = class(object)
+#         if (length(cs) == 1 & is.null(x1nm) & is.null(x2nm)) {
+#             UseMethod("plotpersp")
+#         } else {
+#             if (is_wps) {
+#                 #print (x1)
+#                 #print (x2nm)
+#                 if (inherits(object, "wpsp")) {
+#                     #print (x1nm)
+#                     #print (x2nm)
+#                     #print (head(x1))
+#                     plotpersp.wpsp(object, x1, x2, x1nm, x2nm,...)
+#                 } else {
+#                     plotpersp.wps(object, x1, x2, x1nm, x2nm,...)
+#                 }
+#             } else if (is_add) {
+#                 if (inherits(object, "cgamp")){
+#                     plotpersp.cgamp(object, x1, x2, x1nm, x2nm,...)
+#                 } else {
+#                     plotpersp.cgam(object, x1, x2, x1nm, x2nm,...)
+#                 }
+#             } else if (is_tri) {
+#                 if (inherits(object, "trisplp")) {
+#                     plotpersp.trisplp(object, x1, x2, x1nm, x2nm,...)
+#                 } else {
+#                     plotpersp.trispl(object, x1, x2, x1nm, x2nm,...)
+#                 }
+#             } else {
+#                 stop ("Nonparametric components must be from the same class!")
+#             }
+#         }
+#     }
+# }
 
 
 ################
 #plotpersp.cgam#
 ################ 
-plotpersp.cgam <- function(object, x1 = NULL, x2 = NULL, x1nm = NULL, x2nm = NULL, data = NULL, surface = "mu", categ = NULL, col = NULL, random = FALSE, ngrid = 12, xlim = range(x1), ylim = range(x2), zlim = NULL, xlab = NULL, ylab = NULL, zlab = NULL, th = NULL, ltheta = NULL, main = NULL, ticktype = "simple",...) {
+plotpersp.cgam <- function(object, x1 = NULL, x2 = NULL, x1nm = NULL, x2nm = NULL, 
+                           data = NULL, surface = "mu", categ = NULL, 
+                           col = NULL, random = FALSE, ngrid = 12, 
+                           xlim = range(x1), ylim = range(x2), zlim = NULL, 
+                           xlab = NULL, ylab = NULL, zlab = NULL, th = NULL, 
+                           ltheta = NULL, main = NULL, ticktype = "simple",...) {
 	#if (class(object) == "list") {
 	#	object <- object[[1]]
 	#}
@@ -5420,7 +5428,10 @@ if (fml != "ordered" & all(class(object) != "trispl")) {
 #############################################################
 #apply plotpersp on a predict.cgam or predict.cgamm object
 #############################################################
-plotpersp.cgamp = function(object, x1=NULL, x2=NULL, x1nm=NULL, x2nm=NULL, data=NULL, up = TRUE, main=NULL, cex.main=.8, xlab = NULL, ylab = NULL, zlab = NULL, zlim = NULL, th = NULL, ltheta = NULL, ticktype = "detailed",...) {
+plotpersp.cgamp = function(object, x1=NULL, x2=NULL, x1nm=NULL, x2nm=NULL, 
+                           data=NULL, up = TRUE, main=NULL, cex.main=.8, 
+                           xlab = NULL, ylab = NULL, zlab = NULL, zlim = NULL,
+                           th = NULL, ltheta = NULL, ticktype = "detailed",...) {
     #obj is prediction for cgam or cgamm
     if (!inherits(object, "cgamp")) {
         warning("calling plotpersp(<fake-cgam-prediction-object>) ...")
@@ -5614,7 +5625,12 @@ plotpersp.cgamp = function(object, x1=NULL, x2=NULL, x1nm=NULL, x2nm=NULL, data=
 #################
 #plotpersp.wps#
 ################
-plotpersp.wps = function(object, x1 = NULL, x2 = NULL, x1nm = NULL, x2nm = NULL, data = NULL, surface = "C", categ = NULL, col = NULL, random = FALSE, xlim = range(x1), ylim = range(x2), zlim = NULL, xlab = NULL, ylab = NULL, zlab = NULL, th = NULL, ltheta = NULL, main = NULL, ticktype = "simple",...) {
+plotpersp.wps = function(object, x1 = NULL, x2 = NULL, x1nm = NULL,
+                         x2nm = NULL, data = NULL, surface = "C", 
+                         categ = NULL, col = NULL, random = FALSE, 
+                         xlim = range(x1), ylim = range(x2), zlim = NULL, 
+                         xlab = NULL, ylab = NULL, zlab = NULL, th = NULL, 
+                         ltheta = NULL, main = NULL, ticktype = "simple",...) {
   #print ('wps')
   if (!inherits(object, "wps")) {
     warning("calling plotpersp(<fake-wps-object>) ...")
@@ -6244,7 +6260,10 @@ plotpersp.wps = function(object, x1 = NULL, x2 = NULL, x1nm = NULL, x2nm = NULL,
 #plotpersp for a predict.wps object
 #check the zlim when there's a smooth additive component more
 ###############################################################
-plotpersp.wpsp = function(object, x1=NULL, x2=NULL, x1nm=NULL, x2nm=NULL, data=NULL, up = TRUE, main=NULL, cex.main=.8, xlab = NULL, ylab = NULL, zlab = NULL, th = NULL, ltheta = NULL, ticktype = "simple",...) {
+plotpersp.wpsp = function(object, x1=NULL, x2=NULL, x1nm=NULL, x2nm=NULL, 
+                          data=NULL, up = TRUE, main=NULL, cex.main=.8, xlab = NULL, 
+                          ylab = NULL, zlab = NULL, th = NULL, ltheta = NULL, 
+                          ticktype = "simple",...) {
   #obj is prediction for wps
   if (!inherits(object, "wpsp")) {
     warning("calling plotpersp(<fake-wpsp-object>) ...")
@@ -11480,7 +11499,12 @@ s.conc.conc <- function(x1, x2, numknots = c(0, 0), knots = list(k1 = 0, k2 = 0)
 #################
 #plotpersp.tri#
 ################
-plotpersp.trispl = function(object, x1 = NULL, x2 = NULL, x1nm = NULL, x2nm = NULL, data = NULL, surface = "C", categ = NULL, col = NULL, random = FALSE, ngrid = 12, xlim = range(x1), ylim = range(x2), zlim = NULL, xlab = NULL, ylab = NULL, zlab = NULL, th = NULL, ltheta = NULL, main = NULL, ticktype = "simple",...) {
+plotpersp.trispl = function(object, x1 = NULL, x2 = NULL, x1nm = NULL, x2nm = NULL,
+                            data = NULL, surface = "C", categ = NULL, col = NULL,
+                            random = FALSE, ngrid = 12, xlim = range(x1), 
+                            ylim = range(x2), zlim = NULL, xlab = NULL, 
+                            ylab = NULL, zlab = NULL, th = NULL, ltheta = NULL, 
+                            main = NULL, ticktype = "simple",...) {
     if (!inherits(object, "trispl")) {
         warning("calling plotpersp(<fake-trisp-object>) ...")
     }

@@ -124,7 +124,7 @@ See references cited in this section and the official manual (\url{https://cran.
   \item{resid_df_obs}{The observed degree of freedom for the residuals of a cgam fit.}
   \item{null_deviance}{The deviance for the null model of a cgam fit, i.e., the model only containing a constant vector.}
   \item{deviance}{The residual deviance of a cgam fit.}
-  \item{tms}{The terms objects extracted by the generic function \emph{terms} from a cgam fit. See the official help page (\url{http://stat.ethz.ch/R-manual/R-patched/library/stats/html/terms.html}) of the \emph{terms} function for more details.}
+  \item{tms}{The terms objects extracted by the generic function \emph{terms} from a cgam fit.}
   \item{capm}{The number of edges corresponding to the shape-restricted predictors.}
   \item{capms}{The number of edges corresponding to the smooth predictors with no shape constraint.}
   \item{capk}{The number of non-constant columns of zmat.}
