@@ -1,7 +1,7 @@
 1.6
 
-* S3 methods predict.cgam is registered in 'NAMESPACE' 
- 
+* S3 methods predict.cgam is registered in 'NAMESPACE'
+
 1.8
 
 * Add p-value for each non-parametrically modeled component
@@ -18,7 +18,7 @@
 * Add p-value for categorical predictors
 
 1.11
-* Add cgamm 
+* Add cgamm
 * Add monotonic variance estimation
 
 1.12
@@ -29,10 +29,19 @@
 * Stop initializing a vector for possible faces, which may cause memory leakage
 
 1.15
-* Add prediction for warped plane fit with visualization 
+* Add prediction for warped plane fit with visualization
 
 1.16
-* Add plotpersp in cgamm.R 
+* Add plotpersp in cgamm.R
 
 1.17
 * Change plotpersp to have methods for cgamm and csvy
+
+1.18
+* Add family = binomial in cgamm
+* Update predict.cgam and predict.cgamm by using family$linkinv to get mu
+* Revise cgam.pv argument: weights = wtkeep
+* Revise xcoefs in cgamm
+* Add ,... in persp functions
+* Add ,... in cgamm for cgamm.control
+* Change the following names to be consistent with csurvey: null_deviance = null.deviance, null_df = df.null, resid_df_obs = df.residual

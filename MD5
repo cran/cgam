@@ -1,8 +1,8 @@
-81f5f4d2f1083c5fb6edc11debeadf76 *ChangeLog
-5a4d7b9e45e78e9685dd2d5db81715d6 *DESCRIPTION
-7f76eafae7c2d8334629ff7184c91c9c *NAMESPACE
-337cbea3e264eb97e3ae8c53cb4ddce1 *R/cgam.R
-18e4cc2e0f4ca70846bcf715cda3db20 *R/cgamm.R
+9bb459a97f2080d5ff30c2d0fafeb715 *ChangeLog
+04cf143c2dce07b1b0bf01c476a93f6a *DESCRIPTION
+b22c32c368f3de8c9211f433632a1576 *NAMESPACE
+0b4437760bbb0144099ce62c88e6df1d *R/cgam.R
+e8b99aee3ca34873fb4442bde818c068 *R/cgamm.R
 30371bbfb1b09c61689e34133389c96b *data/COforest.rda
 a0db33d4a416d9f938daadefe0e246d8 *data/cubic.rda
 38989ead0193c484041448d86a606c2e *data/mental.rda
@@ -12,8 +12,8 @@ d9f2ee13227a283ca8900777e6d62afe *man/COforest.Rd
 883e5898cac424e9164fe2ce815d579c *man/Ord.Rd
 87ca4718d9883f4f4e95d9e64b563014 *man/ShapeSelect.Rd
 defec4599769cfb4e78ccc7abb8175e8 *man/best.fit.Rd
-4a0049c3bc4a382f16763d3c3e957f44 *man/cgam.Rd
-546408cc1a0d317a5bf1beb8e059ec9b *man/cgamm.Rd
+23466cf1305a0a4443ee5cd99dd21f8d *man/cgam.Rd
+73df145cc7ae4cde4b5ccf98f4886428 *man/cgamm.Rd
 02dfead6a50ea3d987075cdfc314332d *man/conc.Rd
 49444d5af949917f6772fa3025d26e0c *man/conv.Rd
 6c2f09d25de34e3aeee15a6970ef91fe *man/cubic.Rd

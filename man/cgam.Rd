@@ -48,7 +48,7 @@
   The number of simulations used to get the cic parameter. The default is nsim = 100. 
 }
   \item{family}{
-  A parameter indicating the error distribution and link function to be used in the model. It can be a character string naming a family function or the result of a call to a family function. This is borrowed from the glm routine in the stats package. There are three families used in cgam: gaussian, binomial, poisson, and Gamma. Note that if family = Ord is specified, a proportional odds regression model with shape constraints is fitted. This is under development. 
+  A parameter indicating the error distribution and link function to be used in the model. It can be a character string naming a family function or the result of a call to a family function. This is borrowed from the glm routine in the stats package. There are four families used in csvy: Gaussian, binomial, poisson, and Gamma.  Note that if family = Ord is specified, a proportional odds regression model with shape constraints is fitted. This is under development. 
 }
 
   \item{cpar}{A multiplier to estimate the model variance, which is defined as \eqn{\sigma^2 = SSR / (n - cpar * edf)}. SSR is the sum of squared residuals for the full model and edf is the effective degrees of freedom. The default is cpar = 1.2. The user-defined value must be between 1 and 2. See Meyer, M. C. and M. Woodroofe (2000) for more details.}

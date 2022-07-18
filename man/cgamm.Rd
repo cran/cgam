@@ -16,7 +16,7 @@ sc_x = FALSE, sc_y = FALSE, bisect = TRUE, reml = TRUE)
 \arguments{
   \item{formula}{A formula object which gives a symbolic description of the model to be fitted. It has the form "response ~ predictor + (1|id)", where id is the label for a group effect. For now, only gaussian responses are considered and this routine only includes a random-intercept effect. See \code{\link{cgam}} for more details.}
   \item{nsim}{The number of simulations used to get the cic parameter. The default is nsim = 0.}
-  \item{family}{A parameter indicating the error distribution and link function to be used in the model. For now, the only option is family = gaussian().}
+  \item{family}{A parameter indicating the error distribution and link function to be used in the model. For now, the options are family = gaussian() and family = binomial().}
   \item{cpar}{A multiplier to estimate the model variance, which is defined as \eqn{\sigma^2 = SSR / (n - cpar * edf)}. SSR is the sum of squared residuals for the full model and edf is the effective degrees of freedom. The default is cpar = 1.2. The user-defined value must be between 1 and 2. See Meyer, M. C. and M. Woodroofe (2000) for more details.}
   \item{data}{An optional data frame, list or environment containing the variables in the model. The default is data = NULL.}
   \item{weights}{An optional non-negative vector of "replicate weights" which has the same length as the response vector. If weights are not given, all weights are taken to equal 1. The default is weights = NULL.}
@@ -26,11 +26,6 @@ sc_x = FALSE, sc_y = FALSE, bisect = TRUE, reml = TRUE)
   \item{reml}{If reml = TRUE, restricted maximum likelihood (REML) method will be used to find estimates instead of maximum likelihood estimation (MLE).} 
 }
  
-\details{
-	TBA; include the model formulation.
-}
-
-
 \value{
   \item{muhat}{The fitted fixed-effect term.}
   \item{ahat}{A vector of estimated random-effect terms.}
@@ -46,7 +41,7 @@ sc_x = FALSE, sc_y = FALSE, bisect = TRUE, reml = TRUE)
 }
 
 \examples{
-# Example 1.
+# Example 1 (family = gaussian). 
 
 # simulate a balanced data set with 30 clusters 
 # each cluster has 30 data points	
@@ -80,13 +75,49 @@ sc_x = FALSE, sc_y = FALSE, bisect = TRUE, reml = TRUE)
 
 # use REML method to fit the model
 	ans <- cgamm(y ~ s.incr(x) + (1|group), reml=TRUE)	
-	muhat <- ans$muhat
+	summary(ans)
+	anova(ans)
 	
+	muhat <- ans$muhat
 	plot(x, y, col = group, cex = .6)
 	lines(sort(x), mu[order(x)], lwd = 2)
 	lines(sort(x), muhat[order(x)], col = 2, lty = 2, lwd = 2)	
 	legend("topleft", bty = "n", c("true fixed-effect term", "cgamm fit"), 
 	col = c(1, 2), lty = c(1, 2), lwd = c(2, 2))	
+	
+# Example 2 (family = binomial). 
+# simulate a balanced data set with 20 clusters 
+# each cluster has 20 data points	
+
+  n <- 20 
+  m <- 20#
+  N <- n*m
+  
+  # siga is the sd for the random intercept
+  siga <- 1
+
+# generate a group factor
+  group <- trunc(0:((m*n)-1)/n)+1
+  group <- factor(group)
+  
+# generate the random-intercept term asscosiated with each group
+  avals <- rnorm(m,0,siga)
+  
+# generate the fixed-effect mean term: mu, systematic term: eta and the response: y
+  x <- runif(m*n)
+  mu <- 1:(m*n)
+  y <- 1:(m*n)
+
+  eta <- 2 * (1 + tanh(7 * (x - .8))) - 2 
+  eta0 <- eta 
+  for(i in 1:m){eta[group == i] <- eta[group == i] + avals[i]}
+  for(i in 1:m){mu[group == i] <- 1 - 1 / (1 + exp(eta[group == i]))}
+  for(i in 1:m){y[group == i] <- rbinom(n, size = 1, prob = mu[group == i])}
+  dat <- data.frame(x = x, y = y, group = group)
+  ansc <- cgamm(y ~ s.incr.conv(x) + (1|group), 
+  family = binomial(link = "logit"), reml = FALSE, data = dat)
+  summary(ansc)
+  anova(ansc)
 }
 	
 \author{Xiyue Liao}
