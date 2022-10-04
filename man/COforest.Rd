@@ -2,10 +2,10 @@
 \alias{COforest}
 \docType{data}
 \title{
-Colorado Forest Data Set 
+Colorado Forest Data Set
 }
 \description{
-This data set contains 9167 records of different species of live trees for 345 sampled forested plots measured in 2015. 
+This data set contains 9167 records of different species of live trees for 345 sampled forested plots measured in 2015.
 }
 \usage{data("COforest")}
 \format{
@@ -32,11 +32,9 @@ This data set contains 9167 records of different species of live trees for 345 s
     \item{\code{CCLCD}}{Crown class (1:open grown; 2:domimant; 3:co-dominant; 4:intermediate; 5:overtopped)}
   }
 }
-\details{
-More detailed explanation can be found in \url{https://www.fia.fs.fed.us/library/database-documentation/current/ver611/FIADB_User_Guide_P2_6-1-1_final.pdf}.
-}
+
 \references{
-X. Liao and M. Meyer (2019). Estimation and Inference in Mixed-Effect Regression Models using Shape Constraints, with Application to Tree Height Estimation. (\emph{to appear in Journal of the Royal Statistical Society. Series C: Applied Statistics})
+X. Liao and M. Meyer (2019). Estimation and Inference in Mixed-Effect Regression Models using Shape Constraints, with Application to Tree Height Estimation. (\emph{Journal of the Royal Statistical Society. Series C: Applied Statistics 69(2), 353-375.})
 }
 \source{
 It is provided by Forest Inventory Analysis (FIA) National Program.
@@ -47,10 +45,10 @@ It is provided by Forest Inventory Analysis (FIA) National Program.
   library(tidyr)
   data(COforest)
 
-  #re-grouping classes of CCLCD: 
-  #combine dominant (2) and co-dominant (3) 
+  #re-grouping classes of CCLCD:
+  #combine dominant (2) and co-dominant (3)
   #combine intermediate (4) and overtopped (5)
-  COforest = COforest %>% mutate(CCLCD = replace(CCLCD, CCLCD == 2, 3)) %>% 
+  COforest = COforest %>% mutate(CCLCD = replace(CCLCD, CCLCD == 2, 3)) %>%
     mutate(CCLCD = replace(CCLCD, CCLCD == 5, 4))
 
   #make a list of species, each element is a small data frame for one species
@@ -58,7 +56,7 @@ It is provided by Forest Inventory Analysis (FIA) National Program.
 
   #get the subset for quaking aspen, which is the 4th element in the species list
   sub = species$data[[4]]
-  #for quaking aspen, there are only two crown classes: dominant/co-dominant 
+  #for quaking aspen, there are only two crown classes: dominant/co-dominant
   #and intermediate/overtopped
   table(sub$CCLCD)
   #   3    4
@@ -93,36 +91,36 @@ It is provided by Forest Inventory Analysis (FIA) National Program.
 
   #plot fixed-effect confidence intervals
   plot(x, y, xlab='DIA (m)', ylab='HT (m)', ylim=c(min(y),max(exp(upper))+10),type='n')
-  lines(sort(x[z2==3&z1==2]), (exp(pfit$fit)[z2==3&z1==2])[order(x[z2==3&z1==2])], 
+  lines(sort(x[z2==3&z1==2]), (exp(pfit$fit)[z2==3&z1==2])[order(x[z2==3&z1==2])],
   col='slategrey', lty=1, lwd=2)
-  lines(sort(x[z2==3&z1==2]), (exp(pfit$lower)[z2==3&z1==2])[order(x[z2==3&z1==2])], 
+  lines(sort(x[z2==3&z1==2]), (exp(pfit$lower)[z2==3&z1==2])[order(x[z2==3&z1==2])],
   col='slategrey', lty=1, lwd=2)
-  lines(sort(x[z2==3&z1==2]), (exp(pfit$upper)[z2==3&z1==2])[order(x[z2==3&z1==2])], 
+  lines(sort(x[z2==3&z1==2]), (exp(pfit$upper)[z2==3&z1==2])[order(x[z2==3&z1==2])],
   col='slategrey', lty=1, lwd=2)
 
-  lines(sort(x[z2==4&z1==2]), (exp(pfit$fit)[z2==4&z1==2])[order(x[z2==4&z1==2])], 
+  lines(sort(x[z2==4&z1==2]), (exp(pfit$fit)[z2==4&z1==2])[order(x[z2==4&z1==2])],
   col="blueviolet", lty=2, lwd=2)
-  lines(sort(x[z2==4&z1==2]), (exp(pfit$lower)[z2==4&z1==2])[order(x[z2==4&z1==2])], 
+  lines(sort(x[z2==4&z1==2]), (exp(pfit$lower)[z2==4&z1==2])[order(x[z2==4&z1==2])],
   col="blueviolet", lty=2, lwd=2)
-  lines(sort(x[Cz2==4&z1==2]), (exp(pfit$upper)[Cz2==4&z1==2])[order(x[Cz2==4&z1==2])], 
+  lines(sort(x[Cz2==4&z1==2]), (exp(pfit$upper)[Cz2==4&z1==2])[order(x[Cz2==4&z1==2])],
   col="blueviolet", lty=2, lwd=2)
 
-  lines(sort(x[Cz2==3&z1==3]), (exp(pfit$fit)[Cz2==3&z1==3])[order(x[Cz2==3&z1==3])], 
+  lines(sort(x[Cz2==3&z1==3]), (exp(pfit$fit)[Cz2==3&z1==3])[order(x[Cz2==3&z1==3])],
   col=3, lty=3, lwd=2)
-  lines(sort(x[Cz2==3&z1==3]), (exp(pfit$lower)[Cz2==3&z1==3])[order(x[Cz2==3&z1==3])], 
+  lines(sort(x[Cz2==3&z1==3]), (exp(pfit$lower)[Cz2==3&z1==3])[order(x[Cz2==3&z1==3])],
   col=3, lty=3, lwd=2)
-  lines(sort(x[Cz2==3&z1==3]), (exp(pfit$upper)[Cz2==3&z1==3])[order(x[Cz2==3&z1==3])], 
+  lines(sort(x[Cz2==3&z1==3]), (exp(pfit$upper)[Cz2==3&z1==3])[order(x[Cz2==3&z1==3])],
   col=3, lty=3, lwd=2)
 
-  lines(sort(x[Cz2==4&z1==3]), (exp(pfit$fit)[Cz2==4&z1==3])[order(x[Cz2==4&z1==3])], 
+  lines(sort(x[Cz2==4&z1==3]), (exp(pfit$fit)[Cz2==4&z1==3])[order(x[Cz2==4&z1==3])],
   col=2, lty=4, lwd=2)
-  lines(sort(x[Cz2==4&z1==3]), (exp(pfit$lower)[Cz2==4&z1==3])[order(x[Cz2==4&z1==3])], 
+  lines(sort(x[Cz2==4&z1==3]), (exp(pfit$lower)[Cz2==4&z1==3])[order(x[Cz2==4&z1==3])],
   col=2, lty=4, lwd=2)
-  lines(sort(x[Cz2==4&z1==3]), (exp(pfit$upper)[Cz2==4&z1==3])[order(x[Cz2==4&z1==3])], 
+  lines(sort(x[Cz2==4&z1==3]), (exp(pfit$upper)[Cz2==4&z1==3])[order(x[Cz2==4&z1==3])],
   col=2, lty=4, lwd=2)
   legend('bottomright', bty='n', cex=.9,c('dominant/co-dominant and growing stock',
   'intermediate/overtopped and growing stock','dominant/co-dominant and rough cull',
-  'intermediate/overtopped and rough cull'), col=c('slategrey',"blueviolet",3,2), 
+  'intermediate/overtopped and rough cull'), col=c('slategrey',"blueviolet",3,2),
   lty=c(1,2,3,4),lwd=c(2,2,2,2), pch=c(24,23,22,21))
   title('Quaking Aspen fits with 95% CI', cex=1.5)
 }

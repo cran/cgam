@@ -1,8 +1,8 @@
 Package: cgam
 Type: Package
 Title: Constrained Generalized Additive Model
-Version: 1.18
-Date: 2022-07-18
+Version: 1.19
+Date: 2022-10-04
 Authors@R: c(
     person("Mary", "Meyer", email = "meyer@stat.colostate.edu", role = "aut"),
     person("Xiyue", "Liao", email = "xiyue.liao@csulb.edu", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-4508-9219")))
@@ -13,9 +13,9 @@ Depends: coneproj(>= 1.12), svDialogs (>= 0.9-57), statmod (>= 1.4.36),
 NeedsCompilation: no
 Suggests: stats, MASS, graphics, grDevices, utils, SemiPar
 ByteCompile: true
-Packaged: 2022-07-18 14:40:09 UTC; xiyueliao
+Packaged: 2022-10-04 18:43:52 UTC; 018833995
 Author: Mary Meyer [aut],
   Xiyue Liao [aut, cre] (<https://orcid.org/0000-0002-4508-9219>)
 Maintainer: Xiyue Liao <xiyue.liao@csulb.edu>
 Repository: CRAN
-Date/Publication: 2022-07-18 15:50:02 UTC
+Date/Publication: 2022-10-04 19:50:02 UTC

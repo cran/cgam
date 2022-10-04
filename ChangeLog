@@ -45,3 +45,8 @@
 * Add ,... in persp functions
 * Add ,... in cgamm for cgamm.control
 * Change the following names to be consistent with csurvey: null_deviance = null.deviance, null_df = df.null, resid_df_obs = df.residual
+
+1.19
+* Update the default value of the space paranmeter as space = "Q" instead of space = "E" in each smooth symbolic function imposing shape or order constraint
+* Update cgamm with a new paramter: nAGQ.
+

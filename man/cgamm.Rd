@@ -10,7 +10,7 @@
 
 \usage{
 cgamm(formula, nsim = 0, family = gaussian(), cpar = 1.2, data = NULL, weights = NULL,
-sc_x = FALSE, sc_y = FALSE, bisect = TRUE, reml = TRUE)
+sc_x = FALSE, sc_y = FALSE, bisect = TRUE, reml = TRUE, nAGQ = 1L)
 }
 
 \arguments{
@@ -23,9 +23,10 @@ sc_x = FALSE, sc_y = FALSE, bisect = TRUE, reml = TRUE)
   \item{sc_x}{Logical flag indicating if or not continuous predictors are normalized. The default is sc_x = FALSE.}
   \item{sc_y}{Logical flag indicating if or not the response variable is normalized. The default is sc_y = FALSE.}
   \item{bisect}{If bisect = TRUE, a 95 percent confidence interval will be found for the variance ratio parameter by a bisection method.}
-  \item{reml}{If reml = TRUE, restricted maximum likelihood (REML) method will be used to find estimates instead of maximum likelihood estimation (MLE).} 
+  \item{reml}{If reml = TRUE, restricted maximum likelihood (REML) method will be used to find estimates instead of maximum likelihood estimation (MLE).}
+  \item{nAGQ}{Integer scalar - the number of points per axis for evaluating the adaptive Gauss-Hermite approximation to the log-likelihood. Defaults to 1, corresponding to the Laplace approximation. Values greater than 1 produce greater accuracy in the evaluation of the log-likelihood at the expense of speed.}
 }
- 
+
 \value{
   \item{muhat}{The fitted fixed-effect term.}
   \item{ahat}{A vector of estimated random-effect terms.}
@@ -41,14 +42,14 @@ sc_x = FALSE, sc_y = FALSE, bisect = TRUE, reml = TRUE)
 }
 
 \examples{
-# Example 1 (family = gaussian). 
+# Example 1 (family = gaussian).
 
-# simulate a balanced data set with 30 clusters 
-# each cluster has 30 data points	
+# simulate a balanced data set with 30 clusters
+# each cluster has 30 data points
 	n <- 30
 	m <- 30
 
-# the standard deviation of between cluster error terms is 1 
+# the standard deviation of between cluster error terms is 1
 # the standard deviation of within cluster error terms is 2
 	sige <- 1
 	siga <- 2
@@ -63,63 +64,63 @@ sc_x = FALSE, sc_y = FALSE, bisect = TRUE, reml = TRUE)
 
 # generate the fixed-effect term
 	mu <- 10*exp(10*x-5)/(1+exp(10*x-5))
-	
+
 # generate the random-intercept term asscosiated with each group
 	avals <- rnorm(m, 0, siga)
 
-# generate the response 
+# generate the response
 	y <- 1:(m*n)
 	for(i in 1:m){
 		y[group == i] <- mu[group == i] + avals[i] + rnorm(n, 0, sige)
 	}
 
 # use REML method to fit the model
-	ans <- cgamm(y ~ s.incr(x) + (1|group), reml=TRUE)	
+	ans <- cgamm(y ~ s.incr(x) + (1|group), reml=TRUE)
 	summary(ans)
 	anova(ans)
-	
+
 	muhat <- ans$muhat
 	plot(x, y, col = group, cex = .6)
 	lines(sort(x), mu[order(x)], lwd = 2)
-	lines(sort(x), muhat[order(x)], col = 2, lty = 2, lwd = 2)	
-	legend("topleft", bty = "n", c("true fixed-effect term", "cgamm fit"), 
-	col = c(1, 2), lty = c(1, 2), lwd = c(2, 2))	
-	
-# Example 2 (family = binomial). 
-# simulate a balanced data set with 20 clusters 
-# each cluster has 20 data points	
+	lines(sort(x), muhat[order(x)], col = 2, lty = 2, lwd = 2)
+	legend("topleft", bty = "n", c("true fixed-effect term", "cgamm fit"),
+	col = c(1, 2), lty = c(1, 2), lwd = c(2, 2))
 
-  n <- 20 
+# Example 2 (family = binomial).
+# simulate a balanced data set with 20 clusters
+# each cluster has 20 data points
+
+  n <- 20
   m <- 20#
   N <- n*m
-  
+
   # siga is the sd for the random intercept
   siga <- 1
 
 # generate a group factor
   group <- trunc(0:((m*n)-1)/n)+1
   group <- factor(group)
-  
+
 # generate the random-intercept term asscosiated with each group
   avals <- rnorm(m,0,siga)
-  
+
 # generate the fixed-effect mean term: mu, systematic term: eta and the response: y
   x <- runif(m*n)
   mu <- 1:(m*n)
   y <- 1:(m*n)
 
-  eta <- 2 * (1 + tanh(7 * (x - .8))) - 2 
-  eta0 <- eta 
+  eta <- 2 * (1 + tanh(7 * (x - .8))) - 2
+  eta0 <- eta
   for(i in 1:m){eta[group == i] <- eta[group == i] + avals[i]}
   for(i in 1:m){mu[group == i] <- 1 - 1 / (1 + exp(eta[group == i]))}
   for(i in 1:m){y[group == i] <- rbinom(n, size = 1, prob = mu[group == i])}
   dat <- data.frame(x = x, y = y, group = group)
-  ansc <- cgamm(y ~ s.incr.conv(x) + (1|group), 
+  ansc <- cgamm(y ~ s.incr.conv(x) + (1|group),
   family = binomial(link = "logit"), reml = FALSE, data = dat)
   summary(ansc)
   anova(ansc)
 }
-	
+
 \author{Xiyue Liao}
 
 \keyword{cgamm routine}

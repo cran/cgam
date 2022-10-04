@@ -1,5 +1,5 @@
-cgamm = function(formula, nsim = 0, family = gaussian(), cpar = 1.2, data = NULL, 
-                 weights = NULL, sc_x = FALSE, sc_y = FALSE, bisect = TRUE, reml = TRUE) {
+cgamm = function(formula, nsim = 0, family = gaussian(), cpar = 1.2, data = NULL,
+                 weights = NULL, sc_x = FALSE, sc_y = FALSE, bisect = TRUE, reml = TRUE, nAGQ = 1) {
   cl <- match.call()
   mf <- match.call(expand.dots = FALSE)
   m <- match(c("formula", "data"), names(mf), 0L)
@@ -143,7 +143,7 @@ cgamm = function(formula, nsim = 0, family = gaussian(), cpar = 1.2, data = NULL
     sps0[1:length(idx_s)] <- sps[idx_s]
     ks0[1:length(idx_s)] <- ks[idx_s]
     xnms0[1:length(idx_s)] <- xnms[idx_s]
-    
+
     if (length(idx) > 0) {
       xmat0[ ,(1 + length(idx_s)):kshapes] <- xmat[ ,idx]
       shapes0[(1 + length(idx_s)):kshapes] <- shapes1[idx]
@@ -155,11 +155,12 @@ cgamm = function(formula, nsim = 0, family = gaussian(), cpar = 1.2, data = NULL
     #xmat <- xmat0; nums <- nums0; ks <- ks0; sps <- sps0; xnms <- xnms0
   }
   shapes <- c(shapes1, shapes2)
-  rslt <- cgamm.fit(y = y, xmat = xmat0, zmat = zmat, id = id, shapes = shapes0, 
-                   numknots = nums0, knots = ks0, space = sps0, nsim = nsim, family = family, 
-                   cpar = cpar, wt.iter = wt.iter, umbrella.delta = umbrella.delta, tree.delta = tree.delta, 
+  rslt <- cgamm.fit(y = y, xmat = xmat0, zmat = zmat, id = id, shapes = shapes0,
+                   numknots = nums0, knots = ks0, space = sps0, nsim = nsim, family = family,
+                   cpar = cpar, wt.iter = wt.iter, umbrella.delta = umbrella.delta, tree.delta = tree.delta,
                    weights = weights, zid = zid, zid1 = zid1, zid2 = zid2,
-                   sc_x = sc_x, sc_y = sc_y, idx_s = idx_s, idx = idx, bisect = bisect, reml = reml)
+                   sc_x = sc_x, sc_y = sc_y, idx_s = idx_s, idx = idx, bisect = bisect,
+                   reml = reml, nAGQ = nAGQ)
   rslt$id <- id
   rslt$szs <- szs
   rslt$shapes <- shapes0
@@ -208,12 +209,12 @@ cgamm = function(formula, nsim = 0, family = gaussian(), cpar = 1.2, data = NULL
 ############
 #cgamm.fit
 ############
-cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim, 
+cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim,
                     family = gaussian(), cpar = 1.2, wt.iter = FALSE,
-                    umbrella.delta = NULL, tree.delta = NULL, weights = NULL, 
+                    umbrella.delta = NULL, tree.delta = NULL, weights = NULL,
                     zid = zid, zid1 = zid1, zid2 = zid2,
-                    sc_x = FALSE, sc_y = FALSE, idx_s = NULL, idx = NULL, 
-                    bisect = FALSE, modlmer = FALSE, reml = TRUE)  {
+                    sc_x = FALSE, sc_y = FALSE, idx_s = NULL, idx = NULL,
+                    bisect = FALSE, modlmer = FALSE, reml = TRUE, nAGQ = 1)  {
   cicfamily = CicFamily(family)
   llh.fun = cicfamily$llh.fun
   #new: use log link in gamma
@@ -225,8 +226,8 @@ cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim,
   muhat.fun = cicfamily$muhat.fun
   ysim.fun = cicfamily$ysim.fun
   deriv.fun = cicfamily$deriv.fun
-  dev.fun = cicfamily$dev.fun 
-  
+  dev.fun = cicfamily$dev.fun
+
   n = length(y)
   #new for random-effect
   szs = unname(table(id))
@@ -236,7 +237,7 @@ cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim,
   balanced = FALSE
   if (length(unique(szs)) == 1) {balanced = TRUE}
   ycl = f_ecl(y, ncl, szs)
-  sm = 1e-7 
+  sm = 1e-7
   capl = length(xmat) / n
   if (capl < 1) {capl = 0}
   if (round(capl, 8) != round(capl, 1)) {stop ("Incompatible dimensions for xmat!")}
@@ -247,9 +248,11 @@ cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim,
   #new:
   if (sc_y) {
     sc = sd(y)
-    y = y / sc	
+    y = y / sc
   }
+  #zmat doesn't include 1
   capk = length(zmat) / n
+  #print (capk)
   #print (head(zmat,20))
   if (capk < 1) {capk = 0}
   if (round(capk, 8) != round(capk, 1)) {stop ("Incompatible dimensions for zmat!")}
@@ -257,7 +260,7 @@ cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim,
   capls = sum(shapes == 17)
   ####################################################
   #get basis functions for the constrained components#
-  ####################################################	
+  ####################################################
   delta = NULL
   varlist = NULL
   xid1 = NULL; xid2 = NULL; xpos2 = 0
@@ -271,7 +274,7 @@ cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim,
   if (capl > 0) {
     del1_ans = makedelta(xmat[, 1], shapes[1], numknots[1], knots[[1]], space = space[1])
     del1 = del1_ans$amat
-    knotsuse[[1]] = del1_ans$knots 
+    knotsuse[[1]] = del1_ans$knots
     mslst[[1]] = del1_ans$ms
     numknotsuse = c(numknotsuse, length(del1_ans$knots))
     m1 = length(del1) / n
@@ -326,7 +329,7 @@ cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim,
       np = 1 + capms
     } else {
       print ("error in capk, shapes!")
-    } 
+    }
     #new: capm is the number of columns of edges for constrained x's
     capm = length(delta) / n - capms
   }
@@ -338,9 +341,9 @@ cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim,
     bigmat = rbind(bigmat, tree.delta)
     capt = length(tree.delta) / n
   } else {capt = 0}
-  if (!is.null(umbrella.delta) | !is.null(tree.delta)) 
+  if (!is.null(umbrella.delta) | !is.null(tree.delta))
     delta_ut = rbind(umbrella.delta, tree.delta)
-  ########	
+  ########
   #step 0
   ########
 #gaussian fit starts
@@ -408,7 +411,7 @@ cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim,
     #sig2hat = fsig(thhat, szs, ecl, ncl, N=n, edf=edf, D=nrow(bigmat), type=type)
     #siga2hat = sig2hat * thhat
     #ahat = ebars*szs*thhat/(1+szs*thhat)
-    
+
     diff = 10
     nrep = 0
     while (diff > 1e-7 & nrep < 10) {
@@ -479,7 +482,7 @@ cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim,
       ##################
       #step 2: update muhat
       ##################
-      ytil = NULL 
+      ytil = NULL
       #gtil is edges
       gtil = NULL
       st = 1
@@ -494,7 +497,7 @@ cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim,
       }
       #print (sz)
       #print (dim(onemat))
-      #vi is Ri in the paper 
+      #vi is Ri in the paper
       vi = diag(sz) + oneMat*thhat
       covi = vi
       umat = t(chol(covi))
@@ -567,28 +570,22 @@ cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim,
         #}
       }
     }
+    #new:
+    coefskeep = bh
     df_obs = sum(abs(bh) > 0)
     #new: for cgam.pvz
     muhatkeep = muhat
     ebars = sapply(ecl, mean)
     sig2hat = fsig(thhat, szs, ecl, ncl, N=n, edf=edf, D=nrow(bigmat), type=type)
-    siga2hat = sig2hat * thhat 
+    siga2hat = sig2hat * thhat
     ahat = ebars*szs*thhat/(1+szs*thhat)
 #gaussian fit ends
   } else {
 #binomial fit starts
-    ####################################				
-    #setup gaussian hermite quadrature
-    ####################################		
-    #let the user to choose nn? nn > 5 won't be too different
-    nn = 5 #10#5#15#20
-    #out = gauss.quad.prob(nn,"normal") 
-    out = gauss.quad(nn, kind = "hermite") 
-    nodes = out$nodes
-    nwt = out$weights
-    ########################			
+#new: nAGQ = 1 (laplace approxi) or > 1 (gaussian-quadrature approx)
+    ########################
     #step 0:same as cgam
-    ########################	
+    ########################
     #revised from step2_splc_sim_binomial_random_intercept
     #xmat = t(bigmat)
     capm = nrow(delta)
@@ -608,11 +605,11 @@ cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim,
     etahat = t(bigmat) %*% coef
     muhat = family$linkinv(etahat)
     diff = 1
-    sm = 1e-4 #1e-7 will produce 0 in wt in the iteration 
-    mdiff = abs(max(muhat)-1) > sm
+    #sm = 1e-5 #1e-7 will produce 0 in wt in the iteration
+    mdiff = abs(max(muhat)-1) > 1e-6
     nrep = 0
-    
-    while (diff > sm & mdiff & nrep < 10) {
+
+    while (diff > 1e-6 & mdiff & nrep < 10) {
       oldmu = muhat
       nrep = nrep + 1
       gr = gr.fun(y, etahat, weights, fml = family$family)
@@ -628,58 +625,74 @@ cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim,
       #muhat = muhat.fun(etahat, fml = family$family)
       muhat = family$linkinv(etahat)
       diff = mean((muhat - oldmu)^2)
-      mdiff = abs(max(muhat) - 1) > sm
+      mdiff = abs(max(muhat) - 1) > 1e-6
     }
-    
+
     #ecl when family != gaussian is for etahat, not e
     ecl = f_ecl(etahat, ncl, szs)
     #avec is random-intercept vector
-    #ahat = rep(0, ncl)
+    ahat = rep(0, ncl)
     #sig is the variance of the random intercept
-    #siga = 1e-4
-    
-    #new: initialize with lmer
-    evec0 = (y-muhat) / family$variance(muhat)
-    mod.lmer0 = suppressMessages(lmer(evec0 ~ -1+(1|id), 
-            REML=reml, control=lmerControl(calc.derivs = FALSE,
-            check.conv.grad = .makeCC("warning", tol = 1e-4, relTol = NULL),
-            check.conv.hess = .makeCC(action = "warning", tol = 1e-4))))
-    smod0 = summary(mod.lmer0)
-    #siga = 0.01 and siga2hat = 1e-4
-    siga = max(c(1e-2, as.vector(attr(smod0$varcor$id, "stddev"))))
-    ahat = coef(mod.lmer0)$id[,1]
-    
+    siga = 1e-4
     diff = 10
     nrep = 0
     face = NULL
     mufh = muhat #fixed effect
-    while (diff > sm & nrep < 10) {
+    
+    ####################################
+    #setup gaussian hermite quadrature
+    ####################################
+    #let the user to choose nn? nn > 5 won't be too different
+    ones = list()
+    st = 1
+    ed = 0
+    for (icl in 1:ncl) {
+      #print (icl)
+      sz = szs[icl]
+      ed = ed + sz
+      onevec = matrix(1:sz*0+1, ncol=1)
+      onei = onevec %*% t(onevec)
+      ones[[icl]] = onei
+      st = ed + 1
+    }
+    oneMat = bdiag(ones)
+    oneMat = as.matrix(oneMat)
+    
+if(nAGQ > 1){
+    nn = nAGQ #nAGQ #10#5#15#20
+    #out = gauss.quad.prob(nn,"normal")
+    out = gauss.quad(nn, kind = "hermite")
+    nodes = out$nodes
+    nwt = out$weights
+    #1e-8 doesn't work good?
+    while (diff > 1e-8 & nrep < 20) {
       nrep = nrep + 1
       ######
       #step 1: update random effect and variance?
       ######
-      siga = nlminb(siga, fmin.witer, ycl=ycl, ecl=ecl, avec=ahat, 
+      siga = nlminb(siga, fmin.witer, ycl=ycl, ecl=ecl, avec=ahat,
                     nodes=nodes, nwt=nwt, lower=1e-4, upper=1000)$par
+      siga2hat = siga^2
+      
       ahat = favec2(ycl, sig=siga, avec=ahat, ecl=ecl)
       ######
-      #step 2: update fixed effect etahat with mle 
+      #step 2: update fixed effect etahat with mle
       ######
       oldmu = muhat
       rs = f_rs(ecl=ecl, sig=siga, avec=ahat)
       p1s = f_p1(ycl=ycl, ecl=ecl, rs=rs, sig=siga, avec=ahat, nodes=nodes, nwt=nwt)
-      #slow:
       p2s = f_p2(ycl=ycl, ecl=ecl, rs=rs, sig=siga, avec=ahat, nodes=nodes, nwt=nwt)
       gr = fgr_all(p1s=p1s, p2s=p2s)
-      #if (any(is.na(gr))) {stop('check gr!')}
-      #slow?
       wt = fwtr_all(ycl, ecl, sig=siga, avec=ahat, rs=rs, p1s=p1s, p2s=p2s, nodes=nodes, nwt=nwt)
       if(any(wt < 1e-4)){
         wt[wt < 1e-4] = 1e-4
       }
       #wt = fwtr_all2(p1s, p2s)
       #if (any(wt < 0)) {print (paste('check wt!', diff));break}
+
       xtil = t(bigmat)
       for (i in 1:ncol(bigmat)) {xtil[i,] = sqrt(wt[i]) * bigmat[,i]}
+      
       dsend = xtil[, (np+1):(capm+np)]
       zsend = xtil[, 1:np]
       cvec = wt * etahat - gr
@@ -695,17 +708,60 @@ cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim,
       bh = coef(ans)
       etahat = t(bigmat) %*% bh
       #fixed effect
-      #mufh = muhat.fun(etahat=etahat, fml=family$family)
+      mufh = muhat.fun(etahat=etahat, fml=family$family)
       #mufh: fixed effect
-      mufh = family$linkinv(etahat)
+      #mufh = family$linkinv(etahat)
       ecl = f_ecl(etahat, ncl, szs)
-      #fixed + random effect
-      #muhat = c(f_mcl(ecl, avec))
       #muhat: fixed + random effect
       muhat = c(unlist(mapply(function(e1, e2) family$linkinv(e1+e2), e1=ecl, e2=ahat)))
       #diff = mean((oldmu - mufh)^2)
       diff = mean((oldmu - muhat)^2)
     }
+}
+    
+if(nAGQ == 1) {
+  #this is temp, need to think about how to get sig and avec later
+  nn = 5#nAGQ #10#5#15#20
+  #out = gauss.quad.prob(nn,"normal")
+  out = gauss.quad(nn, kind = "hermite")
+  nodes = out$nodes
+  nwt = out$weights
+  while (diff > 1e-8 & nrep < 20) {
+    nrep = nrep + 1
+    siga = nlminb(siga, fmin.witer, ycl=ycl, ecl=ecl, avec=ahat, nodes=nodes, nwt=nwt, lower = 1e-4, upper = 1000)$par
+    siga2hat = siga^2
+    ahat = favec2(ycl, sig=siga, avec=ahat, ecl=ecl)
+    ######
+    #step 2: update fixed effect etahat with mle 
+    ######
+    oldmu = muhat
+    prior.w = rep(1, n)
+    wt = as.vector(prior.w / deriv.fun(muhat, fml = family$family))
+    vm = diag(1/wt) + c(siga2hat)*oneMat
+    umat = t(chol(vm))
+    uinv = solve(umat)
+    xtil = t(bigmat)
+    xtil = uinv %*% xtil
+    dsend = xtil[, (np+1):(capm+np)]
+    zsend = xtil[, 1:np]
+    cvec = family$linkfun(muhat) + (y - muhat) / family$variance(muhat)
+    zvec = uinv %*% cvec
+    if (nrep > 1) {
+      ans = coneB(zvec, dsend, vmat = zsend, face = face)
+    } else {
+      ans = coneB(zvec, dsend, vmat = zsend)
+      face = ans$face
+    }
+    bh = coef(ans)
+    etahat = t(bigmat) %*% bh
+    mufh = muhat.fun(etahat=etahat, fml='binomial')
+    ecl = f_ecl(etahat, ncl, szs)
+    muhat = c(unlist(mapply(function(e1, e2) family$linkinv(e1+e2), e1=ecl, e2=ahat))) #include fixed and random effect
+    diff = mean((oldmu - muhat)^2)
+  }
+}
+    #fixed muhat
+    muhat_fixed = mufh 
     #temp
     if(any(wt < 1e-4)){
       wt[wt < 1e-4] = 1e-4
@@ -715,20 +771,12 @@ cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim,
     df_obs = sum(abs(bh) > 0)
     muhatkeep = mufh #keep fixed effect
     etahatkeep = etahat #fixed effect
-    
-    muhat = mufh
-    avec_all = NULL
-    #print (ncl)
-    for(icl in 1:ncl){
-      #print (icl)
-      muhat[id==icl] = family$linkinv(etahat[id==icl]+ahat[icl])
-      avec_all = c(avec_all, rep(ahat[icl], szs[icl]))
-    }
-    
+
     muhatkeep_all = muhat #fixed + random effect
     etahatkeep_all = family$linkfun(muhatkeep_all) #fixed + random effect
     zvec_all = etahatkeep_all + (y - muhatkeep_all) / family$variance(muhatkeep_all)
-    evec = zvec_all - etahatkeep
+    #print (head(muhatkeep_all))
+    evec = zvec_all - as.numeric(etahatkeep)
     mod.lmer = suppressMessages(lmer(evec ~ -1+(1|id), REML=reml, control=lmerControl(calc.derivs = FALSE,
       check.conv.grad = .makeCC("warning", tol = 1e-4, relTol = NULL),
       check.conv.hess = .makeCC(action = "warning", tol = 1e-4))))
@@ -736,7 +784,16 @@ cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim,
     siga_tmp = as.vector(attr(smod$varcor$id, "stddev")) #sometimes will give zero and this cause NaN in cgamm.pv
     siga2hat = max(c(siga^2, siga_tmp^2))
     thhat = summary(mod.lmer)$optinfo$val^2
-#binomial fit ends  
+    
+    #new: uinvkeep is used in predict.cgamm and z inference
+    prior.w = rep(1, n)
+    #w = as.vector(prior.w / deriv.fun(muhatkeep_all, fml = family$family)) #should use this one? keep vm full rank?
+    w = wtkeep
+    vm = diag(1/w) + c(siga2hat)*oneMat
+    umat = t(chol(vm))
+    uinvkeep = solve(umat) 
+    
+#binomial fit ends
   }
 
   ci1 = ci.th = ci.rho = ci.siga2.bi = NULL
@@ -773,7 +830,7 @@ cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim,
       st = ed + 1
       uinv_lst[[icl]] = uinv
     }
-    
+
     #temp
     ncl = length(szs)
     bhmt = matrix(rep(bh[-1], each = ncl), nrow = ncl)
@@ -813,7 +870,7 @@ cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim,
       #pvals.beta[i] <- 2 * (1 - pt(abs(tstat[i]),  n - np - cpar * df_obs))
       pvals.beta=2 * (1 - pt(abs(tstat),  n - cpar * df_obs))
     }
-    
+
     #new: uinv_mat is inverse of sqrt of weight mat; to be used in cgam.pv
     uinv_mat = bdiag(uinv_lst)
     uinv_mat = as.matrix(uinv_mat) / sig2hat^(1/2)
@@ -836,7 +893,7 @@ cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim,
       ci2 = ranef.cith(thhat, sig2hat, siga2hat, ahat, ecl, szs, n, ncl, level = 0.95, xms=xms, p=edf, reml=reml)
       ci.th = ci2$ci.th
       ci.rho = ci2$ci.rho
-      
+
       cia = ranef.cisiga(sig2hat, siga2hat, ahat, ecl, szs, n, ncl, level = 0.95, xms=xms, p=edf, reml=reml)
       ci.siga2.bi = cia$ci.siga2
     }
@@ -845,53 +902,55 @@ cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim,
 #gaussian parametric inference ends
   } else {
 #binomial parametric inference starts
-    prior.w = weights
-    #w = wt.fun(y, etahatkeep_all, n, weights, fml = family$family)
-    #w = as.vector(prior.w / deriv.fun(muhatkeep_all, fml = family$family)) #should use this one? keep vm full rank?
-    w = wtkeep
-    ones = list()
-    st = 1
-    ed = 0
-    for (icl in 1:ncl) {
-      #print (icl)
-      sz = szs[icl]
-      ed = ed + sz
-      onevec = matrix(1:sz*0+1, ncol=1)
-      onei = onevec%*%t(onevec)
-      ones[[icl]] = onei
-      st = ed + 1
-    }
-    oneMat = bdiag(ones)
-    oneMat = as.matrix(oneMat)
-    vm = diag(1/w) + c(siga2hat)*oneMat
-    umat = t(chol(vm))
+    #prior.w = weights
+    # prior.w = rep(1, n)
+    # #w = as.vector(prior.w / deriv.fun(muhatkeep_all, fml = family$family)) #should use this one? keep vm full rank?
+    # w = wtkeep
+    # ones = list()
+    # st = 1
+    # ed = 0
+    # for (icl in 1:ncl) {
+    #   sz = szs[icl]
+    #   ed = ed + sz
+    #   onevec = matrix(1:sz*0+1, ncol=1)
+    #   onei = onevec%*%t(onevec)
+    #   ones[[icl]] = onei
+    #   st = ed + 1
+    # }
+    # oneMat = bdiag(ones)
+    # oneMat = as.matrix(oneMat)
+    # vm = diag(1/w) + c(siga2hat)*oneMat
+    # umat = t(chol(vm))
     #print (umat)
-    uinv = solve(umat) #sometimes singular: when siga2hat = 0
-    ztil = uinv %*% zvec_all
-    deltil = uinv %*% t(bigmat)
-    shat = sum((ztil - deltil %*% coefskeep)^2) / (n - 1.2*df_obs)
-    thhat = siga2hat/shat
+    #uinv = solve(umat) #sometimes singular: when siga2hat = 0
     
+    ztil = uinvkeep %*% zvec_all
+    deltil = uinvkeep %*% t(bigmat)
+    shat = sum((ztil - deltil %*% coefskeep)^2) / (n - 1.2*df_obs)
+    #what is the use of thhat in binomial case??
+    thhat = siga2hat/shat
+
     dd = t(bigmat)
     dd_nv = dd[,-c(1:np),drop=FALSE]
     onev = matrix(1:n*0+1, ncol=1)
     onevw = onev; zmatw = zmat; xvecw = xvec; dusew = dd_nv
-    onevw = uinv %*% onev
+    onevw = uinvkeep %*% onev
     if (!is.null(xvec)) {
-      xvecw = uinv %*% xvec
+      xvecw = uinvkeep %*% xvec
       #xvecw[i, ] = xvec[i, ] * sqrt(w[i])
     }
     if (capk > 0) {
-      zmatw = uinv %*% zmat
+      zmatw = uinvkeep %*% zmat
       #zmatw[i, ] = zmat[i, ] * sqrt(w[i])
     }
     if (!is.null(dd_nv)) {
-      dusew = uinv %*% dd_nv
+      dusew = uinvkeep %*% dd_nv
       #dusew[i, ] = dd_nv[i, ] * sqrt(w[i])
     }
-    
+
     pm = cbind(onevw, zmatw, xvecw, dusew)
     se2 = solve(crossprod(pm))
+    #se2 = ginv(crossprod(pm))
     se.beta = sqrt(as.vector(diag(se2)))[1:(capk+1)]
     zcoefs = coefskeep[1:(capk+1)]
     tstat = zcoefs / se.beta
@@ -904,8 +963,8 @@ cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim,
     }
 #binomial parametric inference ends
   }
-  
-  coefskeep = bh
+
+  #coefskeep = bh
   thvecs = NULL
   if (capl > 0) {
     #new code:
@@ -979,14 +1038,14 @@ cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim,
     mslst = mslst0
   }
 #new: add p-value for each individual smooth component
-skip = F
+skip = T
 pvs = NULL
 s.edf = NULL
 bstats = NULL
 pvsz = NULL
 z.edf = NULL
 fstats = NULL
-  if(!skip){
+  #if(!skip){
     if (is.numeric(shapes)) {
       #changed to include shape==17
       if (all(shapes >= 9 & shapes <= 17)) {
@@ -994,13 +1053,19 @@ fstats = NULL
           #cgam.pv should include r.f. in fitting
           #test each individual smooth component
           if(family$family == "gaussian"){
-            ansi = cgam.pv(y, xmat, zmat, shapes, delta=delta, np=np, capms=capms, numknotsuse=numknotsuse, varlist=varlist, 
-                           family=family, weights=uinv_mat, test_id=i, nsims=100, skip=TRUE) 
+            ansi = cgam.pv(y, xmat, zmat, shapes, delta=delta, np=np, capms=capms, numknotsuse=numknotsuse, varlist=varlist,
+                           family=family, weights=uinv_mat, test_id=i, nsims=100, skip=TRUE)
           } else {
-            ansi = cgamm.pv(y=y, xmat=xmat, zmat=zmat, shapes=shapes, delta=delta, np=np, 
-                            capms=capms, numknotsuse=numknotsuse, varlist=varlist, family=family, 
-                            weights=wtkeep, ycl=ycl, siga=siga, ahat=ahat, ncl=ncl, szs=szs,
-                            test_id=i, nsims=100)
+            if(nAGQ == 1) {
+              ansi = cgam.pv(zvec_all, xmat, zmat, shapes, delta=delta, np=np, capms=capms, numknotsuse=numknotsuse, varlist=varlist,
+                             family=gaussian(), weights=uinv, test_id=i, nsims=100, skip=TRUE)
+            }
+            if(nAGQ > 1) {
+              ansi = cgamm.pv(y=y, xmat=xmat, zmat=zmat, shapes=shapes, delta=delta, np=np,
+                              capms=capms, numknotsuse=numknotsuse, varlist=varlist, family=family,
+                              weights=wtkeep, ycl=ycl, siga=siga, ahat=ahat, ncl=ncl, szs=szs,
+                              test_id=i, nsims=100)
+            }
           }
           pvi = ansi$pv
           #print (pvi)
@@ -1019,15 +1084,17 @@ fstats = NULL
       weights = 1:n*0 + 1
     }
     prior.w = weights
+  #check more
+  if(!skip){
     if (capk > 0) {
       #sse1 = sum(prior.w * (y - muhatkeep)^2) #not correct for gaussian
       #for gaussian, univ is only for a ith cluster, uinv_mat is for the whole data set
       if(family$family == "gaussian"){
-        #sse1 = sum(prior.w * (y - muhatkeep)^2) 
+        #sse1 = sum(prior.w * (y - muhatkeep)^2)
         sse1 = sum((uinv_mat %*% y - uinv_mat %*% muhatkeep)^2) #sse1 is for full model
         #test the z part as a whole; not as individual terms, which is t-test
-        ansi = cgam.pvz(y=y, bigmat=bigmat, df_obs=df_obs, sse1=sse1, np=np, zid=zid, zid1=zid1, zid2=zid2, 
-                         muhat = muhat, etahat = etahat, coefskeep = coefskeep, wt.iter=wt.iter, 
+        ansi = cgam.pvz(y=y, bigmat=bigmat, df_obs=df_obs, sse1=sse1, np=np, zid=zid, zid1=zid1, zid2=zid2,
+                         muhat = muhat, etahat = etahat, coefskeep = coefskeep, wt.iter=wt.iter,
                          family=family, weights=prior.w, uinv_mat=uinv_mat)
       } else {
         zvec_all = etahatkeep_all + (y - muhatkeep_all) / family$variance(muhatkeep_all)
@@ -1035,8 +1102,8 @@ fstats = NULL
         sse1 = sum((uinv %*% zvec_all - uinv %*% dd %*% coefskeep)^2)
         #cgam.pvz should include r.f. in fitting
         #print (sse1)
-        ansi = cgamm.pvz(y=y, bigmat=bigmat, df_obs=df_obs, sse1=sse1, np=np, zid=zid, zid1=zid1, zid2=zid2, 
-                         muhat = muhat, etahat = etahat, coefskeep = coefskeep, wt.iter=wt.iter, 
+        ansi = cgamm.pvz(y=y, bigmat=bigmat, df_obs=df_obs, sse1=sse1, np=np, zid=zid, zid1=zid1, zid2=zid2,
+                         muhat = muhat, etahat = etahat, coefskeep = coefskeep, wt.iter=wt.iter,
                          family=family, weights=prior.w, id=id,
                          ycl=ycl, siga=siga, ahat=ahat, ncl=ncl, szs=szs)
       }
@@ -1045,38 +1112,39 @@ fstats = NULL
       z.edf = ansi$edfs
       fstats = ansi$fstats
     }
-  }  
+  }
 
   if(!wt.iter){
-    rslt = list(etahat = muhat, muhat = muhat, coefs = coefs, bh = bh, zcoefs = zcoefs, 
-              pvals.beta = pvals.beta, se.beta = se.beta, vcoefs = vcoefs, 
-              ahat = ahat, sig2hat = sig2hat, siga2hat = siga2hat, thhat = thhat, 
-              bigmat = bigmat, gtil = gtil, dd2=dd2, np = np, knots = knotsuse, 
-              knots2 = knotsuse2, numknots = numknotsuse, numknots2 = numknotsuse2, 
-              ms = mslst, ms2 = mslst2, xmat2 = xmat2, xid1 = xid1, xid2 = xid2, capm = capm, 
+    rslt = list(etahat = muhat, muhat = muhat, coefs = coefs, bh = bh, zcoefs = zcoefs,
+              pvals.beta = pvals.beta, se.beta = se.beta, vcoefs = vcoefs,
+              ahat = ahat, sig2hat = sig2hat, siga2hat = siga2hat, thhat = thhat,
+              bigmat = bigmat, gtil = gtil, dd2=dd2, np = np, knots = knotsuse,
+              knots2 = knotsuse2, numknots = numknotsuse, numknots2 = numknotsuse2,
+              ms = mslst, ms2 = mslst2, xmat2 = xmat2, xid1 = xid1, xid2 = xid2, capm = capm,
               capms = capms, capk = capk, capt = capt, capu = capu, etacomps = thvecs,
-              mod.lmer = mod.lmer, pv.siga2 = pv.siga2, ci.siga2 = ci.siga2, ci.siga2.bi = ci.siga2.bi, 
-              ci.th = ci.th, ci.rho = ci.rho, ci.sig2 = ci.sig2, ones = ones, 
+              mod.lmer = mod.lmer, pv.siga2 = pv.siga2, ci.siga2 = ci.siga2, ci.siga2.bi = ci.siga2.bi,
+              ci.th = ci.th, ci.rho = ci.rho, ci.sig2 = ci.sig2, ones = ones,
               resid_df_obs = n - cpar * df_obs, edf = df_obs,
               #the following terms are new:
               etahat = muhat, family = family,
               #need to set to be NULL if no test
-              pvs = pvs, s.edf = s.edf, bstats = bstats, 
+              pvs = pvs, s.edf = s.edf, bstats = bstats,
               #oneMat is not used for gaussian???
               pvsz = pvsz, z.edf = z.edf, fstats = fstats, oneMat = oneMat)
-  
+
   } else {
-    rslt = list(etahat = etahat,  muhat_rf = muhat, muhat = muhatkeep, 
+    rslt = list(etahat = etahat,  muhat_rf = muhatkeep_all, muhat = muhat_fixed,
                 wt = wtkeep, gr = gr,
-                coefs = coefskeep, bh = bh, zcoefs = zcoefs, 
-                pvals.beta = pvals.beta, se.beta = se.beta, vcoefs = vcoefs, 
+                coefs = coefskeep, bh = bh, zcoefs = zcoefs,
+                pvals.beta = pvals.beta, se.beta = se.beta, vcoefs = vcoefs,
                 ahat = ahat, siga2hat = siga2hat, family = family,
-                thhat = thhat, bigmat = bigmat, np = np, 
-                knots = knotsuse, knots2 = knotsuse2, numknots = numknotsuse, 
-                numknots2 = numknotsuse2, ms = mslst, ms2 = mslst2, xmat2 = xmat2, 
-                capk = capk, capt = capt, capu = capu, etacomps = thvecs, 
+                thhat = thhat, bigmat = bigmat, np = np,
+                knots = knotsuse, knots2 = knotsuse2, numknots = numknotsuse,
+                numknots2 = numknotsuse2, ms = mslst, ms2 = mslst2, xmat2 = xmat2,
+                capk = capk, capt = capt, capu = capu, etacomps = thvecs,
                 mod.lmer = mod.lmer, resid_df_obs = n - cpar * df_obs, edf = cpar * df_obs,
-                pvs = pvs, s.edf = s.edf, bstats = bstats, pvsz = pvsz, z.edf = z.edf, fstats = fstats, oneMat = oneMat)
+                pvs = pvs, s.edf = s.edf, bstats = bstats, pvsz = pvsz, z.edf = z.edf, fstats = fstats,
+                oneMat = oneMat, vm = vm, shat = shat, uinvkeep = uinvkeep)
   }
   return (rslt)
 }
@@ -1085,8 +1153,8 @@ fstats = NULL
 #cgamm.pv is used for binomial only now
 #inherit from cgam.pv later
 ##############################################
-cgamm.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL, 
-                    numknotsuse=NULL, varlist=NULL, family=gaussian(), weights=NULL, 
+cgamm.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
+                    numknotsuse=NULL, varlist=NULL, family=gaussian(), weights=NULL,
                     ycl=NULL, siga=NULL, ahat=NULL, ncl=NULL, szs=NULL,
                     test_id=1, nsims=100) {
   n = length(y)
@@ -1102,7 +1170,7 @@ cgamm.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
   ysim.fun = cicfamily$ysim.fun
   deriv.fun = cicfamily$deriv.fun
   dev.fun = cicfamily$dev.fun
-  
+
   capl = length(xmat) / n
   if (capl < 1) {capl = 0}
   capk = length(zmat) / n
@@ -1137,10 +1205,10 @@ cgamm.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
   } else {
     print ("error in capk, shapes!")
   }
-  
+
   m0 = dim(del0)[2]
   m = dim(del)[2]
-  
+
   #nkts is the col number of edges for each component
   nkts = numknotsuse
   id_add = which(shapes >= 13 & shapes <= 17)
@@ -1151,7 +1219,7 @@ cgamm.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
   nc = nr + np
   amat = matrix(0, nrow=nr, ncol=nc)
   for(i in 1:nr){amat[i,i]=1}
-  
+
   #if (capl>1) {
   nr0 = sum(nkts) - nkts[test_id]
   #} else {nr0 = sum(nkts)}
@@ -1163,7 +1231,7 @@ cgamm.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
     nc0 = nr0 + np
   }
   amat0 = matrix(0, nrow=nr0, ncol=nc0)
-  
+
   #when there is only one component, flat vs s.incr
   if (nr0 > 0) {
     for(i in 1:nr0){amat0[i,i]=1}
@@ -1174,8 +1242,8 @@ cgamm.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
   #}
   #if(wt.iter){
   nn = 5
-  #out = gauss.quad.prob(nn,"normal") 
-  out = gauss.quad(nn, kind = "hermite") 
+  #out = gauss.quad.prob(nn,"normal")
+  out = gauss.quad(nn, kind = "hermite")
   nodes = out$nodes
   nwt = out$weights
   ### null hyp fit
@@ -1192,6 +1260,8 @@ cgamm.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
   rs = f_rs(ecl=ecl, sig=siga, avec=ahat)
   p1s = f_p1(ycl=ycl, ecl=ecl, rs=rs, sig=siga, avec=ahat, nodes=nodes, nwt=nwt)
   p2s = f_p2(ycl=ycl, ecl=ecl, rs=rs, sig=siga, avec=ahat, nodes=nodes, nwt=nwt)
+  #new: used to define the working response
+  gr = fgr_all(p1s=p1s, p2s=p2s)
   #w is negative hessian
   w = fwtr_all(ycl, ecl, sig=siga, avec=ahat, rs=rs, p1s=p1s, p2s=p2s, nodes=nodes, nwt=nwt)
   #temp
@@ -1221,7 +1291,7 @@ cgamm.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
   vm = diag(1/w) + c(siga2hat)*oneMat
   umat_vm = t(chol(vm))
   uinv_vm = solve(umat_vm)
-  
+
   prior.w = rep(1, n)
   #w = as.vector(prior.w * (deriv.fun(mu0_all, fml = family$family))^(-1))
   #w = weights #weights is the sqrt of diagonal of inverse Hessian
@@ -1232,10 +1302,12 @@ cgamm.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
     deltil = uinv_vm %*% deltil #use vmat for weight
     #z = eta0 + (y - mu0) / family$variance(mu0)
     z = eta0_all + (y - mu0_all) / family$variance(mu0_all)
+    #test:
+    #z = eta0_all - gr/w
     #w = as.vector(prior.w * (deriv.fun(mu0, fml = family$family))^(-1))
     #ztil = z*sqrt(w)
-    ztil = uinv_vm %*% z 
-    
+    ztil = uinv_vm %*% z
+
     if (m0 > np) {
       umat = chol(crossprod(deltil))
       uinv = solve(umat)
@@ -1247,7 +1319,7 @@ cgamm.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
       cvec = t(deltil) %*% ztil
       bh = solve(crossprod(deltil), cvec)
     }
-    
+
     eta1 = del0 %*% bh
     mu1 = family$linkinv(eta1)
     dist = sqrt(sum(mu0-mu1)^2/sum(mu0^2)) #this works better; avoid NaN in w
@@ -1260,6 +1332,8 @@ cgamm.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
       rs = f_rs(ecl=ecl, sig=siga, avec=ahat)
       p1s = f_p1(ycl=ycl, ecl=ecl, rs=rs, sig=siga, avec=ahat, nodes=nodes, nwt=nwt)
       p2s = f_p2(ycl=ycl, ecl=ecl, rs=rs, sig=siga, avec=ahat, nodes=nodes, nwt=nwt)
+      #new: used to define the working response
+      #gr = fgr_all(p1s=p1s, p2s=p2s)
       w = fwtr_all(ycl, ecl, sig=siga, avec=ahat, rs=rs, p1s=p1s, p2s=p2s, nodes=nodes, nwt=nwt)
       #temp
       if(any(w < 1e-4)){
@@ -1291,12 +1365,12 @@ cgamm.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
     d1trw = pr0%*%del1w
     ans1 = coneB(ztil, d1trw)
     num = sum((d1trw %*% ans1$coef)^2)
-    
+
     ## do weighted projection of xi=z, weights w, onto big cone
     delw = del
     #for(i in 1:m){delw[,i] = del[,i]*sqrt(w)}
     delw = uinv_vm %*% del
-    
+
     ans2 = coneB(ztil,delw[,1:(m-np)],delw[,(m-np+1):m])
     coef0 = ans2$coef
     coef = coef0
@@ -1315,7 +1389,7 @@ cgamm.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
       mdist[d+1] = mdist[d+1]+1
     }
     mdist = mdist/nsims
-    
+
     pval = mdist[1]
     for(i in 1:nk1){
       pval = pval+pbeta(bstat,i/2,df2/2)*mdist[i+1]
@@ -1333,7 +1407,7 @@ cgamm.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
     #nd = np?
     nd = ncol(deltil)
     that1 = deltil%*%chat2[1:nd]+del2[,1:nk]%*%chat2[(nd+1):m]
-    
+
     ss1 = sum((ztil - that1)^2)
     ss0 = sum((ztil - deltil %*% bh)^2)
     bstat = (ss0 - ss1)/ss0
@@ -1352,7 +1426,7 @@ cgamm.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
       if(d < 3){zkeep=zsim}
     }
     mdist = mdist/nsims
-    
+
     pval = mdist[1]
     for(i in 1:nk) {
       pval = pval + pbeta(bstat,i/2,(n-np-i)/2)*mdist[i+1]
@@ -1368,8 +1442,8 @@ cgamm.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
 #cgamm.pvz is to test categorical predictors, not every level
 #ignore gaussian for now
 ############################################################
-cgamm.pvz = function(y, bigmat, df_obs, sse1 = NULL, np = 1, zid = 1, zid1 = 1, zid2 = 1, 
-                     muhat = NULL, etahat = NULL, coefskeep = NULL, wt.iter=FALSE, 
+cgamm.pvz = function(y, bigmat, df_obs, sse1 = NULL, np = 1, zid = 1, zid1 = 1, zid2 = 1,
+                     muhat = NULL, etahat = NULL, coefskeep = NULL, wt.iter=FALSE,
                      family=gaussian(), weights=NULL, id=NULL,
                      ycl=NULL, siga=NULL, ahat=NULL, ncl=NULL, szs=NULL) {
   n = length(y)
@@ -1385,7 +1459,7 @@ cgamm.pvz = function(y, bigmat, df_obs, sse1 = NULL, np = 1, zid = 1, zid1 = 1, 
   ysim.fun = cicfamily$ysim.fun
   deriv.fun = cicfamily$deriv.fun
   dev.fun = cicfamily$dev.fun
-  
+
   m = nrow(bigmat)
   df_full = min(m, 1.2*df_obs)
   if (is.null(weights)) {
@@ -1431,7 +1505,7 @@ cgamm.pvz = function(y, bigmat, df_obs, sse1 = NULL, np = 1, zid = 1, zid1 = 1, 
     fstati = (sse_r - sse_f) / lvs / sse_f*(n-df_full)
     pvi = 1 - pf(fstati, lvs, n-df_full)
     if (wt.iter) {
-      sm = 1e-7
+      sm = 1e-4
       #muhat = muhat.fun(etahat, fml = family$family)
       muhat = family$linkinv(etahat)
       diff = 1
@@ -1455,8 +1529,8 @@ cgamm.pvz = function(y, bigmat, df_obs, sse1 = NULL, np = 1, zid = 1, zid1 = 1, 
         for (i in 1:n) {gmat[i,] = bigmat0[,i] * sqrt(wt[i])}
         dsend = gmat[, -c(1:np0), drop = FALSE]
         zsend = gmat[,1:np0 , drop = FALSE]
-        #ans <- coneB(zvec, t(dsend), zsend)
-        ans = coneB(zvec, dsend, zsend, face = face)
+        ans = coneB(zvec, dsend, zsend)
+        #ans = coneB(zvec, dsend, zsend, face = face)
         etahat = t(bigmat0) %*% ans$coefs
         #muhat = muhat.fun(etahat, fml = family$family)
         muhat = family$linkinv(etahat)
@@ -1466,17 +1540,17 @@ cgamm.pvz = function(y, bigmat, df_obs, sse1 = NULL, np = 1, zid = 1, zid1 = 1, 
           mdiff = abs(max(muhat) - 1) > sm
         } else {mdiff = TRUE}
       }
-      
+
       #new: add a random intercept
       nn = 5 #10
-      out = gauss.quad(nn, kind = "hermite") 
+      out = gauss.quad(nn, kind = "hermite")
       nodes = out$nodes
       nwt = out$weights
-      
+
       ecl = f_ecl(etahat, ncl, szs)
       #new: initialize with lmer
       evec0 = (y-muhat) / family$variance(muhat)
-      mod.lmer0 = suppressMessages(lmer(evec0 ~ -1+(1|id), 
+      mod.lmer0 = suppressMessages(lmer(evec0 ~ -1+(1|id),
                                         REML=FALSE, control=lmerControl(calc.derivs = FALSE,
                                                                         check.conv.grad = .makeCC("warning", tol = 1e-4, relTol = NULL),
                                                                         check.conv.hess = .makeCC(action = "warning", tol = 1e-4))))
@@ -1484,22 +1558,22 @@ cgamm.pvz = function(y, bigmat, df_obs, sse1 = NULL, np = 1, zid = 1, zid1 = 1, 
       #siga = 0.01 and siga2hat = 1e-4
       siga = max(c(1e-2, as.vector(attr(smod0$varcor$id, "stddev"))))
       ahat = coef(mod.lmer0)$id[,1]
-      
+
       diff = 10
       nrep = 0
       face = NULL
       mufh = muhat #fixed effect
-      while (diff > sm & nrep < 10) {
+      while (diff > 1e-4 & nrep < 5) {
         #print (siga)
         nrep = nrep + 1
         ######
         #step 1: update random effect and variance?
         ######
-        siga = nlminb(siga, fmin.witer, ycl=ycl, ecl=ecl, avec=ahat, 
+        siga = nlminb(siga, fmin.witer, ycl=ycl, ecl=ecl, avec=ahat,
                       nodes=nodes, nwt=nwt, lower=1e-4, upper=1000)$par
         ahat = favec2(ycl, sig=siga, avec=ahat, ecl=ecl)
         ######
-        #step 2: update fixed effect etahat with mle 
+        #step 2: update fixed effect etahat with mle
         ######
         oldmu = muhat
         #oldmu = mufh
@@ -1525,7 +1599,8 @@ cgamm.pvz = function(y, bigmat, df_obs, sse1 = NULL, np = 1, zid = 1, zid1 = 1, 
         zvec[wt == 0] = 1 / 1e-4
         zvec[wt > 0] = cvec[wt > 0] / sqrt(wt[wt > 0])
         if (nrep > 1) {
-          ans = coneB(zvec, dsend, vmat = zsend, face = face)
+          #print (zvec)
+          ans = coneB(zvec, dsend, vmat = zsend, face = face, msg = FALSE)
         } else {
           ans = coneB(zvec, dsend, vmat = zsend)
           face = ans$face
@@ -1540,11 +1615,11 @@ cgamm.pvz = function(y, bigmat, df_obs, sse1 = NULL, np = 1, zid = 1, zid1 = 1, 
         #diff = mean((oldmu - mufh)^2)
         diff = mean((oldmu - muhat)^2)
       }
-      
+
       muhatkeep_all = muhat #fixed + random effect
       etahatkeep_all = family$linkfun(muhatkeep_all) #fixed + random effect
       zvec_all = etahatkeep_all + (y - muhatkeep_all) / family$variance(muhatkeep_all) #working response
-      
+
       w = wt
       ones = list()
       st = 1
@@ -1563,13 +1638,13 @@ cgamm.pvz = function(y, bigmat, df_obs, sse1 = NULL, np = 1, zid = 1, zid1 = 1, 
       vm = diag(1/w) + c(siga2hat)*oneMat
       umat_vm = t(chol(vm))
       vminv = solve(umat_vm) #sometimes singular: when siga2hat = 0
-      
+
       ztil = vminv %*% zvec_all
       deltil = t(bigmat0)
       m0 = nrow(bigmat0)
       deltil = vminv %*% deltil
       sse_r = sum((ztil - deltil %*% bh)^2)
-      
+
       deltil = t(bigmat)
       m = nrow(bigmat)
       #for(i in 1:m){deltil[,i] = deltil[,i]*sqrt(w)}
@@ -1657,7 +1732,7 @@ fth2rm = function(th, szs, ycl, N, xcl, p=2, type='b', xtx=NULL, xtx2=NULL, xmat
   #oneMat = as.matrix(bdiag(ones))
   #oneMat2 = as.matrix(bdiag(ones2))
   #hmat = xtx - crossprod(xmat_face, oneMat) %*% xmat_face
-  
+
   #ones=ones2=list()
   #    st = 1
   #    ed = 0
@@ -1845,7 +1920,7 @@ ranef.cisiga = function(sig2hat, siga2hat, ahat, ecl, szs, N, ncl, level = 0.95,
   #upp = uniroot(fn2, ncl=ncl, ycl=ecl, N=N, thval=thval, xms=xms, p=p, reml=reml, interval=c(thhat^1, 1e+4), tol=.Machine$double.eps)$root
   ans2 = try(ans20<-uniroot(fn2a, sig2hat=sig2hat, ncl=ncl, ycl=ecl, N=N, thval=thval, xms=xms, p=p, reml=reml, interval=c(siga2hat^1, 1e+4), tol=.Machine$double.eps),silent=TRUE)
   #if (class(ans2) == 'try-error') {
-  if(inherits(ans2, "try-error")){ 
+  if(inherits(ans2, "try-error")){
     upp = 1e+4
   } else {upp = ans2$root}
   ci = c(lwr, upp)
@@ -1894,8 +1969,8 @@ fmin = function(theta, ncl, ycl, N, xms=NULL, p=2, reml=TRUE) {
       detvi = (1+ni*theta)
       acc1 = acc1 + t(yi) %*% viinv %*% yi
       acc2 = acc2 + log(detvi)
-      
-      
+
+
       xm = xms[[i]]
       rinv = diag(ni) - theta/(1+ni*theta)*onemat
       hmat = hmat + t(xm) %*% rinv %*% xm
@@ -1945,8 +2020,8 @@ fmin2 = function(siga2, sig2hat, ncl, ycl, N, xms=NULL, p=2, reml=TRUE) {
       detvi = (1+ni*siga2/sig2hat)
       acc1 = acc1 + t(yi) %*% viinv %*% yi
       acc2 = acc2 + log(detvi)
-      
-      
+
+
       xm = xms[[i]]
       rinv = diag(ni) - siga2/(sig2hat+ni*siga2)*onemat
       hmat = hmat + t(xm) %*% rinv %*% xm
@@ -2327,7 +2402,7 @@ predict.cgamm = function(object, newData, interval = c("none", "confidence", "pr
   muhatpr = xmatpr %*% coefs[1:ncol(xmatpr), ,drop=FALSE]
   if ("none" %in% interval) {
     ans = list(fit = muhatpr)
-  } else if ("confidence" %in% interval | "prediction" %in% interval) {
+  } else if (interval %in% c("confidence", "prediction")) {
     #new:
     #ones = object$ones
     capk = object$capk
@@ -2649,7 +2724,36 @@ predict.cgamm = function(object, newData, interval = c("none", "confidence", "pr
         #hl = mult*sqrt(diag(xmatpr%*%acov%*%t(xmatpr)))
       }
       if ("confidence" %in% interval) {
-        ans = list(fit = muhatpr, lower = muhatpr - hl, upper = muhatpr + hl, var.f=var.f)
+        #new: NASA's idea for monotonic CI
+        lwr = muhatpr - hl
+        upp = muhatpr + hl
+        
+        #for now, only handles one predictor
+        if (length(object$shapes) == 1) {
+          lwr_tmp = lwr
+          upp_tmp = upp
+          check_ps_lwr = diff(lwr_tmp)
+          check_ps_upp = diff(upp_tmp)
+          if (object$shapes == 9) {
+            ps_lwr = which(check_ps_lwr < 0) 
+            lwr_tmp[ps_lwr + 1] = lwr_tmp[ps_lwr]
+            
+            ps_upp = which(check_ps_upp < 0) 
+            upp_tmp[ps_upp] = upp_tmp[ps_upp + 1] 
+          }
+          if (object$shapes == 10) {
+            ps_lwr = which(check_ps_lwr > 0) 
+            lwr_tmp[ps_lwr] = lwr_tmp[ps_lwr + 1]
+            
+            ps_upp = which(check_ps_upp > 0) 
+            upp_tmp[ps_upp + 1] = upp_tmp[ps_upp] 
+          }
+          lwr = lwr_tmp
+          upp = upp_tmp
+        }
+        
+        ans = list(fit = muhatpr, lower = lwr, upper = upp, var.f=var.f)
+        #ans = list(fit = muhatpr, lower = muhatpr - hl, upper = muhatpr + hl, var.f=var.f)
       }
       if ("prediction" %in% interval) {
         ans = list(fit = fitpr, lower = lwr, upper = upp, var.f=var.f, var.pred=var.pred)
@@ -2662,22 +2766,29 @@ predict.cgamm = function(object, newData, interval = c("none", "confidence", "pr
       m = nrow(bigmat)
       n = ncol(bigmat)
       amat = diag(m-p)
+      #p will include the intercept term
       zerom = matrix(0, nrow=nrow(amat), ncol=p)
       amat = cbind(zerom, amat)
+      #print (amat)
       z = 1:n*0
       ## get the dimension of the face
       deltil = t(bigmat)
       #check....
+      y = object$y
       w = object$wt
+      #new:
+      uinvkeep = object$uinvkeep
       #new: use vmat for weight
-      oneMat = object$oneMat
+      #oneMat = object$oneMat
       siga2hat = object$siga2hat
       thhat = object$thhat
       shat = siga2hat / thhat
+      #print (shat)
       #vm = diag(1/w) + c(siga2hat)*oneMat
-      vm = (diag(1/w) + c(siga2hat)*oneMat)/shat
-      umat_vm = t(chol(vm))
-      uinv_vm = solve(umat_vm)
+      #vm = (diag(1/w) + c(siga2hat)*oneMat)/shat
+      #vm = object$vm
+      #umat_vm = t(chol(vm))
+      #uinv_vm = solve(umat_vm)
       #bh = coef(object)
       #print (bh)
       #check
@@ -2686,11 +2797,11 @@ predict.cgamm = function(object, newData, interval = c("none", "confidence", "pr
       ahat = object$ahat
       
       #new: include ahat when defining z
-      muhatkeep_all = object$muhat #fixed + random effect
+      muhatkeep_all = object$muhat_rf #fixed + random effect
       #prior.w = rep(1, n)
-      #w = as.vector(prior.w / deriv.fun(muhatkeep_all, fml = family$family)) 
+      #w = as.vector(prior.w / deriv.fun(muhatkeep_all, fml = family$family))
       #for(i in 1:m){deltil[,i]=deltil[,i]*sqrt(w)}
-      deltil = uinv_vm %*% deltil
+      deltil = uinvkeep %*% deltil
       umat = chol(crossprod(deltil))
       uinv = solve(umat)
       atil = amat%*%uinv
@@ -2698,11 +2809,12 @@ predict.cgamm = function(object, newData, interval = c("none", "confidence", "pr
       
       etahatkeep_all = family$linkfun(muhatkeep_all)
       z = etahatkeep_all + (y - muhatkeep_all) / family$variance(muhatkeep_all)
+      #print (head(muhatkeep_all))
       #z = etahat + (y - muhat) / family$variance(muhat)
       #ztil = z*sqrt(w)
-      ztil = uinv_vm %*% z
+      ztil = uinvkeep %*% z
       
-      rw = round(amat%*% bh, 6) == 0
+      rw = round(amat %*% bh, 6) == 0
       if(sum(rw) == 0){
         raj = 0
         edf = m
@@ -2711,13 +2823,13 @@ predict.cgamm = function(object, newData, interval = c("none", "confidence", "pr
         raj = rankMatrix(t(ajc))[1]
         edf = min(m, 1.2*(m-raj))
       }
+      #print (edf)
+      #print (object$edf) #same as edf
       ## thhat is final cone projection
       thhat_mu = deltil %*% bh
-      #shat = sum((ztil - thhat)^2)/(n - edf)
-      #test: use edf from the object
-      #shat = sum((ztil - thhat)^2)/(n - object$edf)
+      #test: not very good
+      #shat = sum((ztil - thhat_mu)^2)/(n - edf)
       #print (shat)
-      #shat = siga2hat#not correct
       nloop = 100
       cmat = matrix(0, nrow = m, ncol = m)
       for(iloop in 1:nloop){
@@ -2749,20 +2861,51 @@ predict.cgamm = function(object, newData, interval = c("none", "confidence", "pr
       #coveta = diag(del%*%cmat%*%t(del))
       coveta = diag(xmatpr%*%cmat%*%t(xmatpr))
       etapr = xmatpr%*%bh
-      muhatpr = family$linkinv(etapr) 
+      muhatpr = family$linkinv(etapr)
       #new: C.I. level
       mult = qnorm((1 - level)/2, lower.tail=FALSE)
       se.fit = sqrt(coveta)
-      uppeta = etapr + mult*se.fit 
-      loweta = etapr - mult*se.fit 
-      uppmu = family$linkinv(uppeta) 
-      lowmu = family$linkinv(loweta) 
+      uppeta = etapr + mult*se.fit
+      loweta = etapr - mult*se.fit
+      uppmu = family$linkinv(uppeta)
+      lowmu = family$linkinv(loweta)
       
+      #new: NASA's idea for monotonic CI
+      lwr = loweta
+      upp = uppeta
+      
+      #for now, only handles one predictor
+      if (length(object$shapes) == 1) {
+        lwr_tmp = lwr
+        upp_tmp = upp
+        check_ps_lwr = diff(lwr_tmp)
+        check_ps_upp = diff(upp_tmp)
+        if (object$shapes == 9) {
+          ps_lwr = which(check_ps_lwr < 0) 
+          lwr_tmp[ps_lwr + 1] = lwr_tmp[ps_lwr]
+          
+          ps_upp = which(check_ps_upp < 0) 
+          upp_tmp[ps_upp] = upp_tmp[ps_upp + 1] 
+        }
+        if (object$shapes == 10) {
+          ps_lwr = which(check_ps_lwr > 0) 
+          lwr_tmp[ps_lwr] = lwr_tmp[ps_lwr + 1]
+          
+          ps_upp = which(check_ps_upp > 0) 
+          upp_tmp[ps_upp + 1] = upp_tmp[ps_upp] 
+        }
+        lwr = lwr_tmp
+        upp = upp_tmp
+      }
       if ("confidence" %in% interval) {
         if ("response" %in% type) {
-          ans = list(fit = muhatpr, lower = lowmu, upper = uppmu)
+          lwr = family$linkinv(lwr)
+          upp = family$linkinv(upp)
+          ans = list(fit = muhatpr, lower = lwr, upper = upp)
+          #ans = list(fit = muhatpr, lower = lowmu, upper = uppmu)
         } else if ("link" %in% type) {
-          ans = list(fit = etapr, lower = loweta, upper = uppeta, se.fit = se.fit)
+          ans = list(fit = etapr, lower = lwr, upper = upp, se.fit = se.fit)
+          #ans = list(fit = etapr, lower = loweta, upper = uppeta, se.fit = se.fit)
         }
       }
       if ("prediction" %in% interval) {
@@ -2852,7 +2995,7 @@ predict.cgamm = function(object, newData, interval = c("none", "confidence", "pr
           fitpr[gr_id] = etapr[gr_id] + ahat[pos_cl]
         }
         if ("response" %in% type) {
-          ans = list(fit = family$linkinv(fitpr), lower = family$linkinv(lwr), 
+          ans = list(fit = family$linkinv(fitpr), lower = family$linkinv(lwr),
                      upper = family$linkinv(upp))
         } else if ("link" %in% type) {
           ans = list(fit = fitpr, lower = lwr, upper = upp, se.fit = sqrt(var.predi))
@@ -2861,7 +3004,7 @@ predict.cgamm = function(object, newData, interval = c("none", "confidence", "pr
     }
   }
   class(ans) = "cgamp"
-  return (ans) 
+  return (ans)
 }
 
 #################################
@@ -2982,7 +3125,7 @@ pred_del = function(x, sh, xp, ms) {
       for (i in 1:(n1 - 1)) {
         sigma[i, xp < xu[i + 1]] = (xp[xp < xu[i + 1]] - xu[i + 1]) / (min(x) - xu[i + 1])
       }
-      for (i in 1:(n1 - 1)) {sigma[i,] = -sigma[i,] + ms[i]}		
+      for (i in 1:(n1 - 1)) {sigma[i,] = -sigma[i,] + ms[i]}
     } else if (sh == 8) {## decreasing concave
       for (i in 1:(n1 - 1)) {
         sigma[i, xp > xu[i]] = (xp[xp > xu[i]] - xu[i]) / (max(x) - xu[i])
@@ -3212,18 +3355,18 @@ plotpersp.cgamp = function(object, x1=NULL, x2=NULL, x1nm=NULL, x2nm=NULL, data=
   } else {
     mycol = t_col("pink", perc = 80, name = "lt.pink")
   }
-  
+
   acov = object$acov
   mult = object$mult
   #obj is the cgam or cgamm fit
   obj = object$object
   #ah = obj$coef_wp
-  
+
   xnms = obj$xnms_add
   xmat = obj$xmat_add
   bigmat = obj$bigmat
   #decrs = obj$decrs
-  
+
   #if (x1nm == "NULL" | x2nm == "NULL") {
   if (is.null(x1nm) | is.null(x2nm)) {
     if (length(xnms) >= 2) {
@@ -3237,17 +3380,17 @@ plotpersp.cgamp = function(object, x1=NULL, x2=NULL, x1nm=NULL, x2nm=NULL, data=
   }
   #labels = obj$labels
   #labels = labels[which(grepl("warp", labels, fixed = TRUE))]
-  
+
   #is_fac = obj$is_fac
   ynm = obj$ynm
   #varlist = obj$varlist_wps
   #varlist = varlist[-1]
   kts = obj$knots
   np = obj$d0
-  
+
   knms = length(xnms)
   obs = 1:knms
-  
+
   if (!is.null(data)) {
     if (!is.data.frame(data)) {
       stop ("User need to make the data argument a data frame with names for each variable!")
@@ -3262,7 +3405,7 @@ plotpersp.cgamp = function(object, x1=NULL, x2=NULL, x1nm=NULL, x2nm=NULL, data=
       warning ("Number of observations in the data set is not the same as the number of elements in x1!")
     }
     x1id <- obs[xnms == x1nm]
-    
+
     if (length(x2) != nrow(xmat)) {
       warning ("Number of observations in the data set is not the same as the number of elements in x2!")
     }
@@ -3323,7 +3466,7 @@ plotpersp.cgamp = function(object, x1=NULL, x2=NULL, x1nm=NULL, x2nm=NULL, data=
   #print ('check')
   ngrid = res$ngrid
   #print (res$zlim)
-  
+
   x_grid = ngrid
   y_grid = ngrid
   x1g = 0:x_grid / x_grid * .95 * (max(xm[,1]) - min(xm[,1])) + min(xm[,1]) + .025 * (max(xm[,1]) - min(xm[,1]))
@@ -3354,7 +3497,7 @@ plotpersp.cgamp = function(object, x1=NULL, x2=NULL, x1nm=NULL, x2nm=NULL, data=
       xgmat[i1,i2] = eta0 + th1add + th2add
     }
   }
-  
+
   z_add = res$z_add
   x3_add = res$x3_add
   xgmat = xgmat + z_add + x3_add
@@ -3382,9 +3525,9 @@ plotpersp.cgamp = function(object, x1=NULL, x2=NULL, x1nm=NULL, x2nm=NULL, data=
 }
 
 
-##--------------------------------------------------------------------------------------------- 
+##---------------------------------------------------------------------------------------------
 #the following functions are for binomial or other families
-##--------------------------------------------------------------------------------------------- 
+##---------------------------------------------------------------------------------------------
 
 ##############################
 #gradient for the ith cluster#
@@ -3396,11 +3539,11 @@ fgr_all = function(p1s, p2s) {
   #	p22 = p2s[[icl]]
   #	#grj = fgrr_cl(p21=p21, p22=p22)
   #	#if (p21 == 0) {
-  #	#  grj = -1e+4	
+  #	#  grj = -1e+4
   #	#} else {
   #		grj = -p22/p21
   #	#}
-  #	gr = c(gr, grj) 
+  #	gr = c(gr, grj)
   #}
   gr = -unlist(mapply(function(e1, e2) e1/e2, p2s, p1s, SIMPLIFY=FALSE))
   gr = round(gr, 10)
@@ -3442,7 +3585,7 @@ f_p1 = function(ycl, ecl, rs=NULL, sig=1e-4, avec, nodes, nwt) {
   #	ri = rs[icl]
   #	ai = avec[icl]
   #	p1s[icl] = Int_d1_cl(yi=yi, etai=etai, ri=ri, sig=sig, ai=ai, nodes=nodes, nwt=nwt)
-  #}	
+  #}
   p1s = mapply(function(e1, e2, e3, e4) Int_d1_cl(e1, e2, e4, sig, e3, nodes, nwt), e1=ycl, e2=ecl, e3=avec, e4=rs, SIMPLIFY=FALSE)
   return (p1s)
 }
@@ -3484,7 +3627,7 @@ f_p2 = function(ycl, ecl, rs=NULL, sig=1e-4, avec, nodes, nwt) {
   #	ri = rs[icl]
   #	ai = avec[icl]
   #	p2s[[icl]] = Int_d2_cl(yi=yi, etai=etai, ri=ri, sig=sig, ai=ai, nodes=nodes, nwt=nwt)
-  #}	
+  #}
   p2s = mapply(function(e1, e2, e3, e4) Int_d2_cl(e1, e2, e4, sig, e3, nodes, nwt), e1=ycl, e2=ecl, e3=avec, e4=rs, SIMPLIFY=FALSE)
   return (p2s)
 }
@@ -3494,7 +3637,7 @@ f_p2 = function(ycl, ecl, rs=NULL, sig=1e-4, avec, nodes, nwt) {
 #############################
 fwtr_cl = function(yi, etai, sig=1e-4, ai=0, ri=0, p211=0, p212=0, nodes, nwt) {
   #ni = length(yi)
-  #wts = 1:ni*0	
+  #wts = 1:ni*0
   #p21 = -(p212/p211)^2
   wt1 = (p212/p211)^2
   wt2_0 = Int_d3_cl(yi=yi, etai=etai, ri=ri, sig=sig, ai=ai, nodes=nodes, nwt=nwt)
@@ -3516,7 +3659,7 @@ fwtr_all = function(ycl, ecl, sig=1e-4, avec, rs=NULL, p1s, p2s, nodes, nwt) {
   #	p211 = p1s[[icl]]
   #	p212 = p2s[[icl]]
   #	wtj = fwtr_cl(yi=yi, etai=etai, sig=sig, ai=ai, ri=ri, p211=p211, p212=p212, nodes=nodes, nwt=nwt)
-  #	wt = c(wt, wtj) 
+  #	wt = c(wt, wtj)
   #}
   wt = unlist(mapply(function(e1, e2, e3, e4, e5, e6) fwtr_cl(e1, e2, sig=sig, e3, e4, e5, e6, nodes=nodes, nwt=nwt), ycl, ecl, avec, rs, p1s, p2s, SIMPLIFY=F))
   wt = round(wt, 10)
@@ -3532,7 +3675,7 @@ fwtr_all2 = function(p1s, p2s) {
   #	p21 = p1s[[icl]]
   #	p22 = p2s[[icl]]
   #	wtj = (p22/p21)^2
-  #	wt = c(wt, wtj) 
+  #	wt = c(wt, wtj)
   #}
   wt = unlist(mapply(function(e1, e2) (e1/e2)^2, p2s, p1s, SIMPLIFY=F))
   wt = round(wt, 10)
@@ -3598,7 +3741,7 @@ pfun = function(x, sc = 1) {
     #return (exp(x) / (1 + exp(x)))
     return (1 - 1 / (1 + exp(x)))
   } else {
-    xtil = x / sc 
+    xtil = x / sc
     return (exp(xtil) / (1 + exp(xtil)))
   }
 }
@@ -3613,14 +3756,14 @@ dfun = function(x) {
 
 #deri of dfun
 ddfun = function(x) {
-  #dd = dfun(x) * (1 - exp(x)) / (1 + exp(x))    
+  #dd = dfun(x) * (1 - exp(x)) / (1 + exp(x))
   dd = dfun(x) * (2 / (1 + exp(x)) - 1)
   return (dd)
 }
 
 #deri of ddfun
 #ddfun2 = function(x) {
-#    #dd = dfun(x) * (1 - exp(x)) / (1 + exp(x))    
+#    #dd = dfun(x) * (1 - exp(x)) / (1 + exp(x))
 #     dd2 = ddfun(x) * (2 / (1 + exp(x)) - 1) - 2*(dfun(x))^2
 #     return (dd2)
 #}
@@ -3639,7 +3782,7 @@ ddfun = function(x) {
 #   #    muhat[i] = exp(etahat[i]) / (1 + exp(etahat[i]))
 #   #  }
 #   #}
-#   return (muhat) 
+#   return (muhat)
 # }
 
 
@@ -3742,7 +3885,7 @@ fmin.witer = function(sig, ycl, ecl, avec, nodes, nwt) {
   #	etai = ecl[[icl]]
   #	ai = avec[icl]
   #	#ri = f_ri(etai=etai, sig=sig, ai=ai)
-  #	p1 = Int_d1_cl(yi=yi, etai=etai, ri=NULL, sig=sig, ai=ai, nodes=nodes, nwt=nwt) 
+  #	p1 = Int_d1_cl(yi=yi, etai=etai, ri=NULL, sig=sig, ai=ai, nodes=nodes, nwt=nwt)
   #	#acc = acc + log(ri) - log(p1)
   #	acc = acc - log(p1)
   #	#ps[icl]=p1

@@ -1107,7 +1107,7 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
                     ans <- try(coneB(zvec, dsend, zsend))
                     face <- ans$face
 					#if (class(ans) == "try-error") next
-          if(inherits(ans, "try-error")) next 
+          if(inherits(ans, "try-error")) next
 					if (wt.iter) {
 						etahat <- t(bigmat) %*% ans$coefs
 						muhat <- muhat.fun(etahat, fml = family$family)
@@ -1836,7 +1836,7 @@ decr.conc <- function(x, numknots = 0, knots = 0, space = "E")
 #}
 
 
-s.incr <- function(x, numknots = 0, knots = 0, var.knots = 0, space = "E", db.exp = FALSE)
+s.incr <- function(x, numknots = 0, knots = 0, var.knots = 0, space = "Q", db.exp = FALSE)
 {
     cl <- match.call()
     pars <- match.call()[-1]
@@ -1852,7 +1852,7 @@ s.incr <- function(x, numknots = 0, knots = 0, var.knots = 0, space = "E", db.ex
     x
 }
 
-s.decr <- function(x, numknots = 0, knots = 0, var.knots = 0, space = "E", db.exp = FALSE)
+s.decr <- function(x, numknots = 0, knots = 0, var.knots = 0, space = "Q", db.exp = FALSE)
 {
     cl <- match.call()
     pars <- match.call()[-1]
@@ -1869,7 +1869,7 @@ s.decr <- function(x, numknots = 0, knots = 0, var.knots = 0, space = "E", db.ex
 }
 
 
-s.conv <- function(x, numknots = 0, knots = 0, space = "E")
+s.conv <- function(x, numknots = 0, knots = 0, space = "Q")
 {
     cl <- match.call()
     pars <- match.call()[-1]
@@ -1883,7 +1883,7 @@ s.conv <- function(x, numknots = 0, knots = 0, space = "E")
     x
 }
 
-s.conc <- function(x, numknots = 0, knots = 0, space = "E")
+s.conc <- function(x, numknots = 0, knots = 0, space = "Q")
 {
     cl <- match.call()
     pars <- match.call()[-1]
@@ -1897,7 +1897,7 @@ s.conc <- function(x, numknots = 0, knots = 0, space = "E")
     x
 }
 
-s.incr.conv <- function(x, numknots = 0, knots = 0, space = "E")
+s.incr.conv <- function(x, numknots = 0, knots = 0, space = "Q")
 {
     cl <- match.call()
     pars <- match.call()[-1]
@@ -1911,7 +1911,7 @@ s.incr.conv <- function(x, numknots = 0, knots = 0, space = "E")
     x
 }
 
-s.incr.conc <- function(x, numknots = 0, knots = 0, space = "E")
+s.incr.conc <- function(x, numknots = 0, knots = 0, space = "Q")
 {
     cl <- match.call()
     pars <- match.call()[-1]
@@ -1925,7 +1925,7 @@ s.incr.conc <- function(x, numknots = 0, knots = 0, space = "E")
     x
 }
 
-s.decr.conv <- function(x, numknots = 0, knots = 0, space = "E")
+s.decr.conv <- function(x, numknots = 0, knots = 0, space = "Q")
 {
     cl <- match.call()
     pars <- match.call()[-1]
@@ -1939,7 +1939,7 @@ s.decr.conv <- function(x, numknots = 0, knots = 0, space = "E")
     x
 }
 
-s.decr.conc <- function(x, numknots = 0, knots = 0, space = "E")
+s.decr.conc <- function(x, numknots = 0, knots = 0, space = "Q")
 {
    cl <- match.call()
    pars <- match.call()[-1]
@@ -1953,7 +1953,7 @@ s.decr.conc <- function(x, numknots = 0, knots = 0, space = "E")
    x
 }
 
-s <- function(x, numknots = 0, knots = 0, space = "E")
+s <- function(x, numknots = 0, knots = 0, space = "Q")
 {
    cl <- match.call()
    pars <- match.call()[-1]
@@ -2872,8 +2872,8 @@ summary.cgam <- function(object,...) {
         #	class(ans) <- "summary.cgam"
         #	ans
         #} else {
-        ans <- list(call = object$call, coefficients = rslt1, coefficients2 = rslt2, 
-                    zcoefs = coefs, cic = cic, null.deviance = null.deviance, df.null = df.null, 
+        ans <- list(call = object$call, coefficients = rslt1, coefficients2 = rslt2,
+                    zcoefs = coefs, cic = cic, null.deviance = null.deviance, df.null = df.null,
                     deviance = deviance, df = df, df.residual = df.residual, family = family)
         class(ans) <- "summary.cgam"
         ans
@@ -3807,13 +3807,53 @@ sh_x = sh = NULL
                 }
             }
         }
+		    #new: NASA's idea for monotonic CI
+		    if (family$family == "gaussian") {
+		      lwr = muhatpr - hl
+		      upp = muhatpr + hl
+	      } else {
+	        lwr = loweta
+	        upp = uppeta
+	      }
+		    #for now, only handles one predictor
+		    if (length(object$shapes) == 1) {
+		      lwr_tmp = lwr
+		      upp_tmp = upp
+		      check_ps_lwr = diff(lwr_tmp)
+		      check_ps_upp = diff(upp_tmp)
+		      if (object$shapes == 9) {
+		        ps_lwr = which(check_ps_lwr < 0) 
+		        lwr_tmp[ps_lwr + 1] = lwr_tmp[ps_lwr]
+		        
+		        ps_upp = which(check_ps_upp < 0) 
+		        upp_tmp[ps_upp] = upp_tmp[ps_upp + 1] 
+		      }
+		      if (object$shapes == 10) {
+		        ps_lwr = which(check_ps_lwr > 0) 
+		        lwr_tmp[ps_lwr] = lwr_tmp[ps_lwr + 1]
+		        
+		        ps_upp = which(check_ps_upp > 0) 
+		        upp_tmp[ps_upp + 1] = upp_tmp[ps_upp] 
+		      }
+		      lwr = lwr_tmp
+		      upp = upp_tmp
+		    }
+		    
+		    if ("response" %in% type) {
+		      lwr = family$linkinv(lwr)
+		      upp = family$linkinv(upp)
+		    }
+		
         if (family$family == "gaussian") {
-            ans = list(fit = muhatpr, lower = muhatpr - hl, upper = muhatpr + hl, acov = acov, object = object, mult = mult, thvs_upp = thvs_upp, thvs_lwr = thvs_lwr)
+          ans = list(fit = muhatpr, lower = lwr, upper = upp, acov = acov, object = object, mult = mult, thvs_upp = thvs_upp, thvs_lwr = thvs_lwr)
+          #ans = list(fit = muhatpr, lower = muhatpr - hl, upper = muhatpr + hl, acov = acov, object = object, mult = mult, thvs_upp = thvs_upp, thvs_lwr = thvs_lwr)
         } else { #else if (family$family == "binomial") {
             if ("response" %in% type) {
-                ans = list(fit = muhatpr, lower = lowmu, upper = uppmu, object = object, mult = mult)
+              ans = list(fit = muhatpr, lower = lwr, upper = upp, object = object, mult = mult)
+              #ans = list(fit = muhatpr, lower = lowmu, upper = uppmu, object = object, mult = mult)
             } else if ("link" %in% type) {
-                ans = list(fit = etapr, lower = loweta, upper = uppeta, object = object, mult = mult)
+              ans = list(fit = etapr, lower = lwr, upper = upp, object = object, mult = mult)
+              #ans = list(fit = etapr, lower = loweta, upper = uppeta, object = object, mult = mult)
             }
         }
     }
@@ -7955,7 +7995,7 @@ fitted.cgam.polr <- function(object,...) {
 }
 
 #############################
-#shape selection part 
+#shape selection part
 #############################
 #get(x = "s", pos = "package:cgam")
 #new: add npop; per.mutate
@@ -13432,8 +13472,8 @@ getbin = function(num, capl) {
 #then it's not a sub-cone test and we don't use amat0 and coneA
 #include mixed-effect for gaussian: weights is uinv_mat
 ###############################################################
-cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL, 
-                   numknotsuse=NULL, varlist=NULL, family=gaussian(), 
+cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
+                   numknotsuse=NULL, varlist=NULL, family=gaussian(),
                    weights=NULL, test_id=1, nsims=1000, skip=TRUE) {
   n = length(y)
   cicfamily <- CicFamily(family)
@@ -13448,7 +13488,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
   ysim.fun <- cicfamily$ysim.fun
   deriv.fun <- cicfamily$deriv.fun
   dev.fun <- cicfamily$dev.fun
-  
+
   capl = length(xmat) / n
   if (capl < 1) {capl = 0}
   capk = length(zmat) / n
@@ -13462,7 +13502,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
     numknots <- rep(0, capl)
     knots <- list(); for (i in 1:capl) knots[[i]] <- 0
     space <- rep('E',capl)
-    
+
     delta <- NULL
     varlist <- NULL
     xid1 <- NULL; xid2 <- NULL; xpos2 <- 0
@@ -13471,7 +13511,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
     #new:
     capm <- 0
     capms <- 0
-    
+
     del1_ans <- makedelta(xmat[, 1], shapes[1], numknots[1], knots[[1]], space = space[1])
     del1 <- del1_ans$amat
     knotsuse[[1]] <- del1_ans$knots
@@ -13549,10 +13589,10 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
   } else {
     print ("error in capk, shapes!")
   }
-  
+
   m0 = dim(del0)[2]
   m = dim(del)[2]
-  
+
   #nkts is the col number of edges for each component
   nkts = numknotsuse
   id_add = which(shapes >= 13 & shapes <= 17)
@@ -13563,7 +13603,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
   nc = nr + np
   amat = matrix(0, nrow=nr, ncol=nc)
   for(i in 1:nr){amat[i,i]=1}
-  
+
   #if (capl>1) {
   nr0 = sum(nkts) - nkts[test_id]
   #} else {nr0 = sum(nkts)}
@@ -13575,7 +13615,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
     nc0 = nr0 + np
   }
   amat0 = matrix(0, nrow=nr0, ncol=nc0)
-  
+
   #when there is only one component, flat vs s.incr
   if (nr0 > 0) {
     for(i in 1:nr0){amat0[i,i]=1}
@@ -13608,7 +13648,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
       uinv = solve(umat)
       ytiltil = t(uinv) %*% crossprod(deltil, ytil)
       atil = amat0 %*% uinv
-      
+
       ans = coneA(ytiltil, atil)
       chat = uinv %*% ans$thetahat
       mu1 = del0 %*% chat
@@ -13618,7 +13658,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
       chat = solve(crossprod(deltil), cvec)
       mu1 = del0 %*% chat
     }
-    
+
     if (m0 > np) {
       d0 = t(delta[varlist != test_id, ])
       pr0 = -d0 %*% solve(crossprod(d0), t(d0))
@@ -13638,7 +13678,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
       }
       ans1 = coneB(ytil, d1trw)
       num = sum((d1trw%*%ans1$coef)^2)
-      
+
       ## do weighted projection of xi=z, weights w, onto big cone
       delw = del
       #new
@@ -13647,7 +13687,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
       } else {
         delw = w %*% delw
       }
-      
+
       ans2 = coneB(ytil,delw[,1:(m-np)],delw[,(m-np+1):m])
       coef0 = ans2$coef
       coef = coef0
@@ -13667,7 +13707,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
         mdist[d+1] = mdist[d+1]+1
       }
       mdist = mdist/nsims
-      
+
       pval = mdist[1]
       for(i in 1:nk1){
         pval = pval+pbeta(bstat,i/2,df2/2)*mdist[i+1]
@@ -13690,7 +13730,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
       that1 = deltil%*%chat2[1:nd]+del2[,1:nk]%*%chat2[(nd+1):m]
       ss1 = sum((ytil-that1)^2)
       ss0 = sum((ytil-deltil%*%chat)^2)
-      
+
       bstat = (ss0-ss1)/ss0
       ## get mixing distribution
       mdist = 0:nk*0
@@ -13706,7 +13746,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
         if(d < 3){zkeep=ysim}
       }
       mdist = mdist/nsims
-      
+
       pval = mdist[1]
       for(i in 1:nk) {
         pval = pval + pbeta(bstat,i/2,(n-np-i)/2)*mdist[i+1]
@@ -13809,11 +13849,11 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
       #d1trw = del1w
       ans1 = coneB(ztil, d1trw)
       num = sum((d1trw %*% ans1$coef)^2)
-      
+
       ## do weighted projection of xi=z, weights w, onto big cone
       delw = del
       for(i in 1:m){delw[,i] = del[,i]*sqrt(w)}
-      
+
       ans2 = coneB(ztil,delw[,1:(m-np)],delw[,(m-np+1):m])
       coef0 = ans2$coef
       coef = coef0
@@ -13835,7 +13875,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
         mdist[d+1] = mdist[d+1]+1
       }
       mdist = mdist/nsims
-      
+
       pval = mdist[1]
       for(i in 1:nk1){
         pval = pval+pbeta(bstat,i/2,df2/2)*mdist[i+1]
@@ -13862,7 +13902,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
       #nd = np?
       nd = ncol(deltil)
       that1 = deltil%*%chat2[1:nd]+del2[,1:nk]%*%chat2[(nd+1):m]
-      
+
       ss1 = sum((ztil - that1)^2)
       ss0 = sum((ztil - deltil %*% chat)^2)
       #print (ss0)
@@ -13884,7 +13924,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
         if(d < 3){zkeep=zsim}
       }
       mdist = mdist/nsims
-      
+
       pval = mdist[1]
       for(i in 1:nk) {
         pval = pval + pbeta(bstat,i/2,(n-np-i)/2)*mdist[i+1]
@@ -13901,8 +13941,8 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
 #cgam.pvz is to test categorical predictors, not every level
 #for mixed-effect model, use uinv_mat as w
 ############################################################
-cgam.pvz = function(y, bigmat, df_obs, sse1 = NULL, np = 1, zid = 1, zid1 = 1, zid2 = 1, muhat = NULL, 
-                    etahat = NULL, coefskeep = NULL, wt.iter=FALSE, family=gaussian(), weights=NULL, 
+cgam.pvz = function(y, bigmat, df_obs, sse1 = NULL, np = 1, zid = 1, zid1 = 1, zid2 = 1, muhat = NULL,
+                    etahat = NULL, coefskeep = NULL, wt.iter=FALSE, family=gaussian(), weights=NULL,
                     uinv_mat=NULL) {
   n = length(y)
   cicfamily = CicFamily(family)
@@ -13917,7 +13957,7 @@ cgam.pvz = function(y, bigmat, df_obs, sse1 = NULL, np = 1, zid = 1, zid1 = 1, z
   ysim.fun = cicfamily$ysim.fun
   deriv.fun = cicfamily$deriv.fun
   dev.fun = cicfamily$dev.fun
-  
+
   m = nrow(bigmat)
   df_full = min(m, 1.2*df_obs)
   if (is.null(weights)) {
@@ -13947,7 +13987,7 @@ cgam.pvz = function(y, bigmat, df_obs, sse1 = NULL, np = 1, zid = 1, zid1 = 1, z
       wt = wt.fun(y, etahat, n, weights, fml = family$family)
       cvec = wt * etahat - gr
     } else {wt = wt.fun(y, etahat, n, weights, fml = family$family)}
-    
+
     #new:
     if(is.null(uinv_mat)){
       zvec = zvec.fun(cvec, wt, y, fml = family$family)
@@ -14032,7 +14072,7 @@ cgam.pvz = function(y, bigmat, df_obs, sse1 = NULL, np = 1, zid = 1, zid1 = 1, z
       m0 = nrow(bigmat0)
       for(i in 1:m0){deltil[,i] = deltil[,i]*sqrt(w)}
       sse_r = sum((ztil - deltil %*% ans$coefs)^2)
-      
+
       deltil = t(bigmat)
       m = nrow(bigmat)
       for(i in 1:m){deltil[,i] = deltil[,i]*sqrt(w)}
