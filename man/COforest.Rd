@@ -34,7 +34,7 @@ This data set contains 9167 records of different species of live trees for 345 s
 }
 
 \references{
-X. Liao and M. Meyer (2019). Estimation and Inference in Mixed-Effect Regression Models using Shape Constraints, with Application to Tree Height Estimation. (\emph{Journal of the Royal Statistical Society. Series C: Applied Statistics 69(2), 353-375.})
+X. Liao and M. Meyer (2019). Estimation and Inference in Mixed-Effect Regression Models using Shape Constraints, with Application to Tree Height Estimation. (\emph{to appear in Journal of the Royal Statistical Society. Series C: Applied Statistics})
 }
 \source{
 It is provided by Forest Inventory Analysis (FIA) National Program.

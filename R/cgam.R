@@ -3053,812 +3053,874 @@ print.summary.wps <- function(x,...) {
 #predict.cgam#
 ##############
 predict.cgam = function(object, newData, interval = c("none", "confidence", "prediction"), type = c("response", "link"), level = 0.95, n.mix = 500,...) {
-#print (is.data.frame(newData))
-#print (newData)
-#new:
-	family = object$family
-	cicfamily = CicFamily(family)
-	muhat.fun = cicfamily$muhat.fun
-	if (!inherits(object, "cgam")) {
-	    warning("calling predict.cgam(<fake-cgam-object>) ...")
-    }
-	if (missing(newData) || is.null(newData)) {
-	#if (missing(newData)) {
-		etahat = object$etahat
-		muhat = muhat.fun(etahat, fml = family$family)
-		#ans = list(fit = muhat, etahat = etahat, newbigmat = object$bigmat)
-		ans = list(fit = muhat)
-		return (ans)
-	}
-	if (!is.data.frame(newData)) {
-		#newData = as.data.frame(newData)
-		stop ("newData must be a data frame!")
-	}
-    #shapes = object$shapes
-#new: used for ci
-	prior.w = object$prior.w
-    vh = object$vh
-	y = object$y
-#new: only use shapes for x != umb or tree
-	shapes = object$shapesx
-    np = object$d0; capm = object$capm; capms = object$capms; capk = object$capk; capt = object$capt; capu = object$capu
-#new:
-	xid10 = object$xid1; xid20 = object$xid2;
-	uid1 = object$uid1; uid2 = object$uid2; tid1 = object$tid1; tid2 = object$tid2
-#new:
-	xmat0 = object$xmat0; knots0 = object$knots0; numknots0 = object$numknots0; sps0 = object$sps0; ms0 = object$ms0
-	zmat = object$zmat; umb = object$umb; tr = object$tr
-#new:
-	ztb = object$ztb; zid1 = object$zid1; zid2 = object$zid2; iz = 1
-	bigmat = object$bigmat; umbrella.delta = object$umbrella.delta; tree.delta = object$tree.delta
-	coefs = object$coefs; zcoefs = object$zcoefs; vcoefs = object$vcoefs; xcoefs0 = object$xcoefs; ucoefs = object$ucoefs; tcoefs = object$tcoefs
-	tt = object$tms
-	Terms = delete.response(tt)
-#model.frame will re-organize newData in the original order in formula
-	m = model.frame(Terms, newData)
-#print (m)
-	newdata = m
-#print (head(newdata))
-#new:
-	newx0 = NULL; newxv = NULL; newx = NULL; newx_s = NULL; newu = NULL; newt = NULL; newz = NULL; newv = NULL
-	#newz = list(); iz = 1;
-	rn = nrow(newdata)
-#print (rn)
-#new:
-	newetahat = 0; newmuhat = 0
-#new: newx_sbasis
-	newxbasis = NULL; newx_sbasis = NULL; newubasis = NULL; newtbasis = NULL; newbigmat = NULL
-#######################
-#local helper function#
-#######################
-	my_line = function(xp = NULL, y, x, end, start) {
-		slope = NULL
-		intercept = NULL
-		yp = NULL
-		slope = (y[end] - y[start]) / (x[end] - x[start])
-		intercept = y[end] - slope * x[end]
-		yp = intercept + slope * xp
-		ans = new.env()
-		ans$slope = slope
-		ans$intercept = intercept
-		ans$yp = yp
-		ans
-	}
-#get shape attributes and elem out of newdata
-	for (i in 1:ncol(newdata)) {
-		if (is.null(attributes(newdata[,i])$shape)) {
-			if (is.factor(newdata[,i])) {
-				lvli = levels(newdata[,i])
-				ztbi = levels(ztb[[iz]])
-				newdatai = NULL
-				if (!any(lvli %in% ztbi)) {
-					stop ("new factor level must be among factor levels in the fit!")
-				} else {
-					id1 = which(ztbi %in% lvli)
-					#if (any(id1 > 1)) {
-#delete the base level
-					klvls = length(ztbi)
-					if (klvls > 1) {
-						newimat = matrix(0, nrow = rn, ncol = klvls-1)
-					        for (i1 in 1:rn) {
-							if (newdata[i1,i] != ztbi[1]) {
-								id_col = which(ztbi %in% newdata[i1,i]) - 1
-								newimat[i1,id_col] = 1
-							}
-						}
-						#for (i1 in 1: klvls) {
-						#	which(levels(newdatai) == ztbi[i1])
-						#	for (i2 in 1:rn) {
-						#		if (levels(newdatai[i2, i1]) == lvli[i2]) {
-						#			if (lvli[i2] != ztbi[1]) {
-						#				newimat[i2, i1] = 1
-						#			}
-						#		}
-						#	}
-						#}
-						#ztb_use = ztbi[-1]
-						#nc = length(id1[id1 > 1])
-						#newdatai = matrix(0, nrow = rn, ncol = nc)
-						#for (ic in 1:nc) {
-						#	id2 = which(newdata[,i] == ztb_use[ic])
-						#	newdatai[id2, ic] = 1
-						#}
-						newdatai = newimat
-					}
-				}
-				#if (length(levels(newdata[,i])) > 2) {
-				#	klvls = length(levels(newdata[,i]))
-				#	vals = as.numeric(levels(newdata[,i]))
-				#	newimat = matrix(0, nrow = rn, ncol = klvls - 1)
-				#	for (i1 in 1: (klvls - 1)) {
-				#		for (i2 in 1:rn) {
-				#			if (newdatai[i2] == vals[i1 + 1]) {
-				#				newimat[i2, i1] = 1
-				#			}
-				#		}
-				#	}
-				#	newdatai = newimat
-				#}
-			} else {
-				newdatai = newdata[,i]
-			}
-			newz = cbind(newz, newdatai)
-			iz = iz + 1
-#print (head(newz))
-		}
-		if (is.numeric(attributes(newdata[,i])$shape)) {
-			newx0 = cbind(newx0, newdata[,i])
-			if ((attributes(newdata[,i])$shape > 2 & attributes(newdata[,i])$shape < 5) | (attributes(newdata[,i])$shape > 10 & attributes(newdata[,i])$shape < 13)) {
-				newxv = cbind(newxv, newdata[,i])
-			}
-		}
-		if (is.character(attributes(newdata[,i])$shape)) {
-       			if (attributes(newdata[,i])$shape == "tree") {
-				newt = cbind(newt, newdata[,i])
-			}
-       			if (attributes(newdata[,i])$shape == "umbrella") {
-				newu = cbind(newu, newdata[,i])
-			}
-     		}
-	}
-#print (head(newt))
-#print (head(newu))
-#print (head(newx0))
-#print (head(newxv))
-#print (head(newz))
-#print (head(newv))
-#new: separate x and x_s, move shape 17 to the beginning
-    idx_s <- NULL
-	if (!is.null(shapes)) {
-		if (any(shapes == 17)) {
-			kshapes <- length(shapes)
-        	obs <- 1:kshapes
-        	idx_s <- obs[which(shapes == 17)]; idx <- obs[which(shapes != 17)]
-			newx1 <- newx0
-			shapes0 <- 1:kshapes*0
-			newx1[,1:length(idx_s)] <- newx0[,idx_s]
-			shapes0[1:length(idx_s)] <- shapes[idx_s]
-			if (length(idx) > 0) {
-				newx1[,(1 + length(idx_s)):kshapes] <- newx0[,idx]
-				shapes0[(1 + length(idx_s)):kshapes] <- shapes[idx]
-    			}
-			newx0 <- newx1; shapes <- shapes0
-		}
-#new:xmat is ordinal, xmat_s is smooth
-xmat = xmat_s = NULL
-newx = newx_s = NULL
-knots = NULL
-ms_x = ms = NULL
-sh_x = sh = NULL
-		if (all(shapes < 9)) {
-			newx = newx0
-			xid1 = xid10; xid2 = xid20
-			xmat = xmat0
-#new:
-			sh_x = shapes
-			ms_x = ms0
-		} else if (all(shapes > 8)) {
-			newx_s = newx0
-			xid1_s = xid10; xid2_s = xid20
-			xmat_s = xmat0
-			numknots = numknots0
-			knots = knots0
-			sps = sps0
-			sh = shapes
-			ms = ms0
-		} else if (any(shapes > 8) & any(shapes < 9)) {
-			newx = newx0[, shapes < 9, drop = FALSE]
-			xmat = xmat0[, shapes < 9, drop = FALSE]
-#new:
-			sh_x = shapes[shapes < 9]
-			ms_x = ms0[shapes < 9]
-			xid1 = xid10[shapes < 9]; xid2 = xid20[shapes < 9]
-
-			newx_s = newx0[, shapes > 8, drop = FALSE]
-			xmat_s = xmat0[, shapes > 8, drop = FALSE]
-			sh = shapes[shapes > 8]
-			ms = ms0[shapes > 8]
-			xid1_s = xid10[shapes > 8]; xid2_s = xid20[shapes > 8]
-			numknots = numknots0[shapes > 8]
-			knots = knots0[shapes > 8]
-			sps = sps0[shapes > 8]
-		}
-	}
-	#if (!is.null(shapes) & any(shapes == 17)) {
-	if (!is.null(shapes)) {
-		vcoefs = vcoefs[1:(1 + capk + sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13))]
-	} else {vcoefs = vcoefs[1:(1 + capk)]}
-	if (capk > 0) {
-		vcoefs_nz = vcoefs[-c(2:(1 + capk))]
-	} else {vcoefs_nz = vcoefs}
-	newv = cbind(1:rn*0 + 1, newz, newxv)
-	newv_nz = cbind(1:rn*0 + 1, newxv)
-#print (newv_nz)
-#print (vcoefs)
-	#etahat_v = as.vector(newv %*% vcoefs)
-	etahat_v_nz = as.vector(newv_nz %*% vcoefs_nz)
-#print (etahat_v_nz)
-#new:
-	etahat_s = 1:rn*0; newx_sbasis = NULL; xs_coefs = NULL; var_xs = NULL
-	if (!is.null(newx_s)) {
- 		ks = ncol(newx_s)
-		del = NULL
-		for (i in 1:ks) {
-			xi = xmat_s[,i]
-			nxi = newx_s[,i]
-			if (any(nxi > max(xi)) | any(nxi < min(xi))) {
-				stop ("No extrapolation is allowed in cgam prediction!")
-			}
-#new: scale accordingly
-#nxi = (nxi - min(xi)) / (max(xi) - min(xi))
-			pos1 = xid1_s[i] - (1 + capk + sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13))
-			pos2 = xid2_s[i] - (1 + capk + sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13))
-			xs_coefs = c(xs_coefs, xcoefs0[pos1:pos2])
-			msi = ms[[i]]
-			deli_ans = makedelta(nxi, sh[i], numknots[i], knots[[i]], space = sps[i], suppre = TRUE, interp = TRUE)
-			deli = deli_ans$amat
-			if (sh[i] > 10 & sh[i] < 13) {
-				#x = xmat_s[,i]
-				xs = sort(xi)
-				ord = order(xi)
-				nx = length(xi)
-				obs = 1:nx
-				nr = nrow(deli)
-				nc = length(nxi)
-				ms2 = matrix(0, nrow = nr, ncol = nc)
-				for (i1 in 1:nc) {
-					for (i2 in 1:nr) {
-						ms2[i2, i1] = my_line(xp = nxi[i1], y = msi[i2, ][ord], x = xs, end = nx, start = 1)$yp
-					}
-				}
-				deli = deli - ms2
-			} else {
-				deli = deli - msi
-			}
-#new:
-			var_xs = c(var_xs, 1:nrow(deli)*0 + i)
-			del = rbind(del, deli)
-		}
-		newx_sbasis = t(del)
-		etahat_s = as.vector(newx_sbasis %*% xs_coefs)
-	}
-	etahat_x = 1:rn*0; newxbasis = NULL; xcoefs = NULL; var_x = NULL
-	if (!is.null(newx)) {
-		kx = ncol(xmat)
-		del = NULL
-		for (i in 1:kx) {
-			xi = xmat[,i]
-#new:
-			nxi = newx[,i]
-			if (any(nxi > max(xi)) | any(nxi < min(xi))) {
-				stop ("No extrapolation is allowed in cgam prediction!")
-			}
-#new: scale accordingly
-#nxi = (nxi - min(xi)) / (max(xi) - min(xi))
-			shi = sh_x[i]
-			pos1 = xid1[i] - (1 + capk + sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13))
-			pos2 = xid2[i] - (1 + capk + sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13))
-			xcoefs = c(xcoefs, xcoefs0[pos1:pos2])
-			deli = pred_del(xi, shi, nxi, ms_x[[i]])
-#new:
-			var_x = c(var_x, 1:nrow(deli)*0 + i)
-			del = rbind(del, deli)
-		}
-#new:
-		newxbasis = t(del)
-		etahat_x = as.vector(newxbasis %*% xcoefs)
-	}
-#new:
-	etahat_u = 1:rn*0; newuedge = NULL
-	if (!is.null(newu)) {
-		for (j in 1:ncol(umb)) {
-			u = umb[,j]
-			nu = length(u)
-			us = sort(u)
-			ord = order(u)
-			if (any(newu[,j] > max(u)) | any(newu[,j] < min(u))) {
-				stop ("no extrapolation is allowed in cgam!")
-			}
-			#u_edges = t(umbrella.fun(u))
-			pos1 = uid1[j]; pos2 = uid2[j]
-			u_edges = t(bigmat[pos1:pos2, , drop = FALSE])
-			nuedge = ncol(u_edges)
-			newuedge0 = matrix(0, nrow = rn, ncol = nuedge)
-			for (i in 1:nuedge) {
-				ue = u_edges[,i]; udist = round(diff(ue), 4); s = sign(udist)
-				ueord = ue[ord]; udistord = round(diff(ueord), 4); sord = sign(udistord)
-				obs = 1:(nu-1)
-				posin = obs[sord != 0] + 1
-				pos = unique(c(1, posin, nu))
-				uk = us[pos]
-				uek = ueord[pos]
-				npos = length(pos)
-				nd = length(newu[,j])
-				for (l in 1:(npos-1)) {
-					if (any(newu[,j] == uk[npos])) {
-						ids = which(newu[,j] == uk[npos])
-						newuedge0[ids,i] = uek[npos]
-					}
-					if (any(newu[,j] >= uk[l]) & any(newu[,j] < uk[l+1])) {
-						ids = which(newu[,j] >= uk[l] & newu[,j] < uk[l+1])
-						newuedge0[ids,i] = uek[l]
-					}
-				}
-			}
-			newuedge = cbind(newuedge, newuedge0)
-		}
-		newubasis = newuedge
-		etahat_u = as.vector(newubasis %*% ucoefs)
-	}
-# we don't have a newtbasis
-# estimate tree
-	etahat_t = 1:rn*0
-#print (newt)
-	if (!is.null(newt)) {
-#each column of  tru is a "table" of all levels of a tree var
-		tru = unique(tr)#; placebo = min(tru)
-		#tr_etahat = 0
-		for (i in 1: ncol(newt)) {
-			pos1 = tid1[i] - np - capm - capu
-			pos2 = tid2[i] - np - capm - capu
-			newtu = unique(newt[,i])
-			#tcoefi = tcoefs[pos1:pos2]
-#check!	add 0 to be the coef for placebo
-			tcoefi = c(0, tcoefs[pos1:pos2])
-			if (!all(newtu %in% tru[,i])) {
-				stop ("new tree ordering factor must be among the old tree ordering factors!")
-			}
-			#placebo = min(tru[,i])
-#new:
-			placebo = object$pl[i]
-			if (any(newtu != placebo)) {
-				#id_cf = which(tru[,i] %in% newtu) - 1 #no coef for placebo
-				#tr_etahat = tr_etahat + tcoefi[id_cf]
-				#id_cf = which(newtu > placebo)
-				id_cf = which(newtu != placebo)
-				t_use = newtu[id_cf]
-				nt = length(t_use)
-				for (it in 1:nt) {
-					etahat_t[newt[,i] == t_use[it]] = etahat_t[newt[,i] == t_use[it]] + tcoefi[tru[,i] == t_use[it]]
-				}
-			}
-		}
-		#etahat_t = tr_etahat
-	}
-#print (etahat_v)
-#print (etahat_s)
-#print (etahat_x)
-#print (etahat_u)
-#print (etahat_t)
-	etahat_z = 1:rn*0; zcf = NULL
-#print (newt)
-#print (newdata)
-	if (!is.null(newz)) {
-#delete the coef for 1
-		zcoefs = zcoefs[-1]
-		etahat_z = newz %*% zcoefs
-		#ztbu = unique(ztb)#; placebo = min(ztbu)
-		#lz = ncol(newz)
-		#for (i in 1:lz) {
-		#	pos1 = zid1[i]
-		#	pos2 = zid2[i]
-		#	zcoefi = zcoefs[pos1:pos2]
-		#	zlvi = zcoefs[pos1:pos2]
-		#	etahat_z[newz[,i] == 1] = etahat_z[newz[,i] == 1] + zcoefi
-		#}
-	}
-#print (etahat_z)
-	etahat_v = etahat_v_nz + etahat_z
-	newetahat = etahat_v + etahat_s + etahat_x + etahat_u + etahat_t
-	newmuhat = as.vector(muhat.fun(newetahat, fml = family$family))
-	if (!is.null(newt)) {
-		newtbasis = t(tree.delta[,1:nrow(newData),drop = FALSE])
-	}
-#print (newv)
-	#newbigmat = t(cbind(newv, newx_sbasis, newxbasis, newubasis, newtbasis))
-	#ans = list(v = newv, xbs = newxbasis, x_sbs = newx_sbasis, ubs = newubasis, tbs = newtbasis, bigmat = newbigmat, vcoefs = vcoefs, xcoefs = xcoefs, xs_coefs = xs_coefs, ucoefs = ucoefs, etahat = newetahat, muhat = newmuhat)
-	#ans = list(muhat = newmuhat)
-	#muhat = newmuhat
-	if ("none" %in% interval) {
-		ans = list(fit = newmuhat, object = object)
-#new: add prediction interval
-	} else if (interval == "confidence" | interval == "prediction") {
-		n = ncol(bigmat)
-		nc = ncol(xmat0)
-		spl = splpr = NULL
-		m_acc = 0
-		object$ms0 -> ms0
-#sh = 17 first
-		object$shapesx0 -> shapes
-        #new:
-        varlist = NULL
-		for (i in 1:nc) {
-			msi = ms0[[i]]
-			shpi = shapes[i]
-			ki = knots0[[i]]
-			xi = xmat0[,i]
-			xipr = newx0[,i]
-			deli = makedelta(xi, shpi, knots = ki)
-			#print (i)
-			#if (i == 2) {
-			#	stop (print (msi))
-			#}
-			spli = deli$amat
-            varlist = c(varlist, rep(i, nrow(spli)))
-			if (shpi >= 9) {
-				dpri = makedelta(xipr, shpi, knots = ki, suppre = TRUE, interp = TRUE)
-				splpri = dpri$amat
-				if (shpi > 10 & shpi < 13) {
-					xs = sort(xi)
-					ord = order(xi)
-					#nx = length(xi)
-#nx is n
-					obs = 1:n
-					nr = nrow(splpri)
-					#nc = length(xipr)
-#rn is the length of a new vector
-					ms2 = matrix(0, nrow = nr, ncol = rn)
-					for (i1 in 1:rn) {
-						for (i2 in 1:nr) {
-							ms2[i2, i1] = my_line(xp = xipr[i1], y = msi[i2, ][ord], x = xs, end = n, start = 1)$yp
-						}
-					}
-					splpri = splpri - ms2
-				} else {
-					splpri = splpri - msi
-				}
-			} else {splpri = pred_del(xi, shpi, xipr, msi)}
-			mi = dim(spli)[1]
-			m_acc = m_acc + mi
-			spl = rbind(spl, spli)
-			splpr = rbind(splpr, splpri)
-		}
-		capk = object$capk
-		p = 1 + capk + sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13)
-		zmat = t(bigmat[1:p, ,drop = FALSE])
-        if (family$family == "gaussian") {
-            #nloop = 1000
-            nloop = n.mix
-            #nsec will be too big for ordinal, ignore for now
-            nsec = 2^m_acc
-            #print (dim(zmat))
-            if (is.null(prior.w)) {
-                prior.w = rep(1, n)
-            }
-            if (!all(prior.w == 1)) {
-                for (i in 1:n) {
-                    spl[,i] = spl[,i] * sqrt(prior.w[i])
-                    zmat[i,] = zmat[i,] * sqrt(prior.w[i])
-                }
-            }
-            if (!is.null(vh)) {
-                wvec = 1/vh
-            } else if (is.null(vh) & !is.null(prior.w)) {
-                wvec = prior.w
-            } else if (is.null(vh) & is.null(prior.w)) {
-                wvec = rep(1, n)
-            }
-            if (!all(wvec == 1)) {
-                for (i in 1:n) {
-                    spl[,i] = spl[,i] * sqrt(wvec[i])
-                    zmat[i,] = zmat[i,] * sqrt(wvec[i])
-                }
-            }
-            yw = y * sqrt(wvec)
-            #ans1 = coneB(yw, spl, zmat)
-            ans1 = coneB(yw, t(spl), zmat)
-            face = ans1$face
-            muhat = ans1$yhat
-            #muhat = object$muhat
-            muhat0 = muhat / sqrt(wvec)
-            #muhat0 = object$muhat
-            #muhat = muhat0 * sqrt(prior.w)
-            #print (ans1$df)
-            #print (ans1$coef)
-            sighat = sqrt(sum((yw - muhat)^2) / (n - 1.5*ans1$df))  ## varest is too large but "conservative"
-            #sighat = sqrt(sum((yw - muhat)^2) / (n - 1.5*object$df_obs))
-            nv = p
-            ## estimate sector probabilties
-            #set.seed(1)
-            #sector = Matrix(1:nsec*0,nrow=1)
-            #sector = big.matrix(1:nsec*0,nrow=1)
-            #sector = 1:nsec*0
-            #for (iloop in 1:nloop) {
-            #    ysim = muhat0 + rnorm(n)*sighat
-            #    ysim = ysim * sqrt(wvec)
-            #    #ans = coneB(ysim, spl, zmat)
-            #    ans = coneB(ysim, t(spl), zmat, face = face)
-            #    cf = round(ans$coefs[(nv+1):(m_acc+nv)], 10)
-            #    sec = 1:m_acc*0
-            #    sec[cf > 0] = 1
-            #    r = makebin(sec) + 1
-            #    sector[r] = sector[r] + 1
-            #}
-            ### calculate the mixture hat matrix:
-            #bsec = matrix(0, nrow=nsec,ncol=2)
-            #bsec[,1] = 1:nsec
-            #bsec[,2] = sector / nsec
-            #keep = sector > 0
-            #bsec = bsec[keep,]
-            #ns = dim(bsec)[1]
-            #bsec[,2] = bsec[,2] / sum(bsec[,2])
-
-
-           #new: not use sector = 1:nsec*0; simulate for 1,000 times and record the faces used more than once
-           # if times / nloop < 1e-3, then delete
-           sector = NULL
-           times = NULL
-           df = NULL
-           #first column shows sector; second column shows times
-           for (iloop in 1:nloop) {
-               ysim = muhat0 + rnorm(n)*sighat
-               ysim = ysim * sqrt(prior.w)
-               ans = coneB(ysim, t(spl), zmat, face = face)
-               cf = round(ans$coefs[(nv+1):(m_acc+nv)], 10)
-               sec = 1:m_acc*0
-               sec[cf > 0] = 1
-               sector = rbind(sector, sec)
-               r = makebin(sec) + 1
-               #sector[r] = sector[r] + 1
-               if (iloop == 1) {
-                   df = rbind(df, c(r, 1))
-               } else {
-                   if (r %in% df[,1]) {
-                       ps = which(df[,1] %in% r)
-                       df[ps,2] = df[ps,2] + 1
-                   } else {
-                       df = rbind(df, c(r, 1))
-                   }
-               }
-           }
-
-            #remove times/sum(times) < 1e-3??
-            sm_id = which((df[,2]/nloop) < 1e-3)
-            if (any(sm_id)) {
-                df = df[-sm_id, ,drop=FALSE]
-            }
-
-            #new:
-            ns = nrow(df)
-            bsec = df
-            bsec[,2] = bsec[,2] / sum(bsec[,2])
-            ord = order(bsec[,1])
-            bsec = bsec[ord, ,drop=FALSE]
-
-            ### calculate the mixture cov(alpha) matrix:
-            obs = 1:m_acc;oobs = 1:(m_acc+nv)
-            acov = matrix(0, nrow = m_acc+nv, ncol = m_acc+nv)
-            for (is in 1:ns) {
-                if (bsec[is,2] > 0) {
-                    jvec = getbin(bsec[is,1], m_acc)
-                    if (sum(jvec) == 1) {
-                        smat = cbind(zmat, spl[which(jvec==1),])
-                    } else if (sum(jvec) == 0) {
-                        smat = zmat
-                    } else {
-                        smat = cbind(zmat, t(spl[which(jvec==1),]))
-                    }
-                    acov1 = bsec[is,2]*solve(t(smat)%*%smat)
-                    acov2 = matrix(0,nrow=m_acc+nv,ncol=m_acc+nv)
-                    jobs = 1:(m_acc+nv)>0
-                    jm = 1:m_acc>0
-                    jm[obs[jvec==0]] = FALSE
-                    jobs[(nv+1):(m_acc+nv)] = jm
-                    nobs = oobs[jobs==TRUE]
-                    for (i in 1:sum(jobs)) {
-                        acov2[nobs[i],jobs] = acov1[i,]
-                    }
-                    acov = acov+acov2
-                }
-            }
-            acov = acov*sighat^2
-            #only xmatpr and splpr have interpolation points
-            xmatpr = cbind(newv, t(splpr))
-            #muhatpr = xmatpr %*% ans1$coefs
-            #temp:
-            muhatpr = xmatpr %*% object$coefs[1:ncol(xmatpr), ,drop=FALSE]
-            #new: C.I. level
-            mult = qnorm((1 - level)/2, lower.tail=FALSE)
-            #hl = 2*sqrt(diag(xmatpr%*%acov%*%t(xmatpr)))
-            if (interval == "confidence") {
-                hl = mult*sqrt(diag(xmatpr%*%acov%*%t(xmatpr)))
-            }
-            if (interval == "prediction") {
-                hl = mult*sqrt(sighat^2+diag(xmatpr%*%acov%*%t(xmatpr)))
-            }
-            #ans = list(fit = muhatpr, lower = muhatpr - hl, upper = muhatpr + hl)
-        } else {
-            ## initialize
-            m = nrow(bigmat)
-            #amat is different from the original code, because we put zmat at the first p columns in cgam
-            #amat = matrix(0, nrow = (m-p), ncol = m)
-            #for(i in (p+1):m){amat[i,i]=1}
-            #the constraint is amat%*%bh >= 0; not constrain vmat
-            amat = diag(m-p)
-            zerom = matrix(0, nrow=nrow(amat), ncol=p)
-            amat = cbind(zerom, amat)
-            #alp0 = 1:m*0
-            #eta0 = del%*%alp0
-            #eta0 = 1:n*0
-            #mu0 = 1:n*0 + 0.5
-            z = 1:n*0
-            ## get the dimension of the face
-            deltil = t(bigmat)
-            w = object$wt
-            for(i in 1:m){deltil[,i]=deltil[,i]*sqrt(w)}
-            umat = chol(crossprod(deltil))
-            uinv = solve(umat)
-            atil = amat%*%uinv
-            bh = coef(object)
-            #check
-            etahat = object$etahat
-            muhat = fitted(object)
-            #z = etahat + (y - muhat)/muhat/(1-muhat)
-            #ch = muhat > 1e-5 & muhat < 1-(1e-5)
-            #z[ch] = etahat[ch] + (y[ch]-muhat[ch])/muhat[ch]/(1-muhat[ch])
-            #z[!ch] = etahat[!ch]
-            #w[ch] = muhat[ch]*(1-muhat[ch])
-            #w[!ch] = 1e-5
-            #z=eta0+(y-mu0)/mu0/(1-mu0)
-            z = etahat + (y - muhat) / family$variance(muhat)
-            ztil = z*sqrt(w)
-
-            rw = round(amat%*% bh, 6) == 0
-            #print (sum(rw) == 0)
-            if(sum(rw) == 0){
-                raj = 0
-                edf = m
-            } else {
-                ajc = atil[rw,]
-                raj = rankMatrix(t(ajc))[1]
-                edf = min(m, 1.2*(m-raj))
-            }
-            ## thhat is final cone projection
-            thhat = deltil %*% bh
-            shat = sum((ztil - thhat)^2)/(n - edf)
-            nloop = 100
-            cmat = matrix(0, nrow = m, ncol = m)
-            for(iloop in 1:nloop){
-                zsim = thhat + rnorm(n)*shat
-                zsimtil = t(uinv) %*% t(deltil) %*% zsim
-                #if (iloop == 1) {
-                asim = coneA(zsimtil, atil)
-                #    face = asim$face
-                #} else {
-                #    if (length(face) >= 1) {
-                #        asim = coneA(zsimtil, atil, face = face)
-                #    } else{asim = coneA(zsimtil, atil)}
-                #}
-                ## get the matrix wm: cols span row space orthogonal to rows of A_J^c
-                rw = round(atil %*% asim$thetahat, 6) == 0
-                if(sum(rw) == 0){
-                    #pjmat = t(atil) %*% solve(atil %*% t(atil)) %*% atil
-                    pjmat = t(atil) %*% solve(tcrossprod(atil), atil)
-                } else {
-                    ajc = atil[rw,]
-                    if(length(ajc) == m){
-                        wm = ajc/sqrt(sum(ajc^2))
-                        wm = matrix(wm, ncol=1)
-                    }else{
-                        aqr = qr(t(ajc))
-                        wm = qr.Q(aqr)[,1:aqr$rank]
-                    }
-                    pjmat = -wm%*%t(wm)
-                    for(i in 1:m){pjmat[i,i] = pjmat[i,i]+1}
-                }
-                cmat = cmat + uinv %*% pjmat %*% t(uinv)/nloop
-            }
-            cmat = cmat*shat
-            #coveta = diag(del%*%cmat%*%t(del))
-            xmatpr = cbind(newv, t(splpr))
-            #coveta = diag(del%*%cmat%*%t(del))
-            coveta = diag(xmatpr%*%cmat%*%t(xmatpr))
-            etapr = xmatpr%*%bh
-            #muhatpr = 1 - 1/(1+exp(etapr))
-            muhatpr = family$linkinv(etapr)
-            #new: C.I. level
-            mult = qnorm((1 - level)/2, lower.tail=FALSE)
-            #if (interval == "confidence") {
-                uppeta = etapr + mult*sqrt(coveta)
-                loweta = etapr - mult*sqrt(coveta)
-                uppmu = family$linkinv(uppeta)
-                lowmu = family$linkinv(loweta)
-                #uppmu = 1 - 1/(1+exp(uppeta))
-                #lowmu = 1 - 1/(1+exp(loweta))
-            #}
-        }
-        #new: thvs are for individual c.i. bands and surfaces
-        #smooth additive terms only, no umbrella or tree
-        if (family$family == "gaussian") {
-            dcoefs = object$coefs[(np - capms + 1):(np + capm),,drop=FALSE]
-            etacomps = object$etacomps
-            capl = nrow(etacomps)
-            thvs_upp = thvs_lwr = matrix(0, nrow = capl, ncol = rn)
-            ncon = 1
-            # temp: constrained smooth terms covariance
-            acov2 = acov[-c(1:np),-c(1:np)]
-            for (i in 1:capl) {
-                ddi = t(splpr[varlist == i, ,drop=FALSE])
-                acovi = acov2[varlist == i, varlist == i]
-                hli = mult*sqrt(diag(ddi %*% acovi %*% t(ddi)))
-                ei = ddi%*%dcoefs[varlist == i, ,drop=FALSE]
-                thvs_upp[i,] = ei + hli
-                thvs_lwr[i,] = ei - hli
-            }
-
-            # order thvs back
-            if (length(idx_s) > 0) {
-                thvs0_upp = thvs_upp
-                thvs0_upp[idx_s,] = thvs_upp[1:length(idx_s), ]
-                thvs0_lwr = thvs_lwr
-                thvs0_lwr[idx_s,] = thvs_lwr[1:length(idx_s), ]
-                if (length(idx) > 0) {
-                    thvs0_upp[idx,] = thvs_upp[(1+length(idx_s)):capl, ]
-                    thvs0_lwr[idx,] = thvs_lwr[(1+length(idx_s)):capl, ]
-                }
-                thvs_upp = thvs0_upp
-                thvs_lwr = thvs0_lwr
-            }
-            #new: problem when not gaussian
-            if (object$sc_y) {
-                for (i in 1:nrow(thvs_upp)) {
-                    thvs_upp[i,] = thvs_upp[i,] * object$sc
-                    thvs_lwr[i,] = thvs_lwr[i,] * object$sc
-                }
-            }
-        }
-		    #new: NASA's idea for monotonic CI
-		    if (family$family == "gaussian") {
-		      lwr = muhatpr - hl
-		      upp = muhatpr + hl
-	      } else {
-	        lwr = loweta
-	        upp = uppeta
-	      }
-		    #for now, only handles one predictor
-		    if (length(object$shapes) == 1) {
-		      lwr_tmp = lwr
-		      upp_tmp = upp
-		      check_ps_lwr = diff(lwr_tmp)
-		      check_ps_upp = diff(upp_tmp)
-		      if (object$shapes == 9) {
-		        ps_lwr = which(check_ps_lwr < 0) 
-		        lwr_tmp[ps_lwr + 1] = lwr_tmp[ps_lwr]
-		        
-		        ps_upp = which(check_ps_upp < 0) 
-		        upp_tmp[ps_upp] = upp_tmp[ps_upp + 1] 
-		      }
-		      if (object$shapes == 10) {
-		        ps_lwr = which(check_ps_lwr > 0) 
-		        lwr_tmp[ps_lwr] = lwr_tmp[ps_lwr + 1]
-		        
-		        ps_upp = which(check_ps_upp > 0) 
-		        upp_tmp[ps_upp + 1] = upp_tmp[ps_upp] 
-		      }
-		      lwr = lwr_tmp
-		      upp = upp_tmp
-		    }
-		    
-		    if ("response" %in% type) {
-		      lwr = family$linkinv(lwr)
-		      upp = family$linkinv(upp)
-		    }
-		
-        if (family$family == "gaussian") {
-          ans = list(fit = muhatpr, lower = lwr, upper = upp, acov = acov, object = object, mult = mult, thvs_upp = thvs_upp, thvs_lwr = thvs_lwr)
-          #ans = list(fit = muhatpr, lower = muhatpr - hl, upper = muhatpr + hl, acov = acov, object = object, mult = mult, thvs_upp = thvs_upp, thvs_lwr = thvs_lwr)
-        } else { #else if (family$family == "binomial") {
-            if ("response" %in% type) {
-              ans = list(fit = muhatpr, lower = lwr, upper = upp, object = object, mult = mult)
-              #ans = list(fit = muhatpr, lower = lowmu, upper = uppmu, object = object, mult = mult)
-            } else if ("link" %in% type) {
-              ans = list(fit = etapr, lower = lwr, upper = upp, object = object, mult = mult)
-              #ans = list(fit = etapr, lower = loweta, upper = uppeta, object = object, mult = mult)
-            }
-        }
-    }
-    class(ans) = "cgamp"
+  #print (is.data.frame(newData))
+  #print (newData)
+  #new:
+  family = object$family
+  cicfamily = CicFamily(family)
+  muhat.fun = cicfamily$muhat.fun
+  if (!inherits(object, "cgam")) {
+    warning("calling predict.cgam(<fake-cgam-object>) ...")
+  }
+  if (missing(newData) || is.null(newData)) {
+    #if (missing(newData)) {
+    etahat = object$etahat
+    muhat = muhat.fun(etahat, fml = family$family)
+    #ans = list(fit = muhat, etahat = etahat, newbigmat = object$bigmat)
+    ans = list(fit = muhat)
     return (ans)
+  }
+  if (!is.data.frame(newData)) {
+    #newData = as.data.frame(newData)
+    stop ("newData must be a data frame!")
+  }
+  #shapes = object$shapes
+  #new: used for ci
+  prior.w = object$prior.w
+  vh = object$vh
+  y = object$y
+  #new: only use shapes for x != umb or tree
+  shapes = object$shapesx
+  np = object$d0; capm = object$capm; capms = object$capms; capk = object$capk; capt = object$capt; capu = object$capu
+  #new:
+  xid10 = object$xid1; xid20 = object$xid2;
+  uid1 = object$uid1; uid2 = object$uid2; tid1 = object$tid1; tid2 = object$tid2
+  #new:
+  xmat0 = object$xmat0; knots0 = object$knots0; numknots0 = object$numknots0; sps0 = object$sps0; ms0 = object$ms0
+  zmat = object$zmat; umb = object$umb; tr = object$tr
+  #new:
+  ztb = object$ztb; zid1 = object$zid1; zid2 = object$zid2; iz = 1
+  bigmat = object$bigmat; umbrella.delta = object$umbrella.delta; tree.delta = object$tree.delta
+  coefs = object$coefs; zcoefs = object$zcoefs; vcoefs = object$vcoefs; xcoefs0 = object$xcoefs; ucoefs = object$ucoefs; tcoefs = object$tcoefs
+  tt = object$tms
+  Terms = delete.response(tt)
+  #model.frame will re-organize newData in the original order in formula
+  m = model.frame(Terms, newData)
+  #print (m)
+  newdata = m
+  #print (head(newdata))
+  #new:
+  newx0 = NULL; newxv = NULL; newx = NULL; newx_s = NULL; newu = NULL; newt = NULL; newz = NULL; newv = NULL
+  #newz = list(); iz = 1;
+  rn = nrow(newdata)
+  #print (rn)
+  #new:
+  newetahat = 0; newmuhat = 0
+  #new: newx_sbasis
+  newxbasis = NULL; newx_sbasis = NULL; newubasis = NULL; newtbasis = NULL; newbigmat = NULL
+  #######################
+  #local helper function#
+  #######################
+  my_line = function(xp = NULL, y, x, end, start) {
+    slope = NULL
+    intercept = NULL
+    yp = NULL
+    slope = (y[end] - y[start]) / (x[end] - x[start])
+    intercept = y[end] - slope * x[end]
+    yp = intercept + slope * xp
+    ans = new.env()
+    ans$slope = slope
+    ans$intercept = intercept
+    ans$yp = yp
+    ans
+  }
+  #get shape attributes and elem out of newdata
+  for (i in 1:ncol(newdata)) {
+    if (is.null(attributes(newdata[,i])$shape)) {
+      if (is.factor(newdata[,i])) {
+        lvli = levels(newdata[,i])
+        ztbi = levels(ztb[[iz]])
+        newdatai = NULL
+        if (!any(lvli %in% ztbi)) {
+          stop ("new factor level must be among factor levels in the fit!")
+        } else {
+          id1 = which(ztbi %in% lvli)
+          #if (any(id1 > 1)) {
+          #delete the base level
+          klvls = length(ztbi)
+          if (klvls > 1) {
+            newimat = matrix(0, nrow = rn, ncol = klvls-1)
+            for (i1 in 1:rn) {
+              if (newdata[i1,i] != ztbi[1]) {
+                id_col = which(ztbi %in% newdata[i1,i]) - 1
+                newimat[i1,id_col] = 1
+              }
+            }
+            #for (i1 in 1: klvls) {
+            #	which(levels(newdatai) == ztbi[i1])
+            #	for (i2 in 1:rn) {
+            #		if (levels(newdatai[i2, i1]) == lvli[i2]) {
+            #			if (lvli[i2] != ztbi[1]) {
+            #				newimat[i2, i1] = 1
+            #			}
+            #		}
+            #	}
+            #}
+            #ztb_use = ztbi[-1]
+            #nc = length(id1[id1 > 1])
+            #newdatai = matrix(0, nrow = rn, ncol = nc)
+            #for (ic in 1:nc) {
+            #	id2 = which(newdata[,i] == ztb_use[ic])
+            #	newdatai[id2, ic] = 1
+            #}
+            newdatai = newimat
+          }
+        }
+        #if (length(levels(newdata[,i])) > 2) {
+        #	klvls = length(levels(newdata[,i]))
+        #	vals = as.numeric(levels(newdata[,i]))
+        #	newimat = matrix(0, nrow = rn, ncol = klvls - 1)
+        #	for (i1 in 1: (klvls - 1)) {
+        #		for (i2 in 1:rn) {
+        #			if (newdatai[i2] == vals[i1 + 1]) {
+        #				newimat[i2, i1] = 1
+        #			}
+        #		}
+        #	}
+        #	newdatai = newimat
+        #}
+      } else {
+        newdatai = newdata[,i]
+      }
+      newz = cbind(newz, newdatai)
+      iz = iz + 1
+      #print (head(newz))
+    }
+    if (is.numeric(attributes(newdata[,i])$shape)) {
+      newx0 = cbind(newx0, newdata[,i])
+      if ((attributes(newdata[,i])$shape > 2 & attributes(newdata[,i])$shape < 5) | (attributes(newdata[,i])$shape > 10 & attributes(newdata[,i])$shape < 13)) {
+        newxv = cbind(newxv, newdata[,i])
+      }
+    }
+    if (is.character(attributes(newdata[,i])$shape)) {
+      if (attributes(newdata[,i])$shape == "tree") {
+        newt = cbind(newt, newdata[,i])
+      }
+      if (attributes(newdata[,i])$shape == "umbrella") {
+        newu = cbind(newu, newdata[,i])
+      }
+    }
+  }
+  #print (head(newt))
+  #print (head(newu))
+  #print (head(newx0))
+  #print (head(newxv))
+  #print (head(newz))
+  #print (head(newv))
+  #new: separate x and x_s, move shape 17 to the beginning
+  idx_s <- NULL
+  if (!is.null(shapes)) {
+    if (any(shapes == 17)) {
+      kshapes <- length(shapes)
+      obs <- 1:kshapes
+      idx_s <- obs[which(shapes == 17)]; idx <- obs[which(shapes != 17)]
+      newx1 <- newx0
+      shapes0 <- 1:kshapes*0
+      newx1[,1:length(idx_s)] <- newx0[,idx_s]
+      shapes0[1:length(idx_s)] <- shapes[idx_s]
+      if (length(idx) > 0) {
+        newx1[,(1 + length(idx_s)):kshapes] <- newx0[,idx]
+        shapes0[(1 + length(idx_s)):kshapes] <- shapes[idx]
+      }
+      newx0 <- newx1; shapes <- shapes0
+    }
+    #new:xmat is ordinal, xmat_s is smooth
+    xmat = xmat_s = NULL
+    newx = newx_s = NULL
+    knots = NULL
+    ms_x = ms = NULL
+    sh_x = sh = NULL
+    if (all(shapes < 9)) {
+      newx = newx0
+      xid1 = xid10; xid2 = xid20
+      xmat = xmat0
+      #new:
+      sh_x = shapes
+      ms_x = ms0
+    } else if (all(shapes > 8)) {
+      newx_s = newx0
+      xid1_s = xid10; xid2_s = xid20
+      xmat_s = xmat0
+      numknots = numknots0
+      knots = knots0
+      sps = sps0
+      sh = shapes
+      ms = ms0
+    } else if (any(shapes > 8) & any(shapes < 9)) {
+      newx = newx0[, shapes < 9, drop = FALSE]
+      xmat = xmat0[, shapes < 9, drop = FALSE]
+      #new:
+      sh_x = shapes[shapes < 9]
+      ms_x = ms0[shapes < 9]
+      xid1 = xid10[shapes < 9]; xid2 = xid20[shapes < 9]
+
+      newx_s = newx0[, shapes > 8, drop = FALSE]
+      xmat_s = xmat0[, shapes > 8, drop = FALSE]
+      sh = shapes[shapes > 8]
+      ms = ms0[shapes > 8]
+      xid1_s = xid10[shapes > 8]; xid2_s = xid20[shapes > 8]
+      numknots = numknots0[shapes > 8]
+      knots = knots0[shapes > 8]
+      sps = sps0[shapes > 8]
+    }
+  }
+  #if (!is.null(shapes) & any(shapes == 17)) {
+  if (!is.null(shapes)) {
+    vcoefs = vcoefs[1:(1 + capk + sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13))]
+  } else {vcoefs = vcoefs[1:(1 + capk)]}
+  if (capk > 0) {
+    vcoefs_nz = vcoefs[-c(2:(1 + capk))]
+  } else {vcoefs_nz = vcoefs}
+  newv = cbind(1:rn*0 + 1, newz, newxv)
+  newv_nz = cbind(1:rn*0 + 1, newxv)
+  #print (newv_nz)
+  #print (vcoefs)
+  #etahat_v = as.vector(newv %*% vcoefs)
+  etahat_v_nz = as.vector(newv_nz %*% vcoefs_nz)
+  #print (etahat_v_nz)
+  #new:
+  etahat_s = 1:rn*0; newx_sbasis = NULL; xs_coefs = NULL; var_xs = NULL
+  if (!is.null(newx_s)) {
+    ks = ncol(newx_s)
+    del = NULL
+    for (i in 1:ks) {
+      xi = xmat_s[,i]
+      nxi = newx_s[,i]
+      if (any(nxi > max(xi)) | any(nxi < min(xi))) {
+        stop ("No extrapolation is allowed in cgam prediction!")
+      }
+      #new: scale accordingly
+      #nxi = (nxi - min(xi)) / (max(xi) - min(xi))
+      pos1 = xid1_s[i] - (1 + capk + sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13))
+      pos2 = xid2_s[i] - (1 + capk + sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13))
+      xs_coefs = c(xs_coefs, xcoefs0[pos1:pos2])
+      msi = ms[[i]]
+      deli_ans = makedelta(nxi, sh[i], numknots[i], knots[[i]], space = sps[i], suppre = TRUE, interp = TRUE)
+      deli = deli_ans$amat
+      if (sh[i] > 10 & sh[i] < 13) {
+        #x = xmat_s[,i]
+        xs = sort(xi)
+        ord = order(xi)
+        nx = length(xi)
+        obs = 1:nx
+        nr = nrow(deli)
+        nc = length(nxi)
+        ms2 = matrix(0, nrow = nr, ncol = nc)
+        for (i1 in 1:nc) {
+          for (i2 in 1:nr) {
+            ms2[i2, i1] = my_line(xp = nxi[i1], y = msi[i2, ][ord], x = xs, end = nx, start = 1)$yp
+          }
+        }
+        deli = deli - ms2
+      } else {
+        deli = deli - msi
+      }
+      #new:
+      var_xs = c(var_xs, 1:nrow(deli)*0 + i)
+      del = rbind(del, deli)
+    }
+    newx_sbasis = t(del)
+    etahat_s = as.vector(newx_sbasis %*% xs_coefs)
+  }
+  etahat_x = 1:rn*0; newxbasis = NULL; xcoefs = NULL; var_x = NULL
+  if (!is.null(newx)) {
+    kx = ncol(xmat)
+    del = NULL
+    for (i in 1:kx) {
+      xi = xmat[,i]
+      #new:
+      nxi = newx[,i]
+      if (any(nxi > max(xi)) | any(nxi < min(xi))) {
+        stop ("No extrapolation is allowed in cgam prediction!")
+      }
+      #new: scale accordingly
+      #nxi = (nxi - min(xi)) / (max(xi) - min(xi))
+      shi = sh_x[i]
+      pos1 = xid1[i] - (1 + capk + sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13))
+      pos2 = xid2[i] - (1 + capk + sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13))
+      xcoefs = c(xcoefs, xcoefs0[pos1:pos2])
+      deli = pred_del(xi, shi, nxi, ms_x[[i]])
+      #new:
+      var_x = c(var_x, 1:nrow(deli)*0 + i)
+      del = rbind(del, deli)
+    }
+    #new:
+    newxbasis = t(del)
+    etahat_x = as.vector(newxbasis %*% xcoefs)
+  }
+  #new:
+  etahat_u = 1:rn*0; newuedge = NULL
+  if (!is.null(newu)) {
+    for (j in 1:ncol(umb)) {
+      u = umb[,j]
+      nu = length(u)
+      us = sort(u)
+      ord = order(u)
+      if (any(newu[,j] > max(u)) | any(newu[,j] < min(u))) {
+        stop ("no extrapolation is allowed in cgam!")
+      }
+      #u_edges = t(umbrella.fun(u))
+      pos1 = uid1[j]; pos2 = uid2[j]
+      u_edges = t(bigmat[pos1:pos2, , drop = FALSE])
+      nuedge = ncol(u_edges)
+      newuedge0 = matrix(0, nrow = rn, ncol = nuedge)
+      for (i in 1:nuedge) {
+        ue = u_edges[,i]; udist = round(diff(ue), 4); s = sign(udist)
+        ueord = ue[ord]; udistord = round(diff(ueord), 4); sord = sign(udistord)
+        obs = 1:(nu-1)
+        posin = obs[sord != 0] + 1
+        pos = unique(c(1, posin, nu))
+        uk = us[pos]
+        uek = ueord[pos]
+        npos = length(pos)
+        nd = length(newu[,j])
+        for (l in 1:(npos-1)) {
+          if (any(newu[,j] == uk[npos])) {
+            ids = which(newu[,j] == uk[npos])
+            newuedge0[ids,i] = uek[npos]
+          }
+          if (any(newu[,j] >= uk[l]) & any(newu[,j] < uk[l+1])) {
+            ids = which(newu[,j] >= uk[l] & newu[,j] < uk[l+1])
+            newuedge0[ids,i] = uek[l]
+          }
+        }
+      }
+      newuedge = cbind(newuedge, newuedge0)
+    }
+    newubasis = newuedge
+    etahat_u = as.vector(newubasis %*% ucoefs)
+  }
+  # we don't have a newtbasis
+  # estimate tree
+  etahat_t = 1:rn*0
+  #print (newt)
+  if (!is.null(newt)) {
+    #each column of  tru is a "table" of all levels of a tree var
+    tru = unique(tr)#; placebo = min(tru)
+    #tr_etahat = 0
+    for (i in 1: ncol(newt)) {
+      pos1 = tid1[i] - np - capm - capu
+      pos2 = tid2[i] - np - capm - capu
+      newtu = unique(newt[,i])
+      #tcoefi = tcoefs[pos1:pos2]
+      #check!	add 0 to be the coef for placebo
+      tcoefi = c(0, tcoefs[pos1:pos2])
+      if (!all(newtu %in% tru[,i])) {
+        stop ("new tree ordering factor must be among the old tree ordering factors!")
+      }
+      #placebo = min(tru[,i])
+      #new:
+      placebo = object$pl[i]
+      if (any(newtu != placebo)) {
+        #id_cf = which(tru[,i] %in% newtu) - 1 #no coef for placebo
+        #tr_etahat = tr_etahat + tcoefi[id_cf]
+        #id_cf = which(newtu > placebo)
+        id_cf = which(newtu != placebo)
+        t_use = newtu[id_cf]
+        nt = length(t_use)
+        for (it in 1:nt) {
+          etahat_t[newt[,i] == t_use[it]] = etahat_t[newt[,i] == t_use[it]] + tcoefi[tru[,i] == t_use[it]]
+        }
+      }
+    }
+    #etahat_t = tr_etahat
+  }
+  #print (etahat_v)
+  #print (etahat_s)
+  #print (etahat_x)
+  #print (etahat_u)
+  #print (etahat_t)
+  etahat_z = 1:rn*0; zcf = NULL
+  #print (newt)
+  #print (newdata)
+  if (!is.null(newz)) {
+    #delete the coef for 1
+    zcoefs = zcoefs[-1]
+    etahat_z = newz %*% zcoefs
+    #ztbu = unique(ztb)#; placebo = min(ztbu)
+    #lz = ncol(newz)
+    #for (i in 1:lz) {
+    #	pos1 = zid1[i]
+    #	pos2 = zid2[i]
+    #	zcoefi = zcoefs[pos1:pos2]
+    #	zlvi = zcoefs[pos1:pos2]
+    #	etahat_z[newz[,i] == 1] = etahat_z[newz[,i] == 1] + zcoefi
+    #}
+  }
+  #print (etahat_z)
+  etahat_v = etahat_v_nz + etahat_z
+  newetahat = etahat_v + etahat_s + etahat_x + etahat_u + etahat_t
+  newmuhat = as.vector(muhat.fun(newetahat, fml = family$family))
+  if (!is.null(newt)) {
+    newtbasis = t(tree.delta[,1:nrow(newData),drop = FALSE])
+  }
+  #print (newv)
+  #newbigmat = t(cbind(newv, newx_sbasis, newxbasis, newubasis, newtbasis))
+  #ans = list(v = newv, xbs = newxbasis, x_sbs = newx_sbasis, ubs = newubasis, tbs = newtbasis, bigmat = newbigmat, vcoefs = vcoefs, xcoefs = xcoefs, xs_coefs = xs_coefs, ucoefs = ucoefs, etahat = newetahat, muhat = newmuhat)
+  #ans = list(muhat = newmuhat)
+  #muhat = newmuhat
+  if ("none" %in% interval) {
+    ans = list(fit = newmuhat, object = object)
+    #new: add prediction interval
+  } else if (interval == "confidence" | interval == "prediction") {
+    n = ncol(bigmat)
+    nc = ncol(xmat0)
+    spl = splpr = NULL
+    m_acc = 0
+    object$ms0 -> ms0
+    #sh = 17 first
+    object$shapesx0 -> shapes
+    #new:
+    varlist = NULL
+    for (i in 1:nc) {
+      msi = ms0[[i]]
+      shpi = shapes[i]
+      ki = knots0[[i]]
+      xi = xmat0[,i]
+      xipr = newx0[,i]
+      deli = makedelta(xi, shpi, knots = ki)
+      #print (i)
+      #if (i == 2) {
+      #	stop (print (msi))
+      #}
+      spli = deli$amat
+      varlist = c(varlist, rep(i, nrow(spli)))
+      if (shpi >= 9) {
+        dpri = makedelta(xipr, shpi, knots = ki, suppre = TRUE, interp = TRUE)
+        splpri = dpri$amat
+        if (shpi > 10 & shpi < 13) {
+          xs = sort(xi)
+          ord = order(xi)
+          #nx = length(xi)
+          #nx is n
+          obs = 1:n
+          nr = nrow(splpri)
+          #nc = length(xipr)
+          #rn is the length of a new vector
+          ms2 = matrix(0, nrow = nr, ncol = rn)
+          for (i1 in 1:rn) {
+            for (i2 in 1:nr) {
+              ms2[i2, i1] = my_line(xp = xipr[i1], y = msi[i2, ][ord], x = xs, end = n, start = 1)$yp
+            }
+          }
+          splpri = splpri - ms2
+        } else {
+          splpri = splpri - msi
+        }
+      } else {splpri = pred_del(xi, shpi, xipr, msi)}
+      mi = dim(spli)[1]
+      m_acc = m_acc + mi
+      spl = rbind(spl, spli)
+      splpr = rbind(splpr, splpri)
+    }
+    capk = object$capk
+    p = 1 + capk + sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13)
+    zmat = t(bigmat[1:p, ,drop = FALSE])
+    if (family$family == "gaussian") {
+      #nloop = 1000
+      nloop = n.mix
+      #nsec will be too big for ordinal, ignore for now
+      nsec = 2^m_acc
+      #print (dim(zmat))
+      if (is.null(prior.w)) {
+        prior.w = rep(1, n)
+      }
+      if (!all(prior.w == 1)) {
+        for (i in 1:n) {
+          spl[,i] = spl[,i] * sqrt(prior.w[i])
+          zmat[i,] = zmat[i,] * sqrt(prior.w[i])
+        }
+      }
+      if (!is.null(vh)) {
+        wvec = 1/vh
+      } else if (is.null(vh) & !is.null(prior.w)) {
+        wvec = prior.w
+      } else if (is.null(vh) & is.null(prior.w)) {
+        wvec = rep(1, n)
+      }
+      if (!all(wvec == 1)) {
+        for (i in 1:n) {
+          spl[,i] = spl[,i] * sqrt(wvec[i])
+          zmat[i,] = zmat[i,] * sqrt(wvec[i])
+        }
+      }
+      yw = y * sqrt(wvec)
+      #ans1 = coneB(yw, spl, zmat)
+      ans1 = coneB(yw, t(spl), zmat)
+      face = ans1$face
+      muhat = ans1$yhat
+      #muhat = object$muhat
+      muhat0 = muhat / sqrt(wvec)
+      #muhat0 = object$muhat
+      #muhat = muhat0 * sqrt(prior.w)
+      #print (ans1$df)
+      #print (ans1$coef)
+      sighat = sqrt(sum((yw - muhat)^2) / (n - 1.5*ans1$df))  ## varest is too large but "conservative"
+      #sighat = sqrt(sum((yw - muhat)^2) / (n - 1.5*object$df_obs))
+      nv = p
+      ## estimate sector probabilties
+      #set.seed(1)
+      #sector = Matrix(1:nsec*0,nrow=1)
+      #sector = big.matrix(1:nsec*0,nrow=1)
+      #sector = 1:nsec*0
+      #for (iloop in 1:nloop) {
+      #    ysim = muhat0 + rnorm(n)*sighat
+      #    ysim = ysim * sqrt(wvec)
+      #    #ans = coneB(ysim, spl, zmat)
+      #    ans = coneB(ysim, t(spl), zmat, face = face)
+      #    cf = round(ans$coefs[(nv+1):(m_acc+nv)], 10)
+      #    sec = 1:m_acc*0
+      #    sec[cf > 0] = 1
+      #    r = makebin(sec) + 1
+      #    sector[r] = sector[r] + 1
+      #}
+      ### calculate the mixture hat matrix:
+      #bsec = matrix(0, nrow=nsec,ncol=2)
+      #bsec[,1] = 1:nsec
+      #bsec[,2] = sector / nsec
+      #keep = sector > 0
+      #bsec = bsec[keep,]
+      #ns = dim(bsec)[1]
+      #bsec[,2] = bsec[,2] / sum(bsec[,2])
+
+
+      #new: not use sector = 1:nsec*0; simulate for 1,000 times and record the faces used more than once
+      # if times / nloop < 1e-3, then delete
+      sector = NULL
+      times = NULL
+      df = NULL
+      #first column shows sector; second column shows times
+      for (iloop in 1:nloop) {
+        ysim = muhat0 + rnorm(n)*sighat
+        ysim = ysim * sqrt(prior.w)
+        ans = coneB(ysim, t(spl), zmat, face = face)
+        cf = round(ans$coefs[(nv+1):(m_acc+nv)], 10)
+        sec = 1:m_acc*0
+        sec[cf > 0] = 1
+        sector = rbind(sector, sec)
+        r = makebin(sec) + 1
+        #sector[r] = sector[r] + 1
+        if (iloop == 1) {
+          df = rbind(df, c(r, 1))
+        } else {
+          if (r %in% df[,1]) {
+            ps = which(df[,1] %in% r)
+            df[ps,2] = df[ps,2] + 1
+          } else {
+            df = rbind(df, c(r, 1))
+          }
+        }
+      }
+
+      #remove times/sum(times) < 1e-3??
+      sm_id = which((df[,2]/nloop) < 1e-3)
+      if (any(sm_id)) {
+        df = df[-sm_id, ,drop=FALSE]
+      }
+
+      #new:
+      ns = nrow(df)
+      bsec = df
+      bsec[,2] = bsec[,2] / sum(bsec[,2])
+      ord = order(bsec[,1])
+      bsec = bsec[ord, ,drop=FALSE]
+
+      ### calculate the mixture cov(alpha) matrix:
+      obs = 1:m_acc;oobs = 1:(m_acc+nv)
+      acov = matrix(0, nrow = m_acc+nv, ncol = m_acc+nv)
+      for (is in 1:ns) {
+        if (bsec[is,2] > 0) {
+          jvec = getbin(bsec[is,1], m_acc)
+          if (sum(jvec) == 1) {
+            smat = cbind(zmat, spl[which(jvec==1),])
+          } else if (sum(jvec) == 0) {
+            smat = zmat
+          } else {
+            smat = cbind(zmat, t(spl[which(jvec==1),]))
+          }
+          acov1 = bsec[is,2]*solve(t(smat)%*%smat)
+          acov2 = matrix(0,nrow=m_acc+nv,ncol=m_acc+nv)
+          jobs = 1:(m_acc+nv)>0
+          jm = 1:m_acc>0
+          jm[obs[jvec==0]] = FALSE
+          jobs[(nv+1):(m_acc+nv)] = jm
+          nobs = oobs[jobs==TRUE]
+          for (i in 1:sum(jobs)) {
+            acov2[nobs[i],jobs] = acov1[i,]
+          }
+          acov = acov+acov2
+        }
+      }
+      acov = acov*sighat^2
+      #only xmatpr and splpr have interpolation points
+      xmatpr = cbind(newv, t(splpr))
+      #muhatpr = xmatpr %*% ans1$coefs
+      #temp:
+      muhatpr = xmatpr %*% object$coefs[1:ncol(xmatpr), ,drop=FALSE]
+      #new: C.I. level
+      mult = qnorm((1 - level)/2, lower.tail=FALSE)
+      #hl = 2*sqrt(diag(xmatpr%*%acov%*%t(xmatpr)))
+      if (interval == "confidence") {
+        hl = mult*sqrt(diag(xmatpr%*%acov%*%t(xmatpr)))
+      }
+      if (interval == "prediction") {
+        hl = mult*sqrt(sighat^2+diag(xmatpr%*%acov%*%t(xmatpr)))
+      }
+      #ans = list(fit = muhatpr, lower = muhatpr - hl, upper = muhatpr + hl)
+    } else {
+      ## initialize
+      m = nrow(bigmat)
+      #amat is different from the original code, because we put zmat at the first p columns in cgam
+      #amat = matrix(0, nrow = (m-p), ncol = m)
+      #for(i in (p+1):m){amat[i,i]=1}
+      #the constraint is amat%*%bh >= 0; not constrain vmat
+      amat = diag(m-p)
+      zerom = matrix(0, nrow=nrow(amat), ncol=p)
+      amat = cbind(zerom, amat)
+      #alp0 = 1:m*0
+      #eta0 = del%*%alp0
+      #eta0 = 1:n*0
+      #mu0 = 1:n*0 + 0.5
+      z = 1:n*0
+      ## get the dimension of the face
+      deltil = t(bigmat)
+      w = object$wt
+      #print (any(w < 0))
+      for(i in 1:m){deltil[,i]=deltil[,i]*sqrt(w)}
+      umat = chol(crossprod(deltil))
+      uinv = solve(umat)
+      atil = amat%*%uinv
+      bh = coef(object)
+      #check
+      etahat = object$etahat
+      muhat = fitted(object)
+      #z = etahat + (y - muhat)/muhat/(1-muhat)
+      #ch = muhat > 1e-5 & muhat < 1-(1e-5)
+      #z[ch] = etahat[ch] + (y[ch]-muhat[ch])/muhat[ch]/(1-muhat[ch])
+      #z[!ch] = etahat[!ch]
+      #w[ch] = muhat[ch]*(1-muhat[ch])
+      #w[!ch] = 1e-5
+      #z=eta0+(y-mu0)/mu0/(1-mu0)
+      ch = muhat > 1e-5 & muhat < 1-(1e-5)
+      z[ch] = etahat[ch] + (y[ch]-muhat[ch])/muhat[ch]/(1-muhat[ch])
+      z[!ch] = etahat[!ch]
+      w[ch] = muhat[ch]*(1-muhat[ch])
+      w[!ch] = 1e-5
+      ztil = z*sqrt(w)
+
+      #z = etahat + (y - muhat) / family$variance(muhat)
+      #print (family$variance(muhat)): sometimes give a value that is almost zero and it creates NA in thhat
+      #ztil = z*sqrt(w)
+
+      rw = round(amat%*% bh, 6) == 0
+      #print (rw)
+      #print (sum(rw))
+      if(sum(rw) == 0){
+        raj = 0
+        edf = m
+      } else {
+        ajc = atil[rw,]
+        raj = rankMatrix(t(ajc))[1]
+        edf = min(m, 1.2*(m-raj))
+      }
+      ## thhat is final cone projection
+      thhat = deltil %*% bh
+      #print (thhat)
+      #print (ztil)
+      shat = sum((ztil - thhat)^2)/(n - edf)
+      #print (shat)
+      nloop = 100
+      cmat = matrix(0, nrow = m, ncol = m)
+      for(iloop in 1:nloop){
+        zsim = thhat + rnorm(n)*shat
+        zsimtil = t(uinv) %*% t(deltil) %*% zsim
+        #if (iloop == 1) {
+        asim = coneA(zsimtil, atil)
+        #    face = asim$face
+        #} else {
+        #    if (length(face) >= 1) {
+        #        asim = coneA(zsimtil, atil, face = face)
+        #    } else{asim = coneA(zsimtil, atil)}
+        #}
+        ## get the matrix wm: cols span row space orthogonal to rows of A_J^c
+        rw = round(atil %*% asim$thetahat, 6) == 0
+        #print (shat)
+        #print (rw)
+        if(sum(rw) == 0){
+          #pjmat = t(atil) %*% solve(atil %*% t(atil)) %*% atil
+          pjmat = t(atil) %*% solve(tcrossprod(atil), atil)
+        } else {
+          ajc = atil[rw,]
+          if(length(ajc) == m){
+            wm = ajc/sqrt(sum(ajc^2))
+            wm = matrix(wm, ncol=1)
+          }else{
+            aqr = qr(t(ajc))
+            wm = qr.Q(aqr)[,1:aqr$rank]
+          }
+          pjmat = -wm%*%t(wm)
+          for(i in 1:m){pjmat[i,i] = pjmat[i,i]+1}
+        }
+        cmat = cmat + uinv %*% pjmat %*% t(uinv)/nloop
+      }
+      cmat = cmat*shat
+      #coveta = diag(del%*%cmat%*%t(del))
+      xmatpr = cbind(newv, t(splpr))
+      #coveta = diag(del%*%cmat%*%t(del))
+      coveta = diag(xmatpr%*%cmat%*%t(xmatpr))
+      etapr = xmatpr%*%bh
+      #muhatpr = 1 - 1/(1+exp(etapr))
+      muhatpr = family$linkinv(etapr)
+      #new: C.I. level
+      mult = qnorm((1 - level)/2, lower.tail=FALSE)
+      #if (interval == "confidence") {
+      uppeta = etapr + mult*sqrt(coveta)
+      loweta = etapr - mult*sqrt(coveta)
+      uppmu = family$linkinv(uppeta)
+      lowmu = family$linkinv(loweta)
+      #uppmu = 1 - 1/(1+exp(uppeta))
+      #lowmu = 1 - 1/(1+exp(loweta))
+      #}
+    }
+    #new: thvs are for individual c.i. bands and surfaces
+    #smooth additive terms only, no umbrella or tree
+    if (family$family == "gaussian") {
+      dcoefs = object$coefs[(np - capms + 1):(np + capm),,drop=FALSE]
+      etacomps = object$etacomps
+      capl = nrow(etacomps)
+      thvs_upp = thvs_lwr = matrix(0, nrow = capl, ncol = rn)
+      ncon = 1
+      # temp: constrained smooth terms covariance
+      acov2 = acov[-c(1:np),-c(1:np)]
+      for (i in 1:capl) {
+        ddi = t(splpr[varlist == i, ,drop=FALSE])
+        acovi = acov2[varlist == i, varlist == i]
+        hli = mult*sqrt(diag(ddi %*% acovi %*% t(ddi)))
+        ei = ddi%*%dcoefs[varlist == i, ,drop=FALSE]
+        thvs_upp[i,] = ei + hli
+        thvs_lwr[i,] = ei - hli
+      }
+
+      # order thvs back
+      if (length(idx_s) > 0) {
+        thvs0_upp = thvs_upp
+        thvs0_upp[idx_s,] = thvs_upp[1:length(idx_s), ]
+        thvs0_lwr = thvs_lwr
+        thvs0_lwr[idx_s,] = thvs_lwr[1:length(idx_s), ]
+        if (length(idx) > 0) {
+          thvs0_upp[idx,] = thvs_upp[(1+length(idx_s)):capl, ]
+          thvs0_lwr[idx,] = thvs_lwr[(1+length(idx_s)):capl, ]
+        }
+        thvs_upp = thvs0_upp
+        thvs_lwr = thvs0_lwr
+      }
+      #new: problem when not gaussian
+      if (object$sc_y) {
+        for (i in 1:nrow(thvs_upp)) {
+          thvs_upp[i,] = thvs_upp[i,] * object$sc
+          thvs_lwr[i,] = thvs_lwr[i,] * object$sc
+        }
+      }
+    }
+    #new: NASA's idea for monotonic CI
+    if (family$family == "gaussian") {
+      lwr = muhatpr - hl
+      upp = muhatpr + hl
+    } else {
+      lwr = loweta
+      upp = uppeta
+    }
+    #for now, only handles one predictor
+    if (length(object$shapes) == 1) {
+      ord = order(newx0) #need a better way for > 1 predictor case
+
+      lwr_tmp = lwr[ord]
+      upp_tmp = upp[ord]
+      lwr_tmp_u = unique(lwr_tmp)
+      upp_tmp_u = unique(upp_tmp)
+      check_ps_lwr = diff(lwr_tmp_u)
+      check_ps_upp = diff(upp_tmp_u)
+      if (object$shapes == 9) {
+        ps_lwr = which(check_ps_lwr < 0)
+        n_ps_lwr = length(ps_lwr)
+        if(n_ps_lwr > 0){
+          #NASA's for loop, the easier way is not working now....
+          n = length(lwr_tmp)
+          for(i in 1:(n - 1)){
+            if(lwr_tmp[i + 1] < lwr_tmp[i]){
+              lwr_tmp[i + 1] = lwr_tmp[i]
+            }
+          }
+        }
+        #lwr_tmp[ps_lwr + 1] = lwr_tmp[ps_lwr]
+
+        ps_upp = which(check_ps_upp < 0)
+        n_ps_upp = length(ps_upp)
+        if(n_ps_upp > 0) {
+          n = length(upp_tmp)
+          for(i in (n - 1):1){
+            if(upp_tmp[i] > upp_tmp[i + 1]){
+              upp_tmp[i] = upp_tmp[i + 1]
+            }
+          }
+        }
+        #upp_tmp[ps_upp] = upp_tmp[ps_upp + 1]
+      }
+      if (object$shapes == 10) {
+        ps_lwr = which(check_ps_lwr > 0)
+        n_ps_lwr = length(ps_lwr)
+        if(n_ps_lwr > 0){
+          n = length(lwr_tmp)
+          for(i in (n - 1):1){
+            if(lwr_tmp[i] < lwr_tmp[i + 1]){
+              lwr_tmp[i] = lwr_tmp[i + 1]
+            }
+          }
+        }
+        #lwr_tmp[ps_lwr] = lwr_tmp[ps_lwr + 1]
+
+        ps_upp = which(check_ps_upp > 0)
+        n_ps_upp = length(ps_upp)
+        if(n_ps_upp > 0) {
+          n = length(upp_tmp)
+          for(i in 1:(n - 1)){
+            if(upp_tmp[i + 1] > upp_tmp[i]){
+              upp_tmp[i + 1] = upp_tmp[i]
+            }
+          }
+        }
+        #upp_tmp[ps_upp + 1] = upp_tmp[ps_upp]
+      }
+
+      lwr = lwr_tmp[order(ord)]
+      upp = upp_tmp[order(ord)]
+      #loweta = lwr
+      #uppeta = upp
+
+      #lwr = lwr_tmp
+      #upp = upp_tmp
+    }
+
+    if ("response" %in% type) {
+      lwr = family$linkinv(lwr)
+      upp = family$linkinv(upp)
+    }
+
+    if (family$family == "gaussian") {
+      ans = list(fit = muhatpr, lower = lwr, upper = upp, acov = acov, object = object, mult = mult, thvs_upp = thvs_upp, thvs_lwr = thvs_lwr)
+      #ans = list(fit = muhatpr, lower = muhatpr - hl, upper = muhatpr + hl, acov = acov, object = object, mult = mult, thvs_upp = thvs_upp, thvs_lwr = thvs_lwr)
+    } else { #else if (family$family == "binomial") {
+      if ("response" %in% type) {
+        ans = list(fit = muhatpr, lower = lwr, upper = upp, object = object, mult = mult)
+        #ans = list(fit = muhatpr, lower = lowmu, upper = uppmu, object = object, mult = mult)
+      } else if ("link" %in% type) {
+        ans = list(fit = etapr, lower = lwr, upper = upp, object = object, mult = mult)
+        #ans = list(fit = etapr, lower = loweta, upper = uppeta, object = object, mult = mult)
+      }
+    }
+  }
+  class(ans) = "cgamp"
+  return (ans)
 }
 
 #############################

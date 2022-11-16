@@ -50,3 +50,8 @@
 * Update the default value of the space paranmeter as space = "Q" instead of space = "E" in each smooth symbolic function imposing shape or order constraint
 * Update cgamm with a new paramter: nAGQ.
 
+1.20
+* Fix a bug in the predict.cgam function s.t. monotonicity of C.I. will be imposed when shapes = 9 or 10.
+* Go back to the code
+  :ch = muhat > 1e-5 & muhat < 1-(1e-5)
+  :z[ch] = etahat[ch] + (y[ch]-muhat[ch])/muhat[ch]/(1-muhat[ch]) used in predict.cgam.
