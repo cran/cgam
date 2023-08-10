@@ -878,26 +878,26 @@ cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim,
     df_obs = sum(abs(bh) > 0)
     #new: tests and cis
     #F-test for siga2
-    pv.siga2 = ranef.test(ecl, szs, n, ncl)
+    pv.siga2 = .ranef.test(ecl, szs, n, ncl)
     #c.i. for siga2
     #ci1 = NULL
     #if (type == 'b') {
-    ci1 = ranef.ci(ecl, szs, n, ncl, level = 0.95)
+    ci1 = .ranef.ci(ecl, szs, n, ncl, level = 0.95)
     #}
     ci.siga2 = ci1
     #c.i. for th and rho
     #ci.th = ci.rho = ci.siga2.bi = NULL
     if (bisect) {
       #print (edf)
-      ci2 = ranef.cith(thhat, sig2hat, siga2hat, ahat, ecl, szs, n, ncl, level = 0.95, xms=xms, p=edf, reml=reml)
+      ci2 = .ranef.cith(thhat, sig2hat, siga2hat, ahat, ecl, szs, n, ncl, level = 0.95, xms=xms, p=edf, reml=reml)
       ci.th = ci2$ci.th
       ci.rho = ci2$ci.rho
 
-      cia = ranef.cisiga(sig2hat, siga2hat, ahat, ecl, szs, n, ncl, level = 0.95, xms=xms, p=edf, reml=reml)
+      cia = .ranef.cisiga(sig2hat, siga2hat, ahat, ecl, szs, n, ncl, level = 0.95, xms=xms, p=edf, reml=reml)
       ci.siga2.bi = cia$ci.siga2
     }
     #c.i. for sig2
-    ci.sig2 = ranef.cisig2(ecl, n, ncl, level = 0.95)
+    ci.sig2 = .ranef.cisig2(ecl, n, ncl, level = 0.95)
     #gaussian parametric inference ends
   } else {
     #binomial parametric inference starts
@@ -1818,7 +1818,7 @@ f_ecl = function(evec, ncl, sz) {
 #F-test siga2           #
 #balanced and unbalanced#
 #########################
-ranef.test = function(ecl, szs, N, ncl) {
+.ranef.test = function(ecl, szs, N, ncl) {
   evec = unlist(ecl)
   ebars = sapply(ecl, mean)
   sse = 0
@@ -1845,7 +1845,7 @@ ranef.test = function(ecl, szs, N, ncl) {
 #balanced only           #
 ##Satterthwaite procedure#
 ##########################
-ranef.ci = function(ecl, szs, N, ncl, level = 0.95) {
+.ranef.ci = function(ecl, szs, N, ncl, level = 0.95) {
   evec = unlist(ecl)
   ebars = sapply(ecl, mean)
   sse = 0
@@ -1878,7 +1878,7 @@ ranef.ci = function(ecl, szs, N, ncl, level = 0.95) {
 #balanced and unbalanced                         #
 #use profile-log-like and bisection              #
 ##################################################
-ranef.cith = function(thhat, sig2hat, siga2hat, ahat, ecl, szs, N, ncl, level = 0.95, xms, p, reml=TRUE) {
+.ranef.cith = function(thhat, sig2hat, siga2hat, ahat, ecl, szs, N, ncl, level = 0.95, xms, p, reml=TRUE) {
   N = sum(szs)
   evec = unlist(ecl)
   thval = fmin(thhat, ncl, ecl, N, xms, p, reml=reml)
@@ -1906,7 +1906,7 @@ ranef.cith = function(thhat, sig2hat, siga2hat, ahat, ecl, szs, N, ncl, level = 
 #balanced and unbalanced                         #
 #use profile-log-like and bisection              #
 ##################################################
-ranef.cisiga = function(sig2hat, siga2hat, ahat, ecl, szs, N, ncl, level = 0.95, xms, p, reml=TRUE) {
+.ranef.cisiga = function(sig2hat, siga2hat, ahat, ecl, szs, N, ncl, level = 0.95, xms, p, reml=TRUE) {
   N = sum(szs)
   evec = unlist(ecl)
   thval = fmin2(siga2=siga2hat, sig2hat, ncl, ecl, N, xms, p, reml=reml)
@@ -1934,7 +1934,7 @@ ranef.cisiga = function(sig2hat, siga2hat, ahat, ecl, szs, N, ncl, level = 0.95,
 #C.I. for sig2                                   #
 #balanced and unbalanced                         #
 ##################################################
-ranef.cisig2 = function(ecl, N, ncl, level = 0.95) {
+.ranef.cisig2 = function(ecl, N, ncl, level = 0.95) {
   evec = unlist(ecl)
   ebars = sapply(ecl, mean)
   sse = 0

@@ -55,3 +55,9 @@
 * Go back to the code
   :ch = muhat > 1e-5 & muhat < 1-(1e-5)
   :z[ch] = etahat[ch] + (y[ch]-muhat[ch])/muhat[ch]/(1-muhat[ch]) used in predict.cgam.
+  
+1.21
+* Change the name of functions starting as ranef to start as .ranef: make these functions as hidden functions.
+
+
+
