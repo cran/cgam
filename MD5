@@ -1,8 +1,8 @@
-62f6e49d419fcfcaa847a018950c9c40 *ChangeLog
-eeb21246b76d256e1626b948637c1cf4 *DESCRIPTION
-b22c32c368f3de8c9211f433632a1576 *NAMESPACE
-c8304928e7d55162c76840d923f825b5 *R/cgam.R
-4be81042c6f30db6c1ef421d2d104685 *R/cgamm.R
+e724eefbb51a2065ae52ad66827f880a *ChangeLog
+842af0c95bbdba27830b0843f7bdb88b *DESCRIPTION
+687e14aa29646288613b56a45ffe2b5a *NAMESPACE
+244b4ba38d77298cea6c6d16bd0daa5d *R/cgam.R
+3f6b8f7b821c2fe4a55e7fa11b9f922e *R/cgamm.R
 30371bbfb1b09c61689e34133389c96b *data/COforest.rda
 a0db33d4a416d9f938daadefe0e246d8 *data/cubic.rda
 38989ead0193c484041448d86a606c2e *data/mental.rda
@@ -10,9 +10,9 @@ a0db33d4a416d9f938daadefe0e246d8 *data/cubic.rda
 0d00fc654135326306c45aa0a4426511 *inst/CITATION
 2e38603e6cfed9502942743d4aab443f *man/COforest.Rd
 883e5898cac424e9164fe2ce815d579c *man/Ord.Rd
-87ca4718d9883f4f4e95d9e64b563014 *man/ShapeSelect.Rd
+fc02edd7fa2d530a5d429ff9bdf3450e *man/ShapeSelect.Rd
 defec4599769cfb4e78ccc7abb8175e8 *man/best.fit.Rd
-23466cf1305a0a4443ee5cd99dd21f8d *man/cgam.Rd
+e818b8760dc06fdfc6d9ca7d553c3a0d *man/cgam.Rd
 b7f634558ad42b820a6aaa0013dbd333 *man/cgamm.Rd
 02dfead6a50ea3d987075cdfc314332d *man/conc.Rd
 49444d5af949917f6772fa3025d26e0c *man/conv.Rd
@@ -26,8 +26,8 @@ c530c556b13d86a14b835be7d7f58ef6 *man/incr.Rd
 f8c670516d35684c34511851b2dcfe6a *man/incr.conv.Rd
 5e31e813762d0157e7b659d694a2f545 *man/mental.Rd
 1a8fa2f3659519856fddfc62fde89978 *man/plasma.Rd
-f5250ed2c70bf72c9466beb98d983213 *man/plotpersp.Rd
-8beadb01c69a198bdb33b9b372d29e5c *man/predict.cgam.Rd
+b453ace89c788d01e2261eee513783ce *man/plotpersp.Rd
+0d78b828299bd1088a57886d5b400b0e *man/predict.cgam.Rd
 68e985119e51910a1502bc350c9eb6d9 *man/s.Rd
 9382ebe7fe56cd05f343e2cd053cea40 *man/s.conc.Rd
 4111576f076528a70470ad1fee565f57 *man/s.conc.conc.Rd
@@ -43,6 +43,6 @@ dcbc6a2f0c42e8b3ac5f10e9b1746cdc *man/s.incr.conc.Rd
 66cd43daae2d05d062da70ac5220cbef *man/s.incr.conv.Rd
 62f4e9383416587d6cabddefc65476a6 *man/s.incr.decr.Rd
 fefc40df95cc8698d49693e7424e9e4b *man/s.incr.incr.Rd
-836052fb92469502e2caed29a32701a0 *man/shapes.Rd
+b1754149bc1925d1016f24a96eb3db09 *man/shapes.Rd
 23aabd09022aff40accf844153cda0e1 *man/tree.Rd
 413da2c5d8d914721a923c2b386b0df4 *man/umbrella.Rd

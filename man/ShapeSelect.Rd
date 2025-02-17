@@ -14,7 +14,7 @@ npop = 200, per.mutate = 0.05, genetic = FALSE)}
   \item{formula}{
 
  A formula object which includes a set of predictors to be selected. It has the form "response ~ predictor". The response is a vector of length \eqn{n}. The specification of the model can be one of the three exponential families: gaussian, binomial and poisson. The systematic component \eqn{\eta} is \eqn{E(y)}, the log odds of \eqn{y = 1}, and the logarithm of \eqn{E(y)} respectively. The user is supposed to define at least one predictor in the formula, which could be a non-parametrically modelled variable or a parametrically modelled covariate (categorical or linear). Assume that \eqn{\eta} is the systematic component and \eqn{x} is a predictor, two symbolic routines \code{\link{shapes}} and \code{\link{in.or.out}} are used to include \eqn{x} in the formula. 
-    \itemize{
+    \describe{
     \item{shapes(x): }{\eqn{x} is included as a non-parametrically modelled predictor in the formula. See \code{\link{shapes}} for more details.}
     \item{in.or.out(x): }{\eqn{x} is included as a categorical or linear predictor in the formula. See \code{\link{in.or.out}} for more details.}
     }

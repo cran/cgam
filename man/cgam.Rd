@@ -17,7 +17,7 @@
     A formula object which gives a symbolic description of the model to be fitted. It has the form "response ~ predictor". The response is a vector of length \eqn{n}. The specification of the model can be one of the three exponential families: gaussian, binomial and poisson. The systematic component \eqn{\eta} is \eqn{E(y)}, the log odds of \eqn{y = 1}, and the logarithm of \eqn{E(y)} respectively. A predictor can be a non-parametrically modelled variable with or without a shape or order restriction, or a parametrically modelled unconstrained covariate. In terms of a non-parametrically modelled predictor, the user is supposed to indicate the relationship between the systematic component \eqn{\eta} and a predictor \eqn{x} in the following way:
 
     Assume that \eqn{\eta} is the systematic component and \eqn{x} is a predictor: 
-    \itemize{
+    \describe{
     \item{incr(x): }{\eqn{\eta} is increasing in \eqn{x}. See \code{\link{incr}} for more details.}
     \item{s.incr(x): }{\eqn{\eta} is smoothly increasing in \eqn{x}. See \code{\link{s.incr}} for more details.}
     \item{decr(x): }{\eqn{\eta} is decreasing in \eqn{x}.  See \code{\link{decr}} for more details.}

@@ -59,5 +59,8 @@
 1.21
 * Change the name of functions starting as ranef to start as .ranef: make these functions as hidden functions.
 
-
-
+1.22
+* Change plotpersp back to the version before csurvey was created.
+* Eta in the binomial example in predict.cgam is changed to be 4*x^2 - 2
+* llh.fun returns negative loglikelihood
+* fix the bug in predict.cgam: sdhat = 1

@@ -2808,6 +2808,7 @@ predict.cgamm = function(object, newData, interval = c("none", "confidence", "pr
       #print (shat)
       nloop = 100
       cmat = matrix(0, nrow = m, ncol = m)
+      imat = diag(m)
       for(iloop in 1:nloop){
         zsim = thhat_mu + rnorm(n)*shat
         zsimtil = t(uinv) %*% t(deltil) %*% zsim
@@ -2816,7 +2817,9 @@ predict.cgamm = function(object, newData, interval = c("none", "confidence", "pr
         rw = round(atil %*% asim$thetahat, 6) == 0
         if(sum(rw) == 0){
           #pjmat = t(atil) %*% solve(atil %*% t(atil)) %*% atil
-          pjmat = t(atil) %*% solve(tcrossprod(atil), atil)
+          #correction: 2/16/2025:
+          pjmat = imat
+          #pjmat = t(atil) %*% solve(tcrossprod(atil), atil)
         } else {
           ajc = atil[rw,]
           if(length(ajc) == m){

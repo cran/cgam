@@ -2094,7 +2094,409 @@ umbrella.fun <- function(x)
 
 ###################################################
 #find delta for a specific predictor x and a shape#
+#use splines2 pkg
 ###################################################
+# makedelta = function(x, sh, numknots = 0, knots = 0, space = "E", suppre = FALSE, interp = FALSE, shpselect = FALSE) {
+#   #if (!interp) {
+#   #x = (x - min(x)) / (max(x) - min(x))
+#   #}
+#   n = length(x)
+#   # find unique x values
+#   #round(x,8) will make 0 edge in amat!
+#   #xu = sort(unique(round(x, 8)))
+#   #new: center and scale to avoid numerical instability
+#   if(sh < 9){
+#     xu = sort(unique(x))
+#   } else {
+#     xu = unique(x)
+#   }
+#   
+#   n1 = length(xu)
+#   sm = 1e-7
+#   ms = NULL
+#   #  increasing or decreasing
+#   if (sh < 3) {
+#     amat = matrix(0, nrow = n1 - 1, ncol = n)
+#     for (i in 1: (n1 - 1)) {
+#       amat[i, x > xu[i]] = 1
+#     }
+#     if (sh == 2) {amat = -amat}
+#     if (!interp) {
+#       # for (i in 1:(n1 - 1)) {
+#       #   #new: use ms in predict.cgam
+#       #   ms = c(ms, mean(amat[i, ]))
+#       #   amat[i, ] = amat[i, ] - mean(amat[i, ])
+#       # }
+#       ms = apply(amat, 1, mean)
+#       amat = apply(amat, 1, function(e) scale(e, scale = FALSE))
+#     }
+#   } else if (sh == 3 | sh == 4) {
+#     #  convex or concave
+#     amat = matrix(0, nrow = n1 - 2 ,ncol = n)
+#     #for (i in 1: (n1 - 2)) {
+#     #	amat[i, x > xu[i]] = x[x > xu[i]] - xu[i]
+#     #}
+#     for (i in 1: (n1 - 2)) {
+#       amat[i, x > xu[i+1]] = x[x > xu[i+1]] - xu[i+1]
+#     }
+#     if (sh == 4) {amat = -amat}
+#     xm = cbind(1:n*0+1,x)
+#     xpx = solve(t(xm) %*% xm)
+#     pm = xm %*% xpx %*% t(xm)
+#     #new: use ms in predict.cgam
+#     if (!interp) {
+#       ms = amat %*% t(pm)
+#       #amat = amat - amat %*% t(pm)
+#       amat = amat - ms
+#     }
+#   } else if (sh > 4 & sh < 9) {
+#     amat = matrix(0, nrow = n1 - 1, ncol = n)
+#     if (sh == 5) { ### increasing convex
+#       for (i in 1:(n1 - 1)) {
+#         amat[i, x > xu[i]] = (x[x > xu[i]] - xu[i]) / (max(x) - xu[i])
+#       }
+#       if (!interp) {
+#         #for (i in 1:(n1 - 1)) {
+#         #  ms = c(ms, mean(amat[i, ]))
+#         #  amat[i,] = amat[i,] - mean(amat[i,])
+#         #}
+#         ms = apply(amat, 1, mean)
+#         amat = apply(amat, 1, function(e) scale(e, scale = FALSE))
+#       }
+#     } else if (sh == 6) {  ## decreasing convex
+#       for (i in 1:(n1 - 1)) {
+#         amat[i, x < xu[i + 1]] = (x[x < xu[i + 1]] - xu[i + 1]) / (min(x) - xu[i + 1])
+#       }
+#       if (!interp) {
+#         #for (i in 1:(n1 - 1)) {
+#         #  ms = c(ms, mean(amat[i, ]))
+#         #  amat[i,] = amat[i,] - mean(amat[i, ])
+#         #}
+#         ms = apply(amat, 1, mean)
+#         amat = apply(amat, 1, function(e) scale(e, scale = FALSE))
+#       }
+#       #print (ms)
+#     } else if (sh == 7) { ## increasing concave
+#       for (i in 1:(n1 - 1)) {
+#         amat[i, x < xu[i + 1]] = (x[x < xu[i + 1]] - xu[i + 1]) / (min(x) - xu[i + 1])
+#       }
+#       if (!interp) {
+#         #for (i in 1:(n1 - 1)) {
+#         #  ms = c(ms, mean(amat[i, ]))
+#         #  amat[i,] = -amat[i,] + mean(amat[i,])
+#         #}
+#         ms = apply(amat, 1, mean)
+#         amat = apply(amat, 1, function(e) scale(e, scale = FALSE))
+#         amat = -amat
+#       }
+#     } else if (sh == 8) {## decreasing concave
+#       for (i in 1:(n1 - 1)) {
+#         amat[i, x > xu[i]] = (x[x > xu[i]] - xu[i]) / (max(x) - xu[i])
+#       }
+#       if (!interp) {
+#         #for (i in 1:(n1 - 1)) {
+#         #  ms = c(ms, mean(amat[i, ]))
+#         #  amat[i,] = -amat[i,] + mean(amat[i,])
+#         #}
+#         ms = apply(amat, 1, mean)
+#         amat = apply(amat, 1, function(e) scale(e, scale = FALSE))
+#         amat = -amat
+#       }
+#     }
+#   } else if (sh > 8 & sh < 18) {
+#     #new: add two knots
+#     #if (all(knots == 0) & numknots == 0) {
+#     if (length(knots) < 2 & numknots == 0) {
+#       if (sh == 9 | sh == 10) {#1 2
+#         #k = trunc(n1^(1/5)) + 4
+#         if (n1 <= 50) {
+#           k = 5
+#         } else if (n1>50 && n1<100) {
+#           k = 6
+#         } else if (n1>= 100 && n1<200) {
+#           k = 7
+#         } else {
+#           k = trunc(n1^(1/5)) + 6
+#         }
+#       } else {
+#         #k = trunc(n1^(1/7) + 4)
+#         if (n1 <= 50) {
+#           k = 5
+#         } else if (n1>50 && n1<100) {
+#           k = 6
+#         } else if (n1>= 100 && n1<200) {
+#           k = 7
+#         } else {
+#           k = trunc(n1^(1/7)) + 6
+#         }
+#       }
+#       if (space == "Q") {
+#         t = quantile(xu, probs = seq(0, 1, length = k), names = FALSE)
+#       }
+#       if (space == "E") {
+#         #t = 0:k / k * (max(x) - min(x)) + min(x)
+#         #t = 0:(k-1) / (k-1) * (max(x) - min(x)) + min(x)
+#         t = seq.int(min(x), max(x), length.out = k)
+#       }
+#       #} else if (any(knots != 0) & numknots == 0) {
+#     } else if (length(knots) >= 2 & numknots == 0) {
+#       t = knots
+#       #} else if (all(knots == 0) & numknots != 0) {
+#     } else if (length(knots) < 2 & numknots != 0) {
+#       if (space == "Q") {
+#         t = quantile(xu, probs = seq(0, 1, length = numknots), names = FALSE)
+#       }
+#       if (space == "E") {
+#         #k = numknots
+#         #new: numknots should be the # of all knots
+#         k = numknots - 1
+#         #if (sh == 9 | sh == 10) {#1 2
+#         #	k = trunc(n1^(1/5)) + 4
+#         #} else {k = trunc(n1^(1/7) + 4)}
+#         #t = 0:k/k * (max(x) - min(x)) + min(x)
+#         t = seq.int(min(x), max(x), length.out = numknots)
+#       }
+#       #} else if (any(knots != 0) & numknots != 0) {
+#     } else if (length(knots) >= 2 & numknots != 0) {
+#       #t0 = quantile(xu, probs = seq(0, 1, length = numknots), names = FALSE)
+#       t = knots
+#       if (!suppre) {
+#         print("'knots' is used! 'numknots' is not used!")
+#       }
+#       #print ("'knots' is used!")
+#       #if (numknots != length(knots)) {
+#       #	if (!suppre) {
+#       #		print("length(knots) is not equal to 'numknots'! 'knots' is used!")
+#       #	}
+#       #} else if (any(t0 != knots)) {
+#       #	if (!suppre) {
+#       #		print("equal x-quantiles knots != 'knots'! 'knots' is used! ")
+#       #	}
+#       #}
+#     }
+#     if (sh == 9) {#1
+#       #amat_ans = monincr(x, t, interp)
+#       #amat = amat_ans$sigma |> t()
+#       #ms = amat_ans$ms
+#       #cat('use monincr!', '\n')
+#       #new: use splines2 pkg to make it faster
+#       
+#       nt = length(t)
+#       amat = iSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
+#       # #cat('use splines2!', '\n')
+#       ms = colMeans(amat)
+#       # 
+#       #make the basis orthogonal to 1
+#       if(!interp){
+#         for(i in 1:ncol(amat)){
+#           amat[,i] = amat[,i] - ms[i]
+#         }
+#       }
+#       
+#       #if(shpselect) {
+#         amat = t(amat)
+#       #}
+#     } else if (sh == 10) {#2
+#       #amat_ans = mondecr(x, t, interp)
+#       #amat = amat_ans$sigma |> t()
+#       #ms = amat_ans$ms
+#       
+#       nt = length(t)
+#       amat = -iSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
+#       #cat('use splines2!', '\n')
+#       ms = colMeans(amat)
+#       
+#       #make the basis orthogonal to 1
+#       if(!interp){
+#         for(i in 1:ncol(amat)){
+#           amat[,i] = amat[,i] - ms[i]
+#         }
+#       }
+#       
+#       #if(shpselect) {
+#         amat = t(amat)
+#       #}
+#     } else if (sh == 11) {#3
+#       #amat_ans = convex(x, t, interp)
+#       #amat = amat_ans$sigma
+#       #amat = t(amat)
+#       #ms = amat_ans$ms
+#       
+#       nt = length(t)
+#       amat = cSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
+#       #cat('use splines2!', '\n')
+#       ms = colMeans(amat)
+#       
+#       if(!interp){
+#         xm = cbind(1, x)
+#         pm = xm %*% solve(crossprod(xm), t(xm))
+#         amat = amat - pm %*% amat
+#       }
+#       
+#       #if(shpselect) {
+#         amat = t(amat)
+#       #}
+#     } else if (sh == 12) {#4
+#       # amat_ans = concave(x, t, interp)
+#       # amat = amat_ans$sigma
+#       # amat = t(amat)
+#       # ms = amat_ans$ms
+#       
+#       nt = length(t)
+#       amat = -cSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
+#       #cat('use splines2!', '\n')
+#       #ms = colMeans(amat)
+#       
+#       if(!interp){
+#         xm = cbind(1, x)
+#         pm = xm %*% solve(crossprod(xm), t(xm))
+#         amat = amat - pm %*% amat
+#       }
+#       
+#       #if(shpselect) {
+#         amat = t(amat)
+#       #}
+#     } else if (sh == 13) {#5
+#       #amat_ans = incconvex(x, t, interp)
+#       #amat = amat_ans$sigma
+#       #amat = t(amat)
+#       #ms = amat_ans$ms
+#       
+#       nt = length(t)
+#       amat = cSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
+#       x_sc = (x - min(x)) / (max(x) - min(x))
+#       amat = cbind(amat, x_sc)
+#       #cat('use splines2!', '\n')
+#       ms = colMeans(amat)
+#       
+#       if(!interp){
+#         for(i in 1:ncol(amat)){
+#           amat[,i] = amat[,i] - ms[i]
+#         }
+#       }
+#       
+#       #if(shpselect) {
+#         amat = t(amat)
+#       #}
+#     } else if (sh == 14) {#6
+#       #amat_ans = incconcave(x, t, interp)
+#       #amat = amat_ans$sigma
+#       #ms = amat_ans$ms
+#       #amat = t(amat)
+#       
+#       nt = length(t)
+#       amat = -cSpline(-x, knots = -rev(t[-c(1, nt)]), Boundary.knots = -c(t[nt], t[1]), degree = 1) 
+#       x_sc = (-x - min(-x)) / (max(-x) - min(-x))
+#       amat = cbind(-x_sc, amat)
+#       #cat('use splines2!', '\n')
+#       ms = colMeans(amat)
+#       
+#       if(!interp){
+#         for(i in 1:ncol(amat)){
+#           amat[,i] = amat[,i] - ms[i]
+#         }
+#       }
+#       
+#       #if(shpselect) {
+#         amat = t(amat)
+#       #}
+#     } else if (sh == 15) {#7
+#       #amat_ans = -incconcave(x, t, interp)
+#       # amat_ans = incconcave(x, t, interp)
+#       # amat = -amat_ans$sigma 
+#       # if (!interp) {
+#       #   ms = -amat_ans$ms
+#       # }
+#       # amat = t(amat)
+#       
+#       nt = length(t)
+#       amat = cSpline(-x, knots = -rev(t[-c(1, nt)]), Boundary.knots = -c(t[nt], t[1]), degree = 1) 
+#       x_sc = (-x - min(-x)) / (max(-x) - min(-x))
+#       amat = cbind(x_sc, amat)
+#       #cat('use splines2!', '\n')
+#       ms = colMeans(amat)
+#       
+#       if(!interp){
+#         for(i in 1:ncol(amat)){
+#           amat[,i] = amat[,i] - ms[i]
+#         }
+#       }
+#       
+#       #if(shpselect) {
+#         amat = t(amat)
+#       #}
+#       # nt = length(t)
+#       # amat = cSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
+#       # amat = cbind(amat, x)
+#       # cat('use splines2!', '\n')
+#       # ms = colMeans(amat)
+#       # nt = length(t)
+#       # amat = cSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
+#       # amat = cbind(amat, -x)
+#       # cat('use splines2!', '\n')
+#       # ms = colMeans(amat)
+#       
+#     } else if (sh == 16) {#8
+#       #amat_ans = -incconvex(x, t, interp)
+#       # amat_ans = incconvex(x, t, interp)
+#       # amat = -amat_ans$sigma |> t()
+#       # if (!interp) {
+#       #    ms = -amat_ans$ms
+#       # }
+#       
+#       nt = length(t)
+#       amat = -cSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
+#       x_sc = (x - min(x)) / (max(x) - min(x))
+#       amat = cbind(amat, -x_sc)
+#       #cat('use splines2!', '\n')
+#       if (!interp) {
+#         ms = colMeans(amat) 
+#       }
+#       
+#       if(!interp){
+#         for(i in 1:ncol(amat)){
+#           amat[,i] = amat[,i] - ms[i]
+#         }
+#       }
+#       
+#       #if(shpselect) {
+#         amat = t(amat)
+#       #}
+#     } else if (sh == 17) {#unconstrained
+#       #amat_ans = incconvex(x, t, interp)
+#       #amat = amat_ans$sigma |> t()
+#       #ms = amat_ans$ms
+#       
+#       nt = length(t)
+#       amat = cSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
+#       x_sc = (x - min(x)) / (max(x) - min(x))
+#       amat = cbind(amat, x_sc)
+#       #cat('use splines2!', '\n')
+#       ms = colMeans(amat)
+#       
+#       if(!interp){
+#         for(i in 1:ncol(amat)){
+#           amat[,i] = amat[,i] - ms[i]
+#         }
+#       }
+#       
+#       #if(shpselect) {
+#         amat = t(amat)
+#       #}
+#       #amat = -incconcave(x, t)
+#       #amat = rbind(x, t(bcspl(x, m = length(t), knots = t)$bmat))
+#       #amat = rbind(x, convex(x, t))
+#     }
+#   }
+#   #if (sh < 9) {
+#   #	rslt = list(amat = amat, knots = 0, ms = ms)
+#   #} else {
+#   #	rslt = list(amat = amat, knots = t, ms = ms)
+#   #}
+#   if (sh < 9) {t = 0}
+#   rslt = list(amat = amat, knots = t, ms = ms)
+#   rslt
+# }
 
 ###################################################
 #find delta for a specific predictor x and a shape#
@@ -2259,50 +2661,197 @@ makedelta = function(x, sh, numknots = 0, knots = 0, space = "E", suppre = FALSE
 			#}
 		}
 		if (sh == 9) {#1
-			amat_ans = monincr(x, t, interp)
-			amat = amat_ans$sigma
-			ms = amat_ans$ms
+			#amat_ans = monincr(x, t, interp)
+			#amat = amat_ans$sigma
+			#ms = amat_ans$ms
+			
+			nt = length(t)
+			amat = iSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
+			# #cat('use splines2!', '\n')
+			ms = colMeans(amat)
+			      
+			#make the basis orthogonal to 1
+			if(!interp){
+			  for(i in 1:ncol(amat)){
+			     amat[,i] = amat[,i] - ms[i]
+			  }
+			}
+
+			#if(shpselect) {
+			   amat = t(amat)
+			#}
 		} else if (sh == 10) {#2
-			amat_ans = mondecr(x, t, interp)
-			amat = amat_ans$sigma
-			ms = amat_ans$ms
+			#amat_ans = mondecr(x, t, interp)
+			#amat = amat_ans$sigma
+			#ms = amat_ans$ms
+			
+		  nt = length(t)
+		  amat = -iSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
+		  #cat('use splines2!', '\n')
+		  ms = colMeans(amat)
+
+		  #make the basis orthogonal to 1
+		  if(!interp){
+		    for(i in 1:ncol(amat)){
+		      amat[,i] = amat[,i] - ms[i]
+		    }
+		  }
+
+		  #if(shpselect) {
+		    amat = t(amat)
+		  #}
 		} else if (sh == 11) {#3
-			amat_ans = convex(x, t, interp)
-			amat = amat_ans$sigma
-			ms = amat_ans$ms
+			#amat_ans = convex(x, t, interp)
+			#amat = amat_ans$sigma
+			#ms = amat_ans$ms
+			
+		  nt = length(t)
+		  amat = cSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
+		  #cat('use splines2!', '\n')
+		  ms = colMeans(amat)
+
+		  if(!interp){
+		    xm = cbind(1, x)
+		    pm = xm %*% solve(crossprod(xm), t(xm))
+		    amat = amat - pm %*% amat
+		  }
+
+		  #if(shpselect) {
+		    amat = t(amat)
+		  #}
 		} else if (sh == 12) {#4
-			amat_ans = concave(x, t, interp)
-			amat = amat_ans$sigma
-			ms = amat_ans$ms
+			#amat_ans = concave(x, t, interp)
+			#amat = amat_ans$sigma
+			#ms = amat_ans$ms
+			
+		  nt = length(t)
+		  amat = -cSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
+		  #cat('use splines2!', '\n')
+		  ms = colMeans(amat)
+		  
+		  if(!interp){
+		    xm = cbind(1, x)
+		    pm = xm %*% solve(crossprod(xm), t(xm))
+		    amat = amat - pm %*% amat
+		  }
+		  
+		  #if(shpselect) {
+		    amat = t(amat)
+		  #}
 		} else if (sh == 13) {#5
-			amat_ans = incconvex(x, t, interp)
-			amat = amat_ans$sigma
-			ms = amat_ans$ms
+			#amat_ans = incconvex(x, t, interp)
+			#amat = amat_ans$sigma
+			#ms = amat_ans$ms
+			
+			nt = length(t)
+			amat = cSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
+			x_sc = (x - min(x)) / (max(x) - min(x))
+			amat = cbind(amat, x_sc)
+			#cat('use splines2!', '\n')
+			ms = colMeans(amat)
+			
+			if(!interp){
+			  for(i in 1:ncol(amat)){
+			    amat[,i] = amat[,i] - ms[i]
+			  }
+			}
+			
+			#if(shpselect) {
+			  amat = t(amat)
+			#}
 		} else if (sh == 14) {#6
-			amat_ans = incconcave(x, t, interp)
-			amat = amat_ans$sigma
-			ms = amat_ans$ms
+			#amat_ans = incconcave(x, t, interp)
+			#amat = amat_ans$sigma
+			#ms = amat_ans$ms
+			
+		  nt = length(t)
+		  amat = -cSpline(-x, knots = -rev(t[-c(1, nt)]), Boundary.knots = -c(t[nt], t[1]), degree = 1) 
+		  x_sc = (-x - min(-x)) / (max(-x) - min(-x))
+		  amat = cbind(-x_sc, amat)
+		  #cat('use splines2!', '\n')
+		  ms = colMeans(amat)
+		  
+		  if(!interp){
+		    for(i in 1:ncol(amat)){
+		      amat[,i] = amat[,i] - ms[i]
+		    }
+		  }
+		  
+		  #if(shpselect) {
+		    amat = t(amat)
+		  #}
 		} else if (sh == 15) {#7
-			#amat_ans = -incconcave(x, t, interp)
-			amat_ans = incconcave(x, t, interp)
-			amat = -amat_ans$sigma
-			if (!interp) {
-				ms = -amat_ans$ms
-			}
+			##amat_ans = -incconcave(x, t, interp)
+			#amat_ans = incconcave(x, t, interp)
+			#amat = -amat_ans$sigma
+			#if (!interp) {
+			#	ms = -amat_ans$ms
+			#}
+		  
+		  nt = length(t)
+		  amat = cSpline(-x, knots = -rev(t[-c(1, nt)]), Boundary.knots = -c(t[nt], t[1]), degree = 1) 
+		  x_sc = (-x - min(-x)) / (max(-x) - min(-x))
+		  amat = cbind(x_sc, amat)
+		  #cat('use splines2!', '\n')
+		  ms = colMeans(amat)
+		  
+		  if(!interp){
+		    for(i in 1:ncol(amat)){
+		      amat[,i] = amat[,i] - ms[i]
+		    }
+		  }
+		  
+		  #if(shpselect) {
+		    amat = t(amat)
+		  #}
 		} else if (sh == 16) {#8
-			#amat_ans = -incconvex(x, t, interp)
-			amat_ans = incconvex(x, t, interp)
-			amat = -amat_ans$sigma
-			if (!interp) {
-				ms = -amat_ans$ms
-			}
+			##amat_ans = -incconvex(x, t, interp)
+			#amat_ans = incconvex(x, t, interp)
+			#amat = -amat_ans$sigma
+			#if (!interp) {
+			#	ms = -amat_ans$ms
+			#}
+		  
+		  nt = length(t)
+		  amat = -cSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
+		  x_sc = (x - min(x)) / (max(x) - min(x))
+		  amat = cbind(amat, -x_sc)
+		  #cat('use splines2!', '\n')
+		  #if (!interp) {
+		  ms = colMeans(amat) 
+		  #}
+		  
+		  if(!interp){
+		    for(i in 1:ncol(amat)){
+		      amat[,i] = amat[,i] - ms[i]
+		    }
+		  }
+		  
+		  #if(shpselect) {
+		    amat = t(amat)
+		  #}
+		  
 		} else if (sh == 17) {#unconstrained
-			amat_ans = incconvex(x, t, interp)
-			amat = amat_ans$sigma
-			ms = amat_ans$ms
-			#amat = -incconcave(x, t)
-			#amat = rbind(x, t(bcspl(x, m = length(t), knots = t)$bmat))
-			#amat = rbind(x, convex(x, t))
+			#amat_ans = incconvex(x, t, interp)
+			#amat = amat_ans$sigma
+			#ms = amat_ans$ms
+		
+		  nt = length(t)
+		  amat = cSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
+		  x_sc = (x - min(x)) / (max(x) - min(x))
+		  amat = cbind(amat, x_sc)
+		  #cat('use splines2!', '\n')
+		  ms = colMeans(amat)
+		  
+		  if(!interp){
+		    for(i in 1:ncol(amat)){
+		      amat[,i] = amat[,i] - ms[i]
+		    }
+		  }
+		  
+		  #if(shpselect) {
+		    amat = t(amat)
+		  #}
 		}
 	}
 	#if (sh < 9) {
@@ -3727,10 +4276,13 @@ predict.cgam = function(object, newData, interval = c("none", "confidence", "pre
       thhat = deltil %*% bh
       #print (thhat)
       #print (ztil)
-      shat = sum((ztil - thhat)^2)/(n - edf)
+      #shat = sum((ztil - thhat)^2)/(n - edf)
+      #correction: 2/16/2025; shat is always 1.
+      shat = 1 
       #print (shat)
       nloop = 100
       cmat = matrix(0, nrow = m, ncol = m)
+      imat = diag(m)
       for(iloop in 1:nloop){
         zsim = thhat + rnorm(n)*shat
         zsimtil = t(uinv) %*% t(deltil) %*% zsim
@@ -3748,7 +4300,9 @@ predict.cgam = function(object, newData, interval = c("none", "confidence", "pre
         #print (rw)
         if(sum(rw) == 0){
           #pjmat = t(atil) %*% solve(atil %*% t(atil)) %*% atil
-          pjmat = t(atil) %*% solve(tcrossprod(atil), atil)
+          #pjmat = t(atil) %*% solve(tcrossprod(atil), atil)
+          #correction: 2/16/2025;
+          pjmat = imat
         } else {
           ajc = atil[rw,]
           if(length(ajc) == m){
@@ -4903,69 +5457,69 @@ makedelta_tri = function(x1, x2, m1 = 0, m2 = 0, k1 = NULL, k2 = NULL, trimat = 
 ###########################################
 #create a 3D plot for a cgam or wps object#
 ###########################################
-plotpersp <- function(object,...) {
-  UseMethod("plotpersp", object)
-}
-# plotpersp <- function(object, x1 = NULL, x2 = NULL,...) {
-#     x1nm <- deparse(substitute(x1))
-#     x2nm <- deparse(substitute(x2))
-#     if (inherits(object, "cgamp")) {
-#         xnms_add <- object$object$xnms_add
-#     } else {
-#         xnms_add <- object$xnms_add
-#     }
-#     if (inherits(object, "wpsp")) {
-#         xnms_wp <- object$object$xnms_wp
-#     } else {
-#         xnms_wp <- object$xnms_wp
-#     }
-#     if (inherits(object, "trisplp")) {
-#         xnms_tri <- object$object$xnms_tri
-#     } else {
-#         xnms_tri <- object$xnms_tri
-#     }
-#     is_add <- all(c(any(grepl(x1nm, xnms_add, fixed = TRUE)), any(grepl(x2nm, xnms_add, fixed = TRUE))))
-#     #print (is_add)
-#     is_wps <- all(c(any(grepl(x1nm, xnms_wp, fixed = TRUE)), any(grepl(x2nm, xnms_wp, fixed = TRUE))))
-#     #print (is_wps)
-#     is_tri <- all(c(any(grepl(x1nm, xnms_tri, fixed = TRUE)), any(grepl(x2nm, xnms_tri, fixed = TRUE))))
-#     #print (is_tri)
-#     if (missing(x1) | missing(x2)) {
-#         UseMethod("plotpersp")
-#     } else {
-#         cs = class(object)
-#         if (length(cs) == 1 & is.null(x1nm) & is.null(x2nm)) {
-#             UseMethod("plotpersp")
-#         } else {
-#             if (is_wps) {
-#                 #print (x1)
-#                 #print (x2nm)
-#                 if (inherits(object, "wpsp")) {
-#                     #print (x1nm)
-#                     #print (x2nm)
-#                     #print (head(x1))
-#                     plotpersp.wpsp(object, x1, x2, x1nm, x2nm,...)
-#                 } else {
-#                     plotpersp.wps(object, x1, x2, x1nm, x2nm,...)
-#                 }
-#             } else if (is_add) {
-#                 if (inherits(object, "cgamp")){
-#                     plotpersp.cgamp(object, x1, x2, x1nm, x2nm,...)
-#                 } else {
-#                     plotpersp.cgam(object, x1, x2, x1nm, x2nm,...)
-#                 }
-#             } else if (is_tri) {
-#                 if (inherits(object, "trisplp")) {
-#                     plotpersp.trisplp(object, x1, x2, x1nm, x2nm,...)
-#                 } else {
-#                     plotpersp.trispl(object, x1, x2, x1nm, x2nm,...)
-#                 }
-#             } else {
-#                 stop ("Nonparametric components must be from the same class!")
-#             }
-#         }
-#     }
+# plotpersp <- function(object,...) {
+#   UseMethod("plotpersp", object)
 # }
+plotpersp <- function(object, x1 = NULL, x2 = NULL,...) {
+    x1nm <- deparse(substitute(x1))
+    x2nm <- deparse(substitute(x2))
+    if (inherits(object, "cgamp")) {
+        xnms_add <- object$object$xnms_add
+    } else {
+        xnms_add <- object$xnms_add
+    }
+    if (inherits(object, "wpsp")) {
+        xnms_wp <- object$object$xnms_wp
+    } else {
+        xnms_wp <- object$xnms_wp
+    }
+    if (inherits(object, "trisplp")) {
+        xnms_tri <- object$object$xnms_tri
+    } else {
+        xnms_tri <- object$xnms_tri
+    }
+    is_add <- all(c(any(grepl(x1nm, xnms_add, fixed = TRUE)), any(grepl(x2nm, xnms_add, fixed = TRUE))))
+    #print (is_add)
+    is_wps <- all(c(any(grepl(x1nm, xnms_wp, fixed = TRUE)), any(grepl(x2nm, xnms_wp, fixed = TRUE))))
+    #print (is_wps)
+    is_tri <- all(c(any(grepl(x1nm, xnms_tri, fixed = TRUE)), any(grepl(x2nm, xnms_tri, fixed = TRUE))))
+    #print (is_tri)
+    if (missing(x1) | missing(x2)) {
+        UseMethod("plotpersp")
+    } else {
+        cs = class(object)
+        if (length(cs) == 1 & is.null(x1nm) & is.null(x2nm)) {
+            UseMethod("plotpersp")
+        } else {
+            if (is_wps) {
+                #print (x1)
+                #print (x2nm)
+                if (inherits(object, "wpsp")) {
+                    #print (x1nm)
+                    #print (x2nm)
+                    #print (head(x1))
+                    plotpersp.wpsp(object, x1, x2, x1nm, x2nm,...)
+                } else {
+                    plotpersp.wps(object, x1, x2, x1nm, x2nm,...)
+                }
+            } else if (is_add) {
+                if (inherits(object, "cgamp")){
+                    plotpersp.cgamp(object, x1, x2, x1nm, x2nm,...)
+                } else {
+                    plotpersp.cgam(object, x1, x2, x1nm, x2nm,...)
+                }
+            } else if (is_tri) {
+                if (inherits(object, "trisplp")) {
+                    plotpersp.trisplp(object, x1, x2, x1nm, x2nm,...)
+                } else {
+                    plotpersp.trispl(object, x1, x2, x1nm, x2nm,...)
+                }
+            } else {
+                stop ("Nonparametric components must be from the same class!")
+            }
+        }
+    }
+}
 
 
 ################
@@ -4993,6 +5547,7 @@ plotpersp.cgam <- function(object, x1 = NULL, x2 = NULL, x1nm = NULL, x2nm = NUL
 	#x2nm <- nms[2]$x
 	#x2nm <- deparse(x2nm)
 #new: default is plotpersp(object)
+  #must include deparse; otherwise cannot change x1 and x2?
 	#x1nm <- deparse(substitute(x1))
 	#x2nm <- deparse(substitute(x2))
 	#print (x1nm)
@@ -6703,7 +7258,8 @@ wps_getedf = function(ahati, sm, amat, amat0, xw0, xmat0, qmat0, p) {
 ########################################
 #new wps.fit, with new amat and dmat
 ########################################
-wps.fit = function(x1t, x2t, y, zmat = NULL, xmat_add = NULL, delta_add = NULL, delta_ut = NULL, varlist_add = NULL, shapes_add = NULL, np_add = 0, shapes = NULL, w = NULL, pen = 0, pnt = TRUE, cpar = 1.5, decrs = c(FALSE, FALSE), delta = NULL, kts = NULL, wt.iter = FALSE, family = gaussian(), cic = FALSE, nsim = 100, nprs = 1, idx_s = NULL, idx = NULL, gcv = FALSE, pvf = FALSE) {
+wps.fit = function(x1t, x2t, y, zmat = NULL, xmat_add = NULL, delta_add = NULL, delta_ut = NULL, varlist_add = NULL, 
+                   shapes_add = NULL, np_add = 0, shapes = NULL, w = NULL, pen = 0, pnt = TRUE, cpar = 1.5, decrs = c(FALSE, FALSE), delta = NULL, kts = NULL, wt.iter = FALSE, family = gaussian(), cic = FALSE, nsim = 100, nprs = 1, idx_s = NULL, idx = NULL, gcv = FALSE, pvf = FALSE) {
 	cicfamily = CicFamily(family)
 	linkfun = cicfamily$linkfun
 	llh.fun = cicfamily$llh.fun
@@ -7825,7 +8381,6 @@ make_pen = function(n, xw=NULL, xmat=NULL, dmat=NULL, y=NULL, amat=NULL, gcv=FAL
     lams = lams/2^8/n^(1/3)
     #print (lams)
     gcvs = 1:ng*0
-
     for(i in 1:ng) {
       pen = lams[i]
       qv0 = crossprod(xw)
@@ -14307,7 +14862,7 @@ varest = function(y, x, muhat=NULL, shape=9, var.knots=0, db.exp=FALSE){
     }
 
     bvec = c(rep(0,nk-1), 10^-10)
-    Bint = bs(xs, knots = var.kint, degree = 2, intercept = T)
+    Bint = splines::bs(xs, knots = var.kint, degree = 2, intercept = T)
 
     if (!is.null(muhat)) {
         r = y - muhat

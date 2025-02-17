@@ -89,7 +89,7 @@ splines with application to estimation of tree height
 	n <- 200
 	x <- seq(0, 1, length = n)
 
-	eta <- 4*x - 2
+	eta <- 4*x^2 - 2
 	mu <- exp(eta)/(1+exp(eta))
 	set.seed(123)
 	y <- 1:n*0
@@ -98,9 +98,9 @@ splines with application to estimation of tree height
 	fit <- cgam(y ~ s.incr.conv(x), family = binomial)
 	muhat <- fitted(fit)
 	
-    # predict values in new.Data based on the cgam fit with a 95 percent confidence interval
-    xinterp <- seq(min(x), max(x), by = 0.05)
-    new.Data <- data.frame(x = xinterp)
+  # predict values in new.Data based on the cgam fit with a 95 percent confidence interval
+  xinterp <- seq(min(x), max(x), by = 0.05)
+  new.Data <- data.frame(x = xinterp)
 	pfit <- predict(fit, new.Data, interval = "confidence", level = 0.95)
 	pmu <- pfit$fit
 	lwr <- pfit$lower

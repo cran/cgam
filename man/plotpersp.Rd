@@ -15,17 +15,17 @@ This routine is an extension of the generic R graphics routine persp. See the do
 }
 
 \usage{
-  plotpersp(object,...)
+  plotpersp(object, x1 = NULL, x2 = NULL, ...)
 }
 
 \arguments{
   \item{object}{An object of the cgam class with at least two non-parametrically modelled predictors.}
+  \item{x1}{A non-parametrically modelled predictor in a cgam fit. If the user omits x1 and x2, then the first two non-parametric predictors in a cgam formula will be used.}
+  \item{x2}{A non-parametrically modelled predictor in a cgam fit. If the user omits x1 and x2, then the first two non-parametric predictors in a cgam formula will be used.}
 \item{...}{
 Arguments to be passed to the S3 method for the cgam class:
-\itemize{
-    \item{x1}{A non-parametrically modelled predictor in a cgam fit. If the user omits x1 and x2, then the first two non-parametric predictors in a cgam formula will be used.}
-  \item{x2}{A non-parametrically modelled predictor in a cgam fit. If the user omits x1 and x2, then the first two non-parametric predictors in a cgam formula will be used.}
-  \item{x1nm: }{Character name of x1.}
+\describe{
+   \item{x1nm: }{Character name of x1.}
   \item{x2nm: }{Character name of x2.}
   \item{data: }{The data frame based on which the user get a cgam fit.}
   \item{surface: }{The type of the surface of a 3D plot. For a cgam fit, if surface == "mu", then the surface of the estimated mean value of the fit will be plotted; if surface == "eta", then the surface of the estimated systematic component value of the fit will be plotted. The default is surface = "mu"; for a warped-plane spline fit, if surface == "C", then the surface of the constrained estimated mean value of the fit will be plotted, while if surface == "U", then the surface of the unconstrained estimated mean value of the fit will be plotted. The default is surface = "C".}
