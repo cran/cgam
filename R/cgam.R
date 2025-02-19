@@ -5457,69 +5457,69 @@ makedelta_tri = function(x1, x2, m1 = 0, m2 = 0, k1 = NULL, k2 = NULL, trimat = 
 ###########################################
 #create a 3D plot for a cgam or wps object#
 ###########################################
-# plotpersp <- function(object,...) {
-#   UseMethod("plotpersp", object)
-# }
-plotpersp <- function(object, x1 = NULL, x2 = NULL,...) {
-    x1nm <- deparse(substitute(x1))
-    x2nm <- deparse(substitute(x2))
-    if (inherits(object, "cgamp")) {
-        xnms_add <- object$object$xnms_add
-    } else {
-        xnms_add <- object$xnms_add
-    }
-    if (inherits(object, "wpsp")) {
-        xnms_wp <- object$object$xnms_wp
-    } else {
-        xnms_wp <- object$xnms_wp
-    }
-    if (inherits(object, "trisplp")) {
-        xnms_tri <- object$object$xnms_tri
-    } else {
-        xnms_tri <- object$xnms_tri
-    }
-    is_add <- all(c(any(grepl(x1nm, xnms_add, fixed = TRUE)), any(grepl(x2nm, xnms_add, fixed = TRUE))))
-    #print (is_add)
-    is_wps <- all(c(any(grepl(x1nm, xnms_wp, fixed = TRUE)), any(grepl(x2nm, xnms_wp, fixed = TRUE))))
-    #print (is_wps)
-    is_tri <- all(c(any(grepl(x1nm, xnms_tri, fixed = TRUE)), any(grepl(x2nm, xnms_tri, fixed = TRUE))))
-    #print (is_tri)
-    if (missing(x1) | missing(x2)) {
-        UseMethod("plotpersp")
-    } else {
-        cs = class(object)
-        if (length(cs) == 1 & is.null(x1nm) & is.null(x2nm)) {
-            UseMethod("plotpersp")
-        } else {
-            if (is_wps) {
-                #print (x1)
-                #print (x2nm)
-                if (inherits(object, "wpsp")) {
-                    #print (x1nm)
-                    #print (x2nm)
-                    #print (head(x1))
-                    plotpersp.wpsp(object, x1, x2, x1nm, x2nm,...)
-                } else {
-                    plotpersp.wps(object, x1, x2, x1nm, x2nm,...)
-                }
-            } else if (is_add) {
-                if (inherits(object, "cgamp")){
-                    plotpersp.cgamp(object, x1, x2, x1nm, x2nm,...)
-                } else {
-                    plotpersp.cgam(object, x1, x2, x1nm, x2nm,...)
-                }
-            } else if (is_tri) {
-                if (inherits(object, "trisplp")) {
-                    plotpersp.trisplp(object, x1, x2, x1nm, x2nm,...)
-                } else {
-                    plotpersp.trispl(object, x1, x2, x1nm, x2nm,...)
-                }
-            } else {
-                stop ("Nonparametric components must be from the same class!")
-            }
-        }
-    }
+plotpersp <- function(object,...) {
+  UseMethod("plotpersp", object)
 }
+# plotpersp <- function(object, x1 = NULL, x2 = NULL,...) {
+#     x1nm <- deparse(substitute(x1))
+#     x2nm <- deparse(substitute(x2))
+#     if (inherits(object, "cgamp")) {
+#         xnms_add <- object$object$xnms_add
+#     } else {
+#         xnms_add <- object$xnms_add
+#     }
+#     if (inherits(object, "wpsp")) {
+#         xnms_wp <- object$object$xnms_wp
+#     } else {
+#         xnms_wp <- object$xnms_wp
+#     }
+#     if (inherits(object, "trisplp")) {
+#         xnms_tri <- object$object$xnms_tri
+#     } else {
+#         xnms_tri <- object$xnms_tri
+#     }
+#     is_add <- all(c(any(grepl(x1nm, xnms_add, fixed = TRUE)), any(grepl(x2nm, xnms_add, fixed = TRUE))))
+#     #print (is_add)
+#     is_wps <- all(c(any(grepl(x1nm, xnms_wp, fixed = TRUE)), any(grepl(x2nm, xnms_wp, fixed = TRUE))))
+#     #print (is_wps)
+#     is_tri <- all(c(any(grepl(x1nm, xnms_tri, fixed = TRUE)), any(grepl(x2nm, xnms_tri, fixed = TRUE))))
+#     #print (is_tri)
+#     if (missing(x1) | missing(x2)) {
+#         UseMethod("plotpersp")
+#     } else {
+#         cs = class(object)
+#         if (length(cs) == 1 & is.null(x1nm) & is.null(x2nm)) {
+#             UseMethod("plotpersp")
+#         } else {
+#             if (is_wps) {
+#                 #print (x1)
+#                 #print (x2nm)
+#                 if (inherits(object, "wpsp")) {
+#                     #print (x1nm)
+#                     #print (x2nm)
+#                     #print (head(x1))
+#                     plotpersp.wpsp(object, x1, x2, x1nm, x2nm,...)
+#                 } else {
+#                     plotpersp.wps(object, x1, x2, x1nm, x2nm,...)
+#                 }
+#             } else if (is_add) {
+#                 if (inherits(object, "cgamp")){
+#                     plotpersp.cgamp(object, x1, x2, x1nm, x2nm,...)
+#                 } else {
+#                     plotpersp.cgam(object, x1, x2, x1nm, x2nm,...)
+#                 }
+#             } else if (is_tri) {
+#                 if (inherits(object, "trisplp")) {
+#                     plotpersp.trisplp(object, x1, x2, x1nm, x2nm,...)
+#                 } else {
+#                     plotpersp.trispl(object, x1, x2, x1nm, x2nm,...)
+#                 }
+#             } else {
+#                 stop ("Nonparametric components must be from the same class!")
+#             }
+#         }
+#     }
+# }
 
 
 ################

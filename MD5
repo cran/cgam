@@ -1,7 +1,7 @@
-e724eefbb51a2065ae52ad66827f880a *ChangeLog
-842af0c95bbdba27830b0843f7bdb88b *DESCRIPTION
+a88a197a07b4346ee34a5a3916ff27e3 *ChangeLog
+e98cfd2a787c474074a93f256f316f85 *DESCRIPTION
 687e14aa29646288613b56a45ffe2b5a *NAMESPACE
-244b4ba38d77298cea6c6d16bd0daa5d *R/cgam.R
+e8d2f708329b7fa2f2ec7a2bff106eb0 *R/cgam.R
 3f6b8f7b821c2fe4a55e7fa11b9f922e *R/cgamm.R
 30371bbfb1b09c61689e34133389c96b *data/COforest.rda
 a0db33d4a416d9f938daadefe0e246d8 *data/cubic.rda
@@ -26,7 +26,7 @@ c530c556b13d86a14b835be7d7f58ef6 *man/incr.Rd
 f8c670516d35684c34511851b2dcfe6a *man/incr.conv.Rd
 5e31e813762d0157e7b659d694a2f545 *man/mental.Rd
 1a8fa2f3659519856fddfc62fde89978 *man/plasma.Rd
-b453ace89c788d01e2261eee513783ce *man/plotpersp.Rd
+9d295ef852da4ca850f6d9d00f7e82cd *man/plotpersp.Rd
 0d78b828299bd1088a57886d5b400b0e *man/predict.cgam.Rd
 68e985119e51910a1502bc350c9eb6d9 *man/s.Rd
 9382ebe7fe56cd05f343e2cd053cea40 *man/s.conc.Rd

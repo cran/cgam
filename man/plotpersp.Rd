@@ -15,13 +15,13 @@ This routine is an extension of the generic R graphics routine persp. See the do
 }
 
 \usage{
-  plotpersp(object, x1 = NULL, x2 = NULL, ...)
+  plotpersp(object,...)
 }
 
 \arguments{
   \item{object}{An object of the cgam class with at least two non-parametrically modelled predictors.}
-  \item{x1}{A non-parametrically modelled predictor in a cgam fit. If the user omits x1 and x2, then the first two non-parametric predictors in a cgam formula will be used.}
-  \item{x2}{A non-parametrically modelled predictor in a cgam fit. If the user omits x1 and x2, then the first two non-parametric predictors in a cgam formula will be used.}
+  %\item{x1}{A non-parametrically modelled predictor in a cgam fit. If the user omits x1 and x2, then the first two non-parametric predictors in a cgam formula will be used.}
+  %\item{x2}{A non-parametrically modelled predictor in a cgam fit. If the user omits x1 and x2, then the first two non-parametric predictors in a cgam formula will be used.}
 \item{...}{
 Arguments to be passed to the S3 method for the cgam class:
 \describe{

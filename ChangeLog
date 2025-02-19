@@ -64,3 +64,6 @@
 * Eta in the binomial example in predict.cgam is changed to be 4*x^2 - 2
 * llh.fun returns negative loglikelihood
 * fix the bug in predict.cgam: sdhat = 1
+
+1.23
+* plotpersp needs to be compatible with csurvey
