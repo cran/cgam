@@ -67,3 +67,6 @@
 
 1.23
 * plotpersp needs to be compatible with csurvey
+
+1.24
+* add testpar 

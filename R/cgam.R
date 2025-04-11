@@ -98,7 +98,9 @@ cgam <- function(formula, cic = FALSE, nsim = 100, family = gaussian, cpar = 1.5
 				}
     		}
 #warp
-			if (is.character(attributes(mf[, i])$shape) & (attributes(mf[,i])$categ == "warp")) {
+			#if (is.character(attributes(mf[, i])$shape) & (attributes(mf[,i])$categ == "warp")) {
+		  #test more! shape is not pairs like c(1,1)
+		  if ((attributes(mf[,i])$categ == "warp")) {
 				iwps <- iwps + 1
 				labels <- c(labels, rep(paste("warp", iwps, sep = "_"), 2))
     			sps_wp <- attributes(mf[, i])$space
@@ -1524,10 +1526,33 @@ CicFamily <- function(object) {
    muhat
   }
 
-  ysim.fun <- function(n, mu0 = NULL, fml = object$family, shp0 = NULL) {
+  # ysim.fun <- function(n, mu0 = NULL, fml = object$family, shp0 = NULL) {
+  #   if (fml == "binomial") {
+  #     ysim <- 1:n*0
+  #     ysim[runif(n) < .5] <- 1
+  #   }
+  #   if (fml == "poisson") {
+  #     if (!is.null(mu0)) {
+  #       ysim <- rpois(n, mu0)
+  #     }
+  #   }
+  #   if (fml == "gaussian") {
+  #     ysim <- rnorm(n)
+  #   }
+  #   if (fml == "Gamma") {
+  #     ysim <- rgamma(n, shape=1)
+  #   }
+  #   ysim
+  # }
+
+  ysim.fun <- function(n, mu0 = NULL, fml = object$family, shp0 = NULL, sd = NULL, phi = NULL) {
     if (fml == "binomial") {
-      ysim <- 1:n*0
-      ysim[runif(n) < .5] <- 1
+      if(is.null(mu0)){
+        ysim <- 1:n*0
+        ysim[runif(n) < .5] <- 1
+      } else {
+        ysim <- rbinom(n, size = 1, prob = mu0)
+      }
     }
     if (fml == "poisson") {
       if (!is.null(mu0)) {
@@ -1535,14 +1560,22 @@ CicFamily <- function(object) {
       }
     }
     if (fml == "gaussian") {
-      ysim <- rnorm(n)
+      if(!is.null(phi)){
+        ysim <- mu0 + arima.sim(n = n, list(ar = phi), sd = sd)
+      }else{
+        if(is.null(mu0)){
+          ysim <- rnorm(n)
+        } else {
+          ysim <- mu0 + rnorm(n)
+        }
+      }
     }
     if (fml == "Gamma") {
       ysim <- rgamma(n, shape=1)
     }
     ysim
   }
-
+  
   deriv.fun <- function(muhat, fml = object$family) {
     if (fml == "binomial") {
 		deriv <- 1 / (muhat * (1 - muhat))
@@ -1700,6 +1733,7 @@ incr <- function(x, numknots = 0, knots = 0, space = "E")
     cl <- match.call()
     pars <- match.call()[-1]
     attr(x, "nm") <- deparse(pars$x)
+    #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- 1
     attr(x, "numknots") <- numknots
     attr(x, "knots") <- knots
@@ -1714,6 +1748,7 @@ decr <- function(x, numknots = 0, knots = 0, space = "E")
     cl <- match.call()
     pars <- match.call()[-1]
     attr(x, "nm") <- deparse(pars$x)
+    #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- 2
     attr(x, "numknots") <- numknots
     attr(x, "knots") <- knots
@@ -1728,6 +1763,7 @@ conv <- function(x, numknots = 0, knots = 0, space = "E")
     cl <- match.call()
     pars <- match.call()[-1]
     attr(x, "nm") <- deparse(pars$x)
+    #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- 3
     attr(x, "numknots") <- numknots
     attr(x, "knots") <- knots
@@ -1742,6 +1778,7 @@ conc <- function(x, numknots = 0, knots = 0, space = "E")
     cl <- match.call()
     pars <- match.call()[-1]
     attr(x, "nm") <- deparse(pars$x)
+    #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- 4
     attr(x, "numknots") <- numknots
     attr(x, "knots") <- knots
@@ -1756,6 +1793,7 @@ incr.conv <- function(x, numknots = 0, knots = 0, space = "E")
     cl <- match.call()
     pars <- match.call()[-1]
     attr(x, "nm") <- deparse(pars$x)
+    #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- 5
     attr(x, "numknots") <- numknots
     attr(x, "knots") <- knots
@@ -1770,6 +1808,7 @@ decr.conv <- function(x, numknots = 0, knots = 0, space = "E")
     cl <- match.call()
     pars <- match.call()[-1]
     attr(x, "nm") <- deparse(pars$x)
+    #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- 6
     attr(x, "numknots") <- numknots
     attr(x, "knots") <- knots
@@ -1784,6 +1823,7 @@ incr.conc <- function(x, numknots = 0, knots = 0, space = "E")
     cl <- match.call()
     pars <- match.call()[-1]
     attr(x, "nm") <- deparse(pars$x)
+    #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- 7
     attr(x, "numknots") <- numknots
     attr(x, "knots") <- knots
@@ -1798,6 +1838,7 @@ decr.conc <- function(x, numknots = 0, knots = 0, space = "E")
     cl <- match.call()
     pars <- match.call()[-1]
     attr(x, "nm") <- deparse(pars$x)
+    #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- 8
     attr(x, "numknots") <- numknots
     attr(x, "knots") <- knots
@@ -1841,6 +1882,7 @@ s.incr <- function(x, numknots = 0, knots = 0, var.knots = 0, space = "Q", db.ex
     cl <- match.call()
     pars <- match.call()[-1]
     attr(x, "nm") <- deparse(pars$x)
+    #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- 9
     attr(x, "numknots") <- numknots
     attr(x, "knots") <- knots
@@ -1857,6 +1899,7 @@ s.decr <- function(x, numknots = 0, knots = 0, var.knots = 0, space = "Q", db.ex
     cl <- match.call()
     pars <- match.call()[-1]
     attr(x, "nm") <- deparse(pars$x)
+    #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- 10
     attr(x, "numknots") <- numknots
     attr(x, "knots") <- knots
@@ -1874,6 +1917,7 @@ s.conv <- function(x, numknots = 0, knots = 0, space = "Q")
     cl <- match.call()
     pars <- match.call()[-1]
     attr(x, "nm") <- deparse(pars$x)
+    #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- 11
     attr(x, "numknots") <- numknots
     attr(x, "knots") <- knots
@@ -1888,6 +1932,7 @@ s.conc <- function(x, numknots = 0, knots = 0, space = "Q")
     cl <- match.call()
     pars <- match.call()[-1]
     attr(x, "nm") <- deparse(pars$x)
+    #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- 12
     attr(x, "numknots") <- numknots
     attr(x, "knots") <- knots
@@ -1902,6 +1947,7 @@ s.incr.conv <- function(x, numknots = 0, knots = 0, space = "Q")
     cl <- match.call()
     pars <- match.call()[-1]
     attr(x, "nm") <- deparse(pars$x)
+    #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- 13
     attr(x, "numknots") <- numknots
     attr(x, "knots") <- knots
@@ -1916,6 +1962,7 @@ s.incr.conc <- function(x, numknots = 0, knots = 0, space = "Q")
     cl <- match.call()
     pars <- match.call()[-1]
     attr(x, "nm") <- deparse(pars$x)
+    #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- 14
     attr(x, "numknots") <- numknots
     attr(x, "knots") <- knots
@@ -1930,6 +1977,7 @@ s.decr.conv <- function(x, numknots = 0, knots = 0, space = "Q")
     cl <- match.call()
     pars <- match.call()[-1]
     attr(x, "nm") <- deparse(pars$x)
+    #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- 15
     attr(x, "numknots") <- numknots
     attr(x, "knots") <- knots
@@ -1944,6 +1992,7 @@ s.decr.conc <- function(x, numknots = 0, knots = 0, space = "Q")
    cl <- match.call()
    pars <- match.call()[-1]
    attr(x, "nm") <- deparse(pars$x)
+   #attr(x, "nm") <- deparse(substitute(pars$x))
    attr(x, "shape") <- 16
    attr(x, "numknots") <- numknots
    attr(x, "knots") <- knots
@@ -1958,6 +2007,7 @@ s <- function(x, numknots = 0, knots = 0, space = "Q")
    cl <- match.call()
    pars <- match.call()[-1]
    attr(x, "nm") <- deparse(pars$x)
+   #attr(x, "nm") <- deparse(substitute(pars$x))
    attr(x, "shape") <- 17
    attr(x, "numknots") <- numknots
    attr(x, "knots") <- knots
@@ -1975,6 +2025,7 @@ tree <- function(x, pl = NULL)
     cl <- match.call()
     pars <- match.call()[-1]
     attr(x, "nm") <- deparse(pars$x)
+    #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- "tree"
     #stop (print (x))
     #print (class(x))
@@ -2065,6 +2116,7 @@ umbrella <- function(x)
   cl <- match.call()
   pars <- match.call()[-1]
   attr(x, "nm") <- deparse(pars$x)
+  #attr(x, "nm") <- deparse(substitute(pars$x))
   attr(x, "shape") <- "umbrella"
   attr(x, "categ") <- "additive"
   #class(x) <- "additive"
@@ -8086,77 +8138,87 @@ if (!wt.iter) {
 
 ####################################################################
 #four monotonicity functions for warped-plane fit
+#new: attr(xm, 'shape') are all changed into pairs of numbers because of testpar
+#test more
 ####################################################################
 s.incr.incr <- function(x1, x2, numknots = c(0, 0), knots = list(k1 = 0, k2 = 0), space = c("E", "E"))
 {
-    cl <- match.call()
-    pars1 <- match.call()[2]
-    pars2 <- match.call()[3]
-    xm <- cbind(x1, x2)
-    attr(xm, "name") <- c(deparse(pars1$x1), deparse(pars2$x2))
-    attr(xm, "shape") <- "wps_ii"
-    attr(xm, "numknots") <- numknots
-    attr(xm, "knots") <- knots
-    attr(xm, "space") <- space
-    attr(xm, "decreasing") <- c(FALSE, FALSE)
-    attr(xm, "categ") <- "warp"
-    #class(xm) <- "warp"
-    #warp <<- TRUE
-    return (xm)
+  cl <- match.call()
+  pars1 <- match.call()[2]
+  pars2 <- match.call()[3]
+  xm <- cbind(x1, x2)
+  attr(xm, "name") <- c(deparse(pars1$x1), deparse(pars2$x2))
+  attr(xm, "nm") <- c(deparse(pars1$x1), deparse(pars2$x2))
+  #attr(xm, "shape") <- "wps_ii"
+  attr(xm, "shape") <- c(1, 1)
+  attr(xm, "numknots") <- numknots
+  attr(xm, "knots") <- knots
+  attr(xm, "space") <- space
+  attr(xm, "decreasing") <- c(FALSE, FALSE)
+  attr(xm, "categ") <- "warp"
+  #class(xm) <- "warp"
+  #warp <<- TRUE
+  return (xm)
 }
 
 s.incr.decr <- function(x1, x2, numknots = c(0, 0), knots = list(k1 = 0, k2 = 0), space = c("E", "E"))
 {
-    cl <- match.call()
-    pars1 <- match.call()[2]
-    pars2 <- match.call()[3]
-    xm <- cbind(x1, x2)
-    attr(xm, "name") <- c(deparse(pars1$x1), deparse(pars2$x2))
-    attr(xm, "shape") <- "wps_id"
-    attr(xm, "numknots") <- numknots
-    attr(xm, "knots") <- knots
-    attr(xm, "space") <- space
-    attr(xm, "decreasing") <- c(FALSE, TRUE)
-    attr(xm, "categ") <- "warp"
-    #warp <<- TRUE
-    #class(xm) <- "warp"
-    return (xm)
+  cl <- match.call()
+  pars1 <- match.call()[2]
+  pars2 <- match.call()[3]
+  xm <- cbind(x1, x2)
+  attr(xm, "name") <- c(deparse(pars1$x1), deparse(pars2$x2))
+  attr(xm, "nm") <- c(deparse(pars1$x1), deparse(pars2$x2))
+  #attr(xm, "shape") <- "wps_id"
+  attr(xm, "shape") <- c(1, 2)
+  attr(xm, "numknots") <- numknots
+  attr(xm, "knots") <- knots
+  attr(xm, "space") <- space
+  attr(xm, "decreasing") <- c(FALSE, TRUE)
+  attr(xm, "categ") <- "warp"
+  #warp <<- TRUE
+  #class(xm) <- "warp"
+  return (xm)
 }
 
 s.decr.incr <- function(x1, x2, numknots = c(0, 0), knots = list(k1 = 0, k2 = 0), space = c("E", "E"))
 {
-    cl <- match.call()
-    pars1 <- match.call()[2]
-    pars2 <- match.call()[3]
-    xm <- cbind(x1, x2)
-    attr(xm, "name") <- c(deparse(pars1$x1), deparse(pars2$x2))
-    attr(xm, "shape") <- "wps_di"
-    attr(xm, "numknots") <- numknots
-    attr(xm, "knots") <- knots
-    attr(xm, "space") <- space
-    attr(xm, "decreasing") <- c(TRUE, FALSE)
-    attr(xm, "categ") <- "warp"
-    #warp <<- TRUE
-    #class(xm) <- "warp"
-    return (xm)
+  cl <- match.call()
+  pars1 <- match.call()[2]
+  pars2 <- match.call()[3]
+  xm <- cbind(x1, x2)
+  attr(xm, "name") <- c(deparse(pars1$x1), deparse(pars2$x2))
+  attr(xm, "nm") <- c(deparse(pars1$x1), deparse(pars2$x2))
+  #attr(xm, "shape") <- "wps_di"
+  attr(xm, "shape") <- c(2, 1)
+  attr(xm, "numknots") <- numknots
+  attr(xm, "knots") <- knots
+  attr(xm, "space") <- space
+  attr(xm, "decreasing") <- c(TRUE, FALSE)
+  attr(xm, "categ") <- "warp"
+  #warp <<- TRUE
+  #class(xm) <- "warp"
+  return (xm)
 }
 
 s.decr.decr <- function(x1, x2, numknots = c(0, 0), knots = list(k1 = 0, k2 = 0), space = c("E", "E"))
 {
-    cl <- match.call()
-    pars1 <- match.call()[2]
-    pars2 <- match.call()[3]
-    xm <- cbind(x1, x2)
-    attr(xm, "name") <- c(deparse(pars1$x1), deparse(pars2$x2))
-    attr(xm, "shape") <- "wps_dd"
-    attr(xm, "numknots") <- numknots
-    attr(xm, "knots") <- knots
-    attr(xm, "space") <- space
-    attr(xm, "decreasing") <- c(TRUE, TRUE)
-    attr(xm, "categ") <- "warp"
-    #warp <<- TRUE
-    #class(xm) <- "warp"
-    return (xm)
+  cl <- match.call()
+  pars1 <- match.call()[2]
+  pars2 <- match.call()[3]
+  xm <- cbind(x1, x2)
+  attr(xm, "name") <- c(deparse(pars1$x1), deparse(pars2$x2))
+  attr(xm, "nm") <- c(deparse(pars1$x1), deparse(pars2$x2))
+  #attr(xm, "shape") <- "wps_dd"
+  attr(xm, "shape") <- c(2, 2)
+  attr(xm, "numknots") <- numknots
+  attr(xm, "knots") <- knots
+  attr(xm, "space") <- space
+  attr(xm, "decreasing") <- c(TRUE, TRUE)
+  attr(xm, "categ") <- "warp"
+  #warp <<- TRUE
+  #class(xm) <- "warp"
+  return (xm)
 }
 
 ###############################################################
@@ -8823,6 +8885,38 @@ ShapeSelect <- function(formula, family = gaussian, cpar = 2, data = NULL, weigh
 ######################
 #extract the best fit#
 ######################
+#' Extract the Best Fit Returned by the ShapeSelect Routine
+#'
+#' This is a subroutine that only works for the `ShapeSelect` routine.
+#' It returns an object of the `cgam` class given the variables and their shapes
+#' chosen by the `ShapeSelect` routine.
+#'
+#' @param x An object of the `ShapeSelect` class.
+#'
+#' @return The best fit returned by the `ShapeSelect` routine, which is an object of class `cgam`.
+#'
+#' @author Xiyue Liao
+#'
+#' @examples
+#' \dontrun{
+#' library(MASS)
+#' data(Rubber)
+#'
+#' # Perform variable and shape selection with four possible shapes:
+#' # increasing, decreasing, convex, and concave
+#' ans <- ShapeSelect(loss ~ shapes(hard, set = c("incr", "decr", "conv", "conc")) +
+#'                    shapes(tens, set = c("incr", "decr", "conv", "conc")),
+#'                    data = Rubber, genetic = TRUE)
+#'
+#' # Extract the best fit (a cgam object)
+#' bf <- best.fit(ans)
+#' class(bf)
+#' plotpersp(bf)
+#' }
+#'
+#' @seealso \code{\link{cgam}}, \code{\link{ShapeSelect}}
+#' @keywords best fit of the ShapeSelect routine
+#' @export
 best.fit <- function(x) {
 	if (!inherits(x, "shapeselect")) {
 	        stop("best.fit only works for an object of the ShapeSelect routine!")
@@ -14941,4 +15035,696 @@ ddb.penal_dexp <- function(betas,B){
     return(d2l)
 }
 
+#---------------------------------------------------------------------------------------------------------------
+# linear monotone/quadratic vs smooth constrained test
+#---------------------------------------------------------------------------------------------------------------
+testpar <- function(formula0, formula, data, family = gaussian(link = "identity"), ps = NULL, edfu = NULL, 
+                    nsim = 200, multicore = TRUE, method = "testpar.fit",
+                    arp = FALSE, p = NULL, space = "Q",...) {
+  cl <- match.call()
+  if (is.character(family))
+    family <- get(family, mode = "function", envir = parent.frame())
+  if (is.function(family))
+    family <- family()
+  if (is.null(family$family))
+    stop("'family' not recognized!")
+  mf <- match.call(expand.dots = FALSE)
+  if(missing(data))
+    data <- environment(formula)
+  m <- match(c("formula0", "formula", "data"), names(mf), 0L)
+  #----------------------------------------------------------------------------------------------------------------------
+  #formula0 is not very useful; we just need it to see if H0 is linear or quadratic, or a linear plane/interaction plane?
+  #----------------------------------------------------------------------------------------------------------------------
+  form0_expr <- deparse(mf[c(1L, m[1])])
+  expr_inside <- sub(".*\\((.*)\\)", "\\1", form0_expr) 
+  expr_parts <- strsplit(expr_inside, " \\+ ")[[1]]
+  expr_parts <- lapply(expr_parts, function(x) trimws(gsub("[()]", "", x)))
+  parametric <- lapply(expr_parts, function(x) {dplyr::case_when(grepl("\\*", x) ~ "warped_plane", 
+                                                                 grepl("\\^2", x) ~ "quadratic", 
+                                                                 grepl("\\^1", x) ~ "linear", 
+                                                                 TRUE ~ "linear")}) |> unlist()
+  form_expr <- deparse(mf[c(1L, m[2])])
+  #----------------------------------------------------------
+  #check attributes in cgam formula; get shapes and x's and y
+  #----------------------------------------------------------
+  mf <- mf[c(1L, m[-1])] #used formula 
+  mf[[1L]] <- as.name("model.frame")
+  mf <- eval(mf, parent.frame())
+  ynm <- names(mf)[1]
+  mt <- attr(mf, "terms")
+  y <- model.response(mf, "any")
+  #------------------------
+  #extract x, y, z, etc...
+  #------------------------
+  #mf is a data frame and can be treated as a list
+  mf_xz <- mf[, -1, drop = FALSE]
+  x_or_z <- lapply(mf_xz, function(e) attr(e, "categ"))
+  is_z <- sapply(x_or_z, is.null)
+  nvars <- nz <- sum(is_z)
+  zmat <- x <- shp <- shp_pr <- NULL
+  if(any(is_z)){
+    znm_in_form <- names(x_or_z)[which(is_z)]
+    z_ps_in_param <- sapply(expr_parts, function(e) e == znm_in_form)
+    parametric <- parametric[-which(z_ps_in_param)]
+    z <- mf_xz[, is_z, drop = FALSE]
+    is_fac <- sapply(z, function(e) is.factor(e))
+    if(any(is_fac)){
+      #test more
+      if(sum(!is_fac) > 0){
+        zmat <- as.matrix(z[, !is_fac, drop = FALSE])
+      } else {zmat <- NULL}
+      #add znm later
+      dd <- model.matrix(~ z[, is_fac], drop = FALSE)[, -1, drop = FALSE]
+      zmat <- cbind(zmat, dd)
+    } else {
+      zmat <- as.matrix(z)
+    }
+  }
+  if(any(!is_z)){
+    x <- mf_xz[, !is_z, drop = FALSE]
+    add_or_wps <- lapply(x, function(e) attr(e, "categ")) |> simplify2array()
+    nx <- length(add_or_wps)
+    X <- vector("list", length = nx)
+    if(any(add_or_wps == "warp")){
+      parametric2 <- rep("linear", length = nx)
+      rp_ps <- which(parametric != "linear")
+      rp_ps0 <- rp_ps
+      if(any(rp_ps > nx)){
+        rp_ps <- rp_ps - (rp_ps - nx)
+      }
+      parametric2[rp_ps] <- parametric[rp_ps0]
+      if(any(parametric == "warped_plane")){
+        wp_ps <- which(parametric == "warped_plane")
+        if(length(wp_ps) == 1){
+          if(wp_ps > nx){
+            shift <- max(wp_ps) - nx
+            parametric2[wp_ps - shift] <- "warped_plane"
+          } else {
+            parametric2[wp_ps] <- "warped_plane"
+          }
+        }
+        if(length(wp_ps) > 1){
+          diff_wp_ps <- diff(wp_ps)
+          if(any(diff_wp_ps > 2)) {
+            diff_wp_ps[which(diff_wp_ps > 2)] <- 2
+          }
+          min_wp_ps <- wp_ps[1]
+          new_wp_ps <- c(min_wp_ps, rep(min_wp_ps, length(wp_ps)-1) + diff_wp_ps)
+          if(any(new_wp_ps > nx)){
+            shift <- max(new_wp_ps) - nx
+            new_wp_ps <- new_wp_ps - shift
+          }
+          parametric2[new_wp_ps] <- "warped_plane"
+        }
+      }
+      parametric <- parametric2
+    }
 
+    for(ix in 1:nx){
+      X[[ix]] <- x[, ix]
+      shape_ix <- attr(X[[ix]], "shape") 
+      if(add_or_wps[ix] == "additive"){
+        if(!shape_ix %in% c(9, 10)){
+          attr(X[[ix]], "type")  <- "convex"
+          attr(X[[ix]], "parametric") <- parametric[ix]
+        } else if(shape_ix %in% c(9, 10)){
+          attr(X[[ix]], "type")  <- "monotone"
+          #attr(X[[ix]], "parametric") <- "linear"
+          attr(X[[ix]], "parametric") <- parametric[ix]
+        }
+      }
+      if(add_or_wps[ix] == "warp"){
+        attr(X[[ix]], "type")  <- "monotone_plane"
+        #temp
+        attr(X[[ix]], "parametric") <- parametric[ix]
+        #print (parametric[ix])
+      } 
+    }
+  }
+  #----------------------------------------------------------
+  #call testpar.fit
+  #----------------------------------------------------------
+  fit <- testpar.fit(X=X, y=y, zmat=zmat, family=family, ps=ps, edfu=edfu, nsim=nsim, multicore=multicore,
+                     GCV=FALSE, lams=NULL, arp=arp, p=p, space=space, parametric=parametric)
+  rslt <- structure(c(fit, list(X = X, zmat = zmat, call = cl, formula0 = formula0, formula = formula, terms = mt, data = data, parametric=parametric, family = family)))
+  #class(rslt) <- "cgam"
+  return(rslt)
+}
+
+#----------------------------------------------------------
+testpar.fit = function(X, y, zmat = NULL, family = gaussian(link="identity"), 
+                       ps = NULL, edfu = NULL, nsim = 200, multicore = TRUE, 
+                       GCV = FALSE, lams = NULL, 
+                       arp = FALSE, p = NULL, space = "Q",...)
+{
+  #print (head(y))
+  wt.iter = ifelse(family$family == "gaussian", FALSE, TRUE)
+  extras = list(...)
+  #new:
+  #capl = NCOL(x)
+  capl = length(X)
+  n = length(y)
+  k1 = k2 = NULL
+  p_optim = 0
+  if(arp){
+    #if the user didn't provide p, then choose p from 0:3
+    if(is.null(p)){
+      p = 0:2 
+    } else if (p < 0 || p > 2) {
+      warning("The order in AR(p) must be an integer >= 0 and <= 2!")
+      p = 1
+    }
+  } else {
+    p = 0
+  }
+  #-------------------
+  #get xm, amat, dmat
+  #-------------------
+  mult = 2
+  nz = 0
+  if(!is.null(zmat)){
+    nz = NCOL(zmat)
+  }
+  xm0 = NULL #combine dd columnwise
+  amat_lst = vector("list", length = capl)
+  awmat_lst = vector("list", length = capl)
+  dmat_lst = vector("list", length = capl)
+  dd_lst = kts_lst = vector("list", length = capl)
+  edfu_vec = numeric(capl)
+  var_track = var_track_param = NULL
+  iadd = ipr = 0
+  for(icomp in 1:capl){
+    x = X[[icomp]] #|> as.matrix()
+    if(NCOL(x) == 1){
+      iadd = iadd + 1
+      xu = unique(x)
+      n1 = length(xu)
+      type = attr(x, "type")
+      nkts = mult * switch(type, monotone = trunc(n1^(1/5)) + 6, convex = trunc(n1^(1/7)) + 6)
+      if(space == "Q"){
+        kts = quantile(xu, probs = seq(0, 1, length = nkts), names = FALSE)
+      }
+      if(space == "E"){
+        kts = 0:(nkts - 1) / (nkts - 1) * (max(x) - min(x)) + min(x)
+        #kts = seq.int(min(x), max(x), length = nkts)
+      }
+      kts_lst[[icomp]] = kts
+      #new: make delta here; combine it into xm
+      spl_degree = switch(type, monotone = 2L, convex = 3L)
+      spl_ord = spl_degree + 1
+      #dd_ans = bqspl(x, m=NULL, knots=kts)
+      #dd = dd_ans$bmat
+      dd = bSpline(x, knots = kts[-c(1, nkts)], degree = spl_degree, intercept = TRUE)
+      #dd = bs(x, knots = kts[-c(1, nkts)], degree = spl_degree, intercept = TRUE)
+      #xm = cbind(xm, dd)
+      #test!
+      if(icomp > 1){
+        dd = dd[, -1]
+      }
+      dd_lst[[icomp]] = dd
+      var_track = c(var_track, rep(icomp, NCOL(dd)))
+      #check more
+      #if(is.null(edfu)){
+      edfu = switch(type, monotone = (nkts/mult) , convex = (nkts/mult + 1))
+      edfu_vec[icomp] = edfu #+ nz
+      #}
+      shp = attr(x, "shape")
+      parametric = attr(x, "parametric")
+      #new: make amat here; add it to amat_lst
+      amat = makeamat_1D(shp=shp, spl_ord=spl_ord, kts=kts, x=x, x1=min(x), xn=max(x))
+      #check more
+      #if(iadd > 1) {
+      if(icomp > 1){  
+        amat = amat[, -1]
+      }
+      amat_lst[[icomp]] = amat
+      #new: make awmat in case we have plane comps.
+      #new: make dmat here; add it to dmat_lst
+      nc = NCOL(dd)
+      dmat = makedmat_1D(nc, q = spl_ord)
+      dmat_lst[[icomp]] = dmat
+      #dv_lst[[icomp]] = crossprod(dmat)
+      #make xm0 here 
+      #xm0 = switch(attr(x, "parametric"), linear = cbind(1, x), quadratic = cbind(1, x, x^2))
+      xm0_icomp = switch(parametric, linear = cbind(1, x), quadratic = cbind(1, x, x^2))
+      #check more
+      #if(iadd > 1 |ipr > 1) {
+      if(icomp > 1){  
+        xm0_icomp = xm0_icomp[, -1]
+      }
+      xm0 = cbind(xm0, xm0_icomp) 
+      var_track_param = c(var_track_param, rep(icomp, NCOL(xm0_icomp)))
+      #ddwm_lst[[icomp]] = xm0_icomp 
+      #print (shp)
+      awmat = makeamat_1D_param(shp = shp, parametric = parametric, x1=min(x), xn=max(x))
+      #if(ipr > 1 | iadd > 1){
+      if(icomp > 1){  
+        awmat = awmat[, -1]
+      }
+      awmat_lst[[icomp]] = awmat
+    }
+    
+    use_constreg = FALSE
+    if(NCOL(x) == 2){
+      use_constreg = TRUE
+      shp = shp_pr = attr(x, "shape")
+      #print (shp_pr)
+      parametric = attr(x, "parametric")
+      ipr = ipr + 1
+      x1 = x[, 1]
+      x2 = x[, 2]
+      xu1 = unique(x1)
+      xu2 = unique(x2)
+      m1 = round(5*n^(1/6))
+      m2 = round(5*n^(1/6))
+      x1sc = (x1 - min(x1)) / (max(x1) - min(x1))
+      x2sc = (x2 - min(x2)) / (max(x2) - min(x2))
+      if(parametric == "linear"){
+        if(space == "Q"){
+          k1 = quantile(x1, probs = seq(0, 1, length = m1), names = FALSE)
+          k2 = quantile(x2, probs = seq(0, 1, length = m2), names = FALSE)
+        }
+        if(space == "E"){
+          k1 = 0:(m1 - 1) / (m1 - 1) * (max(x1) - min(x1)) + min(x1)
+          k2 = 0:(m2 - 1) / (m2 - 1) * (max(x2) - min(x2)) + min(x2)
+        }
+      } 
+      if(parametric == "warped_plane"){
+        if(space == "Q"){
+          k1 = quantile(x1sc, probs = seq(0, 1, length = m1), names = FALSE)
+          k2 = quantile(x2sc, probs = seq(0, 1, length = m2), names = FALSE)
+        }
+        if(space == "E"){
+          k1 = 0:(m1 - 1) / (m1 - 1) * (max(x1sc) - min(x1sc)) + min(x1sc)
+          k2 = 0:(m2 - 1) / (m2 - 1) * (max(x2sc) - min(x2sc)) + min(x2sc)
+        }
+      }
+      #if(is.null(edfu)){
+      edfu = 3*(n^(1/3))
+      edfu_vec[icomp] = edfu
+      #}
+      #new: make delta here; combine it into xm
+      if(parametric == "linear"){
+        sp = space
+        dd_ans = makedelta_wps(x1, x2, space = c(sp, sp), k1 = k1, k2 = k2, decreasing = c(FALSE, FALSE))
+      }
+      if(parametric == "warped_plane"){
+        sp = space
+        dd_ans = makedelta_wps(x1sc, x2sc, space = c(sp, sp), k1 = k1, k2 = k2, decreasing = c(FALSE, FALSE))
+      }
+      dd = dd_ans$delta
+      if(icomp > 1){
+        dd = dd[, -1]
+      }
+      dd_lst[[icomp]] = dd
+      var_track = c(var_track, rep(icomp, NCOL(dd)))
+      #new: need to re-define k1 and k2; some cells might be empty
+      k1 = dd_ans$k1
+      k2 = dd_ans$k2
+      kts = list(k1 = k1, k2 = k2)
+      kts_lst[[icomp]] = kts 
+      m1 = length(k1)
+      m2 = length(k2)
+      use_constreg = TRUE
+      #new: make amat here; add it to amat_lst
+      amat = makeamat_nonadd(k1, k2, shp_pr)
+      #check more
+      if(icomp > 1){
+        amat = amat[, -1]
+      }
+      amat_lst[[icomp]] = amat
+      #new: make dmat here; add it to dmat_lst
+      dmat = makedmat_2D(k1, k2)
+      #check more
+      if(icomp > 1){ 
+        dmat = dmat[, -1]
+      }
+      dmat_lst[[icomp]] = dmat
+      #dv_lst[[icomp]] = crossprod(dmat)
+      #make xm0 here 
+      xm0_icomp = switch(parametric, linear = cbind(1, x1, x2), warped_plane = cbind(1, x1sc, x2sc, x1sc*x2sc))
+      #check more
+      if(icomp > 1){
+        xm0_icomp = xm0_icomp[, -1]
+      }
+      xm0 = cbind(xm0, xm0_icomp)
+      var_track_param = c(var_track_param, rep(icomp, NCOL(xm0_icomp)))
+      #print (shp)
+      awmat = makeamat_1D_param(shp, parametric = parametric)
+      if(icomp > 1){ 
+        awmat = awmat[, -1]
+      }
+      awmat_lst[[icomp]] = awmat
+    } 
+    #make xm0 here 
+    #xm0 = switch(attr(x, "parametric"), linear = cbind(1, x), quadratic = cbind(1, x, x^2), linear_plane = cbind(1, x1, x2), warped_plane = cbind(1, x1sc, x2sc, x1sc*x2sc))
+  }
+  amat = Matrix::bdiag(amat_lst) |> as.matrix()
+  dmat = Matrix::bdiag(dmat_lst) |> as.matrix()
+  #dv = Matrix::bdiag(dv_lst) |> as.matrix()
+  
+  dd = do.call(cbind, dd_lst)
+  #dd = Matrix(dd, sparse = TRUE)
+  
+  nr_am = NROW(amat)
+  #----------------------
+  #create bvec for qprog
+  #----------------------
+  bvec = rep(0, nr_am) #will be different when using constreg
+  #----------------------------------------------------------------------------
+  #2.get H1 fit: cone \ L satisfying some shape constraint
+  #write a new function: fit.alt
+  #----------------------------------------------------------------------------
+  nc = nc_noz = NCOL(dd)
+  if(nz > 0){
+    dd_1 = dd_lst[[1]]
+    dd_1 = cbind(zmat, dd_1)
+    dd_lst[[1]] = dd_1
+    
+    dm_1 = dmat_lst[[1]]
+    dm1_zero = matrix(0, nrow = nrow(dm_1), ncol = nz)
+    dm_1 = cbind(dm1_zero, dm_1)
+    dmat_lst[[1]] = dm_1
+    
+    dd = cbind(zmat, dd)
+    dmat_zero = matrix(0, nrow = nrow(dmat), ncol = nz)
+    dmat = cbind(dmat_zero, dmat)
+    amat_zero = matrix(0, nrow = nrow(amat), ncol = nz)
+    amat = cbind(amat_zero, amat)
+  }
+  dv = crossprod(dmat)
+  #new:
+  qv0 = crossprod(dd)
+  
+  #dv = Matrix(dv, sparse = TRUE)
+  #qv0 = Matrix(qv0, sparse = TRUE)
+  
+  nc_am = NCOL(amat)
+  imat = diag(nc_am)
+  if(GCV){
+    #temp:
+    edfu = sum(edfu_vec)
+    edfu_grid = c(edfu-1, edfu, edfu + (1:2) * 3)
+    if(is.null(lams)){
+      lams = sapply(edfu_grid, function(e){uniroot(f = .search_ps, qv0 = qv0, dv = dv, dd = dd, edfu = e, interval = c(1e-10, 2e+2), tol=1e-6)$root})
+      lams = c(1e-3, rev(lams))
+      if(arp){
+        #test!
+        lams = 2^(2:8)
+        #lams = 2^(1:7)
+        lams = lams/2^7/n^(2*spl_ord/(2*spl_ord+1))
+        # lams = 2^(1:8)
+        # lams = lams/2^8/n^(3/4)
+      }
+      gcvs_rslt = parallel::mclapply(lams, function(e) fit.hypo(p=p, dd=dd, y=y, amat=amat, bvec=bvec,
+                                                                dv=dv, family=family, arp=arp, ps=e), mc.cores = (8L))
+      gcvs = sapply(gcvs_rslt, function(rslti) rslti$gcv, simplify = TRUE)
+      edfs = sapply(gcvs_rslt, function(rslti) rslti$edf, simplify = TRUE)
+      choice_id = which(gcvs == min(gcvs))
+      ps = lams[choice_id] 
+      p_optim = p
+      c(sse1, etahat, ahatc, face, qv, edf, edfs, gcv, gcvs, sighat, edfu_use, covmat, covmat_inv, phi1, mat1) %<-% gcvs_rslt[[choice_id]][1:15]
+    }
+    etahat = as.matrix(etahat)
+    muhat = family$linkinv(etahat)
+    #only for H1 fit
+  } else {
+    #lams = ps
+    if(is.null(ps)){
+      #edfu = sum(edfu_vec) + nz
+      edfu = edfu_vec
+      if(nz > 0){
+        edfu[1] = edfu_vec[1] + nz
+      }
+      #if(!arp){
+      if(capl == 1){
+        #ps = uniroot(f = .search_ps, qv0 = qv0, dv = dv, dd = dd, edfu = edfu, interval = c(1e-10, 2e+2), tol = .Machine$double.eps^0.32)$root
+        ps = uniroot(f = .search_ps, qv0 = qv0, dv = dv, dd = dd, edfu = edfu, interval = c(1e-10, 2e+2), tol=1e-6)$root
+        #test!
+        #if(arp & p >= 1){
+        #print (ps)
+        #ps = ps * 0.6 #1/2 (2/3) will be unbiased for p=2 but inflated for p=1, 2/3 is inflated for p=1
+        #print (ps)
+        #}
+      } else if (capl > 1) {
+        ps = NULL
+        for(ic in 1:capl){
+          dd_ic = dd_lst[[ic]]
+          qv0_ic = crossprod(dd_ic)
+          dm_ic = dmat_lst[[ic]]
+          dv_ic = crossprod(dm_ic)
+          #psi = uniroot(f = .search_ps, qv0 = qv0_ic, dv = dv_ic, dd = dd_ic, edfu = edfu[ic], interval = c(1e-10, 2e+2), tol = .Machine$double.eps^0.32)$root
+          psi = uniroot(f = .search_ps, qv0 = qv0_ic, dv = dv_ic, dd = dd_ic, edfu = edfu[ic], interval = c(1e-10, 2e+2), tol=1e-6)$root
+          ps = c(ps, psi)
+        }
+        #ps = sapply(1:capl, function(ic)uniroot(f = .search_ps, qv0 = crossprod(dd_lst[[ic]]), dv = crossprod(dmat_lst[[ic]]), dd = dd_lst[[ic]], edfu = edfu[ic], interval = c(1e-10, 2e+2), tol = .Machine$double.eps^0.32)$root)
+      }
+      #}else{
+      #ps = 2/n^(2*spl_ord/(2*spl_ord+1)) #seems working
+      #  ps = 1/n^(2*spl_ord/(2*spl_ord+1)) #a little inflated
+      #}
+    } 
+    lams = ps
+    covmat = covmat_inv = phi = NULL
+    #new:
+    if(length(ps) >= 1){
+      for(ic in 1:capl){
+        dmat_lst[[ic]] = sqrt(ps[ic]) * dmat_lst[[ic]]
+      }
+      #already add zmat in the 1st element of dmat_lst
+      dmat = Matrix::bdiag(dmat_lst) |> as.matrix()
+      #recreate dmat
+      # if(nz > 0){
+      #   dmat_zero = matrix(0, nrow = nrow(dmat), ncol = nz)
+      #   dmat = cbind(dmat_zero, dmat)
+      # }
+      dv = crossprod(dmat)
+    }
+    if(length(p) == 1){ 
+      #arp with user-defined order, or !arp and p=0
+      #cat('call arp with user-defined order, ps=', ps, '\n')
+      ansc = fit.hypo(p=p, dd=dd, y=y, amat=amat, bvec=bvec, dv=dv, family=family, ps=ps, arp=arp)
+      c(sse1, etahat, ahatc, face, qv, edf, edfs, gcv, gcvs, sighat, edfu_use, covmat, covmat_inv, phi1, mat1) %<-% ansc[1:15]
+      p_optim = p
+    } else{
+      #p = 0:2
+      #new: test p=0 first
+      ansc = fit.hypo(p=0, dd=dd, y=y, amat=amat, bvec=bvec, dv=dv, family=family, ps=ps, arp=FALSE)
+      if(ansc$pval.ts > 0.05){
+        c(sse1, etahat, ahatc, face, qv, edf, edfs, gcv, gcvs, sighat, edfu_use, covmat, covmat_inv, phi1, mat1) %<-% ansc[1:15]
+        p_optim = 0
+      }else{
+        aic_rslt = parallel::mclapply(p[-1], fit.hypo, dd=dd, y=y, amat=amat, bvec=bvec, dv=dv, family=family, ps=ps, arp=arp, mc.cores=(8L))
+        aics = sapply(aic_rslt, function(rslti) rslti$aic, simplify = TRUE)
+        #print (aics)
+        choice_id = which(aics == min(aics))
+        p_optim = (p[-1])[choice_id] 
+        c(sse1, etahat, ahatc, face, qv, edf, edfs, gcv, gcvs, sighat, edfu_use, covmat, covmat_inv, phi1, mat1) %<-% (aic_rslt[[choice_id]])[1:15]
+      }
+    }
+    muhat = family$linkinv(etahat)
+  }
+  #----------------------------------------------------------------------------
+  #1.get H0 fit: linear space satisfying some shape constraint
+  #use sparse matrix later
+  #write a new function: fit.null
+  #----------------------------------------------------------------------------
+  wmat = x1m0 = x1m = NULL
+  if(!use_constreg){
+    pm0 = xm0 %*% solve(crossprod(xm0), t(xm0))
+    #x1m0 = dd - pm0 %*% dd
+    
+    # nc = ncol(dd)
+    # qr_dd = qr(dd)
+    # dd_r = qr_dd$rank
+    # if(dd_r < nc){
+    #   dd_2 = qr.Q(qr_dd, complete = TRUE)[, 1:dd_r]
+    #   rm_id = qr_dd$pivot[(dd_r+1):nc]
+    #   x1m0 = dd_2 - pm0 %*% dd_2
+    # }else{
+    x1m0 = dd - pm0 %*% dd
+    #}
+    
+    qr_x1m = qr(x1m0)
+    x1m = qr.Q(qr_x1m, complete = TRUE)[, 1:qr_x1m$rank]
+    # if(dd_r < nc){
+    #   xm1tb = crossprod(x1m, dd_2)
+    # } else {
+    xm1tb = crossprod(x1m, dd)
+    #}
+    qr_xm1tb = qr(t(xm1tb))
+    wmat = qr.Q(qr_xm1tb, complete = TRUE)[, -c(1:qr_xm1tb$rank), drop = FALSE]
+    # if(dd_r < nc){
+    #   ddwm = dd_2 %*% wmat
+    #   awmat = amat[,-rm_id] %*% wmat
+    # }else {
+    ddwm = dd %*% wmat
+    awmat = amat %*% wmat
+    #}
+  } else {
+    ddwm = xm0
+    awmat = Matrix::bdiag(awmat_lst) |> as.matrix()
+  }
+  if(nz > 0){
+    #add z before splines
+    ddwm = cbind(zmat, ddwm)
+    awmat_zero = matrix(0, nrow = nrow(awmat), ncol = nz)
+    awmat = cbind(awmat_zero, awmat)
+  }
+  ansl = fit.hypo(p=p_optim, dd=ddwm, y=y, amat=awmat, bvec=rep(0, nrow(awmat)), dv=NULL, family=family, ps=0, arp=arp)
+  sse0 = ansl$dev
+  etahat0 = ansl$etahat
+  muhat0 = family$linkinv(etahat0)
+  ahatl = ansl$ahat
+  qvl = ansl$qv
+  #cat(arp, '\n')
+  #----------------------------------------------------------------------------
+  #test: H0 vs H1
+  #----------------------------------------------------------------------------
+  if(wt.iter){
+    bval = (sse0 - sse1) / n #sse0 is llh0; sse1 is llh1
+  } else {
+    bval = (sse0 - sse1) / sse0
+  }
+  #temp
+  sm=1e-7
+  #sm = 1e-9
+  if (bval > sm) {
+    if (multicore) {
+      bdist = parallel::mclapply(1:nsim, .compute_bstat, etahat0=etahat0, n=n, sighat=sighat,
+                                 dd=dd, ddwm=ddwm, qv=NULL, qvl=NULL, amat=amat, awmat=awmat,
+                                 bvec=bvec, imat=imat, dv=dv, lams=ps, w=NULL, arp=arp, p=p_optim, phi=phi1, 
+                                 family=family, mc.cores=(4L))
+    } else {
+      bdist = lapply(1:nsim, .compute_bstat, etahat0=etahat0, n=n, sighat=sighat, dd=dd, ddwm=ddwm, qv=NULL, qvl=NULL,
+                     amat=amat, awmat=awmat, bvec=bvec, imat=imat, dv=dv, lams=ps, w=NULL, arp=arp, p=p_optim, phi=phi1, family=family)
+    }
+    bdist = simplify2array(bdist)
+    pval = sum(bdist > bval) / nsim
+  } else {
+    pval = 1
+  }
+  #----------------------
+  #for visualization
+  #----------------------
+  etacomps = etacomps0 = vector("list", length = capl)
+  etahat0_surf = etahat_surf = NULL
+  muhat0_surf = muhat_surf = NULL
+  ahatc_noz = round(ahatc, 6) |> as.matrix()
+  ahatl_noz = round(ahatl, 6) |> as.matrix()
+  #print (ahatc_noz)
+  #print (nz)
+  if(nz > 0){
+    #print (dim(ahatc_noz))
+    ahatc_noz = ahatc_noz[-c(1:nz), ,drop=F] #|> as.vector()
+    ahatl_noz = ahatl_noz[-c(1:nz), ,drop=F] #|> as.vector()
+    #new:
+    dd_1 = dd_lst[[1]]
+    dd_1 = dd_1[, -c(1:nz), drop=F]
+    dd_lst[[1]] = dd_1
+  }
+  for(icomp in 1:capl){
+    x = X[[icomp]]
+    if(NCOL(x) == 1){
+      #print (dim(dd_lst[[icomp]]))
+      #print (dim(ahatc_noz[var_track == icomp]))
+      etahat_icomp = dd_lst[[icomp]] %*% ahatc_noz[var_track == icomp,,drop=F]
+      #print (dim(etahat_icomp))
+      etacomps[[icomp]] = etahat_icomp
+    }
+    if(NCOL(x) == 2){
+      kts = kts_lst[[icomp]]
+      k1 = kts$k1
+      k2 = kts$k2
+      newd = expand.grid(k1, k2)
+      newd = as.matrix(newd)
+      
+      #H0 surface
+      x1p = newd[,1]
+      x2p = newd[,2]
+      if(attr(x, "parametric") == "warped_plane"){
+        xm0p = cbind(1, x1p, x2p, x1p*x2p)
+        if(icomp > 1){
+          xm0p = xm0p[, -1]
+        }
+      }
+      if(attr(x, "parametric") == "linear"){
+        xm0p = cbind(1, x1p, x2p)
+        if(icomp > 1){
+          xm0p = xm0p[, -1]
+        }
+      }
+      #if(nz == 0){
+      #print (dim(xm0p))
+      #print (length(ahatl_noz))
+      #print (icomp)
+      psurf0 = xm0p %*% ahatl_noz[var_track_param == icomp,,drop=F]
+      # } else if (nz > 0){
+      #   psurf0 = xm0p %*% ahatl[-((ncol(xm0p) + 1):(ncol(xm0p) + nz))]
+      # }
+      etahat0_surf = matrix(psurf0, m1, m2)
+      muhat0_surf = family$linkinv(etahat0_surf)
+      
+      #H1 surface
+      pans = makedelta_wps(newd[,1], newd[,2], k1 = k1, k2 = k2, decreasing = c(FALSE, FALSE))
+      ddp = pans$delta
+      if(icomp > 1){
+        ddp = ddp[, -1]
+      }
+      #if(nz == 0){
+      psurf = ddp %*% ahatc_noz[var_track == icomp,,drop=F]
+      # } else {
+      #   psurf = ddp %*% ahatc[-((nc_noz + 1):(nc_noz + nz))]
+      # }
+      etahat_surf = matrix(psurf, m1, m2)
+      muhat_surf = family$linkinv(etahat_surf)
+      etacomps[[icomp]] = etahat_surf
+      etacomps0[[icomp]] = etahat0_surf
+    }
+  }
+  rslt = list(pval = pval, bval = bval, knots = kts, k1=k1, k2=k2, bmat = dd, wmat = wmat, dmat = dmat, ps = ps,
+              xm0 = xm0, x1m = x1m, amat = amat, awmat = awmat, face = face, etahat = etahat, etahat0 = etahat0,
+              etahat0_surf = etahat0_surf, etahat_surf = etahat_surf, muhat0_surf = muhat0_surf, muhat_surf = muhat_surf,
+              sighat = sighat, edf = edf, edfu = edfu_use, lams = lams, gcvs = gcvs, edfs = edfs, ahatl = ahatl, ahatc = ahatc,
+              phi = phi1, covmat = covmat, covmat_inv = covmat_inv, etacomps = etacomps, p_optim = p_optim, kts_lst = kts_lst, 
+              var_track = var_track, var_track_param = var_track_param, etacomps0 = etacomps0)
+  if(nz >= 1){
+    #assume y is iid with common sig2
+    if(!wt.iter){
+      #should work for ar(p)?
+      if(!arp || arp & p_optim == 0){
+        covmat0 = sighat^2 * mat1 %*% t(mat1)
+      } else {
+        #print (sig2hat_z)
+        #covmat0 = sig2hat_z * mat1 %*% t(mat1)
+        covmat0 = mat1 %*% t(mat1) #seems working with unscaled covariance
+        #covmat0 = sighat^2 * mat1 %*% t(mat1)
+      }
+    } else {
+      wt = wt.fun(y, etahat, n, weights = rep(1, n), fml = family$family)
+      covmat0 = mat1 %*% diag(wt) %*% t(mat1)
+    }
+    covmat = covmat0[(1):(nz), (1):(nz), drop=FALSE]
+    sez = sqrt(diag(covmat))
+    zcoefs = ahatc[(1):(nz)]
+    tz = zcoefs / sez
+    cpar = 1.2
+    #test more!
+    if(!wt.iter){
+      if ((n - cpar * edf) <= 0) {
+        pz = 2*(1 - pt(abs(tz), edf))
+      } else {
+        #why not pnorm?
+        pz = 2*(1 - pt(abs(tz), n - cpar * edf))
+      }
+    } else {
+      #why not pnorm?
+      pz = 2*(1 - pnorm(abs(tz)))
+    }
+    rslt$sez = sez
+    rslt$pz = pz
+    rslt$tz = tz
+    rslt$zcoefs = zcoefs
+  } else {rslt$sez = NULL; rslt$pz = NULL; rslt$tz = NULL; rslt$zcoefs = NULL}
+  return(rslt)
+}

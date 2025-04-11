@@ -208,17 +208,6 @@ See references cited in this section and the official manual (\url{https://cran.
   lty = c(2, 1), col = c(2, 1))
 
 # Example 2.
-\dontrun{
-  library(gam)
-  data(kyphosis)
-  
-  # regress Kyphosis on Age, Number, and Start under the restrictions:
-  # "concave", "increasing and concave", and "decreasing and concave" 
-  fit <- cgam(Kyphosis ~ conc(Age) + incr.conc(Number) + decr.conc(Start), 
-  family = binomial(), data = kyphosis) 
-}
-
-# Example 3.
   library(MASS)
   data(Rubber)
   
@@ -234,7 +223,7 @@ See references cited in this section and the official manual (\url{https://cran.
   plotpersp(fit.cgam, th = 120, main = "3D Plot of a Cgam Fit")
   plotpersp(fit.cgam.s, tens, hard, data = Rubber, th = 120, main = "3D Plot of a Smooth Cgam Fit")
 
-# Example 4. monotonic variance estimation
+# Example 3. monotonic variance estimation
   n <- 400
   x <- runif(n)
   sig <- .1 + exp(15*x-8)/(1+exp(15*x-8))
@@ -255,7 +244,8 @@ See references cited in this section and the official manual (\url{https://cran.
   lty=2, ylab="Variance", ylim=c(0, max(c(est.var, sig^2))))
   points(sort(x), (sig^2)[order(x)], col=1, lwd=2, type="l")
 
-# Example 5. monotonic variance estimation with the lidar data set in SemiPar
+\dontrun{
+# Example 4. monotonic variance estimation with the lidar data set in SemiPar
   library(SemiPar)
   data(lidar)
 
@@ -278,6 +268,7 @@ See references cited in this section and the official manual (\url{https://cran.
   
   plot(range, est.var, col=2, lwd=2, type="l",lty=2, ylab="variance")
   title("Smoothly Increasing Variance", cex.main=0.5)
+}
 }
 
 \keyword{cgam routine}
