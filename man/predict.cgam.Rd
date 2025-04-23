@@ -6,13 +6,13 @@
 \description{Predicted values based on a cgam object}
 
 \usage{
-\method{predict}{cgam}(object, newData, interval = c("none", "confidence", "prediction"), 
+\method{predict}{cgam}(object, newdata, interval = c("none", "confidence", "prediction"), 
 type = c("response", "link"), level = 0.95, n.mix = 500,...)
 }
 
 \arguments{
   \item{object}{A cgam object.}
-  \item{newData}{A data frame in which to look for variables with which to predict. If omitted, the fitted values are used.}
+  \item{newdata}{A data frame in which to look for variables with which to predict. If omitted, the fitted values are used.}
   \item{interval}{Type of interval calculation. A prediction interval is only implemented for Gaussian response for now.}
   \item{type}{If the response is Gaussian, type = "response" gives the predicted mean; if the response is binomial, type = "response" gives the predicted probabilities, and type = "link" gives the predicted systematic component.}
   \item{level}{Tolerance/confidence level.}
@@ -62,21 +62,17 @@ splines with application to estimation of tree height
 	
 	# make a data frame 
 	x0 <- seq(min(x), max(x), by = 0.05)
-	new.Data <- data.frame(x = x0)
 
 	# predict values in new.Data based on the cgam fit without a confidence interval
-	pfit <- predict(fit, new.Data)
-	
-	# or 
-	pfit <- predict(fit, new.Data, interval = "none")
+	pfit <- predict(fit, newdata = data.frame(x = x0))
 	
 	# make a plot to check the prediction
 	plot(x, y, main = "Predict Method for CGAM")
 	lines(sort(x), (fitted(fit)[order(x)]))
 	points(x0, pfit$fit, col = 2, pch = 20)
 
-	# predict values in new.Data based on the cgam fit with a 95 percent confidence interval
-	pfit <- predict(fit, new.Data, interval = "confidence", level = 0.95)
+	# predict values in newdata based on the cgam fit with a 95 percent confidence interval
+	pfit <- predict(fit, newdata = data.frame(x = x0), interval = "confidence", level = 0.95)
 
 	# make a plot to check the prediction
 	plot(x, y, main = "Pointwise Confidence Bands (Gaussian Response)")
@@ -100,8 +96,8 @@ splines with application to estimation of tree height
 	
   # predict values in new.Data based on the cgam fit with a 95 percent confidence interval
   xinterp <- seq(min(x), max(x), by = 0.05)
-  new.Data <- data.frame(x = xinterp)
-	pfit <- predict(fit, new.Data, interval = "confidence", level = 0.95)
+	pfit <- predict(fit, newdata = data.frame(x = xinterp), 
+	  interval = "confidence", level = 0.95)
 	pmu <- pfit$fit
 	lwr <- pfit$lower
 	upp <- pfit$upper

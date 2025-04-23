@@ -3653,7 +3653,7 @@ print.summary.wps <- function(x,...) {
 ##############
 #predict.cgam#
 ##############
-predict.cgam = function(object, newData, interval = c("none", "confidence", "prediction"), type = c("response", "link"), level = 0.95, n.mix = 500,...) {
+predict.cgam = function(object, newdata = NULL, interval = c("none", "confidence", "prediction"), type = c("response", "link"), level = 0.95, n.mix = 500,...) {
   #print (is.data.frame(newData))
   #print (newData)
   #new:
@@ -3663,7 +3663,7 @@ predict.cgam = function(object, newData, interval = c("none", "confidence", "pre
   if (!inherits(object, "cgam")) {
     warning("calling predict.cgam(<fake-cgam-object>) ...")
   }
-  if (missing(newData) || is.null(newData)) {
+  if (missing(newdata) || is.null(newdata)) {
     #if (missing(newData)) {
     etahat = object$etahat
     muhat = muhat.fun(etahat, fml = family$family)
@@ -3671,9 +3671,9 @@ predict.cgam = function(object, newData, interval = c("none", "confidence", "pre
     ans = list(fit = muhat)
     return (ans)
   }
-  if (!is.data.frame(newData)) {
+  if (!is.data.frame(newdata)) {
     #newData = as.data.frame(newData)
-    stop ("newData must be a data frame!")
+    stop ("newdata must be a data frame!")
   }
   #shapes = object$shapes
   #new: used for ci
@@ -3695,8 +3695,10 @@ predict.cgam = function(object, newData, interval = c("none", "confidence", "pre
   coefs = object$coefs; zcoefs = object$zcoefs; vcoefs = object$vcoefs; xcoefs0 = object$xcoefs; ucoefs = object$ucoefs; tcoefs = object$tcoefs
   tt = object$tms
   Terms = delete.response(tt)
+  #new: used in tree.delta
+  nr_newData = NROW(newdata)
   #model.frame will re-organize newData in the original order in formula
-  m = model.frame(Terms, newData)
+  m = model.frame(Terms, newdata)
   #print (m)
   newdata = m
   #print (head(newdata))
@@ -4053,7 +4055,8 @@ predict.cgam = function(object, newData, interval = c("none", "confidence", "pre
   newetahat = etahat_v + etahat_s + etahat_x + etahat_u + etahat_t
   newmuhat = as.vector(muhat.fun(newetahat, fml = family$family))
   if (!is.null(newt)) {
-    newtbasis = t(tree.delta[,1:nrow(newData),drop = FALSE])
+    #new: changed newData into newdata
+    newtbasis = t(tree.delta[,1:nr_newData,drop = FALSE])
   }
   #print (newv)
   #newbigmat = t(cbind(newv, newx_sbasis, newxbasis, newubasis, newtbasis))

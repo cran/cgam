@@ -70,3 +70,8 @@
 
 1.24
 * add testpar 
+
+1.25
+* fix the formula0 bug in testpar
+* makedmat_1D is faster
+* newData is changed to be newdata in predict.cgam() to be consistent with predict.glm()

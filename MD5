@@ -1,10 +1,10 @@
-0f9ac02d861e9b53081eac1b11a7c5ca *ChangeLog
-087e448bd3b1cb7412b70afa46995e6c *DESCRIPTION
-38a32b5741e68fe9f63744cd00981618 *NAMESPACE
-3bbcebcd71a241d456e4d4baaab57cf6 *R/cgam.R
+21b5b47220ce8fe8e35d0a9bad1ded5f *ChangeLog
+b90ce55819241f58974c286a39d22ed7 *DESCRIPTION
+6eb8f11d77f2972cf331d4d9744e854a *NAMESPACE
+69c846dd2fe58fd7f8f325323ac46458 *R/cgam.R
 3f6b8f7b821c2fe4a55e7fa11b9f922e *R/cgamm.R
 25d7582213a002997e53d580e6b4775c *R/globals.R
-8ad5a1664264f9e9cdb1855a7d2c3c4d *R/testpar.R
+4701027feeaec73425c97911cfc506c0 *R/testpar.R
 30371bbfb1b09c61689e34133389c96b *data/COforest.rda
 a0db33d4a416d9f938daadefe0e246d8 *data/cubic.rda
 38989ead0193c484041448d86a606c2e *data/mental.rda
@@ -29,7 +29,7 @@ f8c670516d35684c34511851b2dcfe6a *man/incr.conv.Rd
 5e31e813762d0157e7b659d694a2f545 *man/mental.Rd
 1a8fa2f3659519856fddfc62fde89978 *man/plasma.Rd
 9d295ef852da4ca850f6d9d00f7e82cd *man/plotpersp.Rd
-0d78b828299bd1088a57886d5b400b0e *man/predict.cgam.Rd
+17075315cab327c65f0fe62e03afd7b6 *man/predict.cgam.Rd
 68e985119e51910a1502bc350c9eb6d9 *man/s.Rd
 9382ebe7fe56cd05f343e2cd053cea40 *man/s.conc.Rd
 4111576f076528a70470ad1fee565f57 *man/s.conc.conc.Rd
@@ -46,6 +46,6 @@ dcbc6a2f0c42e8b3ac5f10e9b1746cdc *man/s.incr.conc.Rd
 62f4e9383416587d6cabddefc65476a6 *man/s.incr.decr.Rd
 fefc40df95cc8698d49693e7424e9e4b *man/s.incr.incr.Rd
 b1754149bc1925d1016f24a96eb3db09 *man/shapes.Rd
-382c1452dcd9a53968a9a49fcb691ab7 *man/testpar.Rd
+f4d7daa5df7b6788599421aa1c1514c6 *man/testpar.Rd
 23aabd09022aff40accf844153cda0e1 *man/tree.Rd
 413da2c5d8d914721a923c2b386b0df4 *man/umbrella.Rd

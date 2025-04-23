@@ -16,7 +16,7 @@ testpar(
   method = "testpar.fit",
   arp = FALSE,
   p = NULL,
-  space = "Q",
+  space = "E",
   ...
 )
 }
@@ -43,7 +43,7 @@ testpar(
 
 \item{p}{Integer vector or value specifying AR(p) order. Ignored if \code{arp = FALSE}.}
 
-\item{space}{Character. Either \code{"Q"} for quantile-based knots or \code{"E"} for evenly spaced knots.}
+\item{space}{Character. Either \code{"Q"} for quantile-based knots or \code{"E"} for evenly spaced knots. Default is \code{"E"}.}
 
 \item{...}{Additional arguments passed to internal functions.}
 }

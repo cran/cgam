@@ -1,8 +1,8 @@
 Package: cgam
 Type: Package
 Title: Constrained Generalized Additive Model
-Version: 1.24
-Date: 2025-04-15
+Version: 1.25
+Date: 2025-04-23
 Authors@R: c(
     person("Mary", "Meyer", email = "meyer@stat.colostate.edu", role = "aut"),
     person("Xiyue", "Liao", email = "xliao@sdsu.edu", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-4508-9219")))
@@ -10,14 +10,14 @@ Description: A constrained generalized additive model is fitted by the cgam rout
 License: GPL (>= 2)
 Depends: coneproj(>= 1.12), splines2 (>= 0.5.2), R(>= 4.3.0)
 Imports: svDialogs, statmod, lme4, Matrix, ggplot2, dplyr, parallel,
-        zeallot
+        zeallot, rlang
 RoxygenNote: 7.3.2
 NeedsCompilation: no
 Suggests: stats, MASS, graphics, grDevices, utils, SemiPar, roxygen2
 ByteCompile: true
-Packaged: 2025-04-11 04:14:42 UTC; xliao
+Packaged: 2025-04-23 16:53:30 UTC; xliao
 Author: Mary Meyer [aut],
   Xiyue Liao [aut, cre] (<https://orcid.org/0000-0002-4508-9219>)
 Maintainer: Xiyue Liao <xliao@sdsu.edu>
 Repository: CRAN
-Date/Publication: 2025-04-11 04:50:01 UTC
+Date/Publication: 2025-04-23 22:20:01 UTC

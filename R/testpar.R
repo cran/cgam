@@ -14,7 +14,7 @@
 #' @param method A character string (default is \code{"testpar.fit"}), currently unused.
 #' @param arp Logical. If \code{TRUE}, uses autoregressive structure estimation.
 #' @param p Integer vector or value specifying AR(p) order. Ignored if \code{arp = FALSE}.
-#' @param space Character. Either \code{"Q"} for quantile-based knots or \code{"E"} for evenly spaced knots.
+#' @param space Character. Either \code{"Q"} for quantile-based knots or \code{"E"} for evenly spaced knots. Default is \code{"E"}. 
 #' @param ... Additional arguments passed to internal functions.
 #'
 #' @return A list containing test statistics, fitted values, coefficients, and other relevant objects.
@@ -105,7 +105,7 @@
 #' @export
 testpar <- function(formula0, formula, data, family = gaussian(link = "identity"), ps = NULL, edfu = NULL, 
                     nsim = 200, multicore = getOption("cgam.parallel"), method = "testpar.fit",
-                    arp = FALSE, p = NULL, space = "Q",...) {
+                    arp = FALSE, p = NULL, space = "E",...) {
   cl <- match.call()
   if (is.character(family))
     family <- get(family, mode = "function", envir = parent.frame())
@@ -121,16 +121,27 @@ testpar <- function(formula0, formula, data, family = gaussian(link = "identity"
   #----------------------------------------------------------------------------------------------------------------------
   #formula0 is not very useful; we just need it to see if H0 is linear or quadratic, or a linear plane/interaction plane?
   #----------------------------------------------------------------------------------------------------------------------
-  form0_expr <- deparse(mf[c(1L, m[1])])
+  #form0_expr <- deparse(mf[c(1L, m[1])])
   #print (head(mf))
   #print (mf[c(1L, m[1])])
-  expr_inside <- sub(".*\\((.*)\\)", "\\1", form0_expr) 
-  expr_parts <- strsplit(expr_inside, " \\+ ")[[1]]
-  expr_parts <- lapply(expr_parts, function(x) trimws(gsub("[()]", "", x)))
+  #expr_inside <- sub(".*\\((.*)\\)", "\\1", form0_expr) 
+  #expr_parts <- strsplit(expr_inside, " \\+ ")[[1]]
+  #expr_parts <- lapply(expr_parts, function(x) trimws(gsub("[()]", "", x)))
   #print (expr_parts)
+  
+  # new: 
+  form0_expr <- match.call()$formula0
+  if (!inherits(form0_expr, "formula")) {
+    form0_expr <- eval(form0_expr, parent.frame())
+  }
+  form0_expr <- rlang::enquo(form0_expr) |> rlang::eval_tidy()
+  # Extract RHS terms in a formula
+  expr_parts <- attr(terms(form0_expr), "term.labels")
+  
   parametric <- lapply(expr_parts, function(x) {dplyr::case_when(grepl("\\*", x) ~ "warped_plane", 
                                                                  grepl("\\^2", x) ~ "quadratic", 
                                                                  grepl("\\^1", x) ~ "linear", 
+                                                                 grepl("^factor\\(", x) ~ "linear",
                                                                  TRUE ~ "linear")}) |> unlist()
   #cat("parametric = ", '\n')
   #print (parametric)
@@ -289,9 +300,9 @@ summary.testpar <- function(object,...) {
     stars <- ""
   }
   
-  cat("---------------------------------------------------------------\n")
-  cat("|   Parametric Monotone/Quadratic vs Smooth Constrained Test  |\n")
-  cat("---------------------------------------------------------------\n\n")
+  cat("--------------------------------------------------------------\n")
+  cat("|   Parametric Fit vs Smooth Constrained Fit Test             |\n")
+  cat("--------------------------------------------------------------\n\n")
   
   # Composite H0 vs H1 with proper formatting
   if (!is.null(object$X) && is.list(object$X)) {
@@ -1349,46 +1360,131 @@ bcsplfirderi = function(x, knots = NULL, xmin = 0, xmax = 1) {
 makedmat_1D = function(m, q = 2) {
   #dmat = NULL
   dmat = matrix(0, nrow = (m - q), ncol = m)
-  #  third-order
-  if (q == 3) {
-    for (i in 4:m) {
-      dmat[i-3, i-3] = 1; dmat[i-3, i-2] = -3; dmat[i-3, i-1] = 3; dmat[i-3, i] = -1
-    }
-  }
-  # second order
-  if (q == 2) {
-    for (i in 3:m) {
-      dmat[i-2, i-2] = 1; dmat[i-2, i-1] = -2; dmat[i-2, i] = 1
-    }
-  }
-  # first order
-  if (q == 1) {
-    for (i in 2:m) {
-      dmat[i-1, i-1] = 1; dmat[i-1, i] = -1
-    }
-  }
+  
   # zero order
   if (q == 0) {
-    for (i in 1:m) {
-      dmat[i, i] = 1
-    }
+    # for (i in 1:m) {
+    #   dmat[i, i] = 1
+    # }
+    diag(dmat) = 1
+  }
+  
+  # first order
+  if (q == 1) {
+    # for (i in 2:m) {
+    #   dmat[i-1, i-1] = 1; dmat[i-1, i] = -1
+    # }
+    id1 = 1:(m-1)
+    id2 = 2:m
+    dmat[cbind(id1, id1)] = 1
+    dmat[cbind(id1, id2)] = -1
+  }
+  
+  # second order
+  if (q == 2) {
+    # for (i in 3:m) {
+    #   dmat[i-2, i-2] = 1; dmat[i-2, i-1] = -2; dmat[i-2, i] = 1
+    # }
+    id1 = 1:(m-2)
+    id2 = 2:(m-1)
+    id3 = 3:m
+    dmat[cbind(id1, id1)] = 1
+    dmat[cbind(id1, id2)] = -2
+    dmat[cbind(id1, id3)] = 1
+  }
+  
+  # third-order
+  if (q == 3) {
+    # for (i in 4:m) {
+    #   dmat[i-3, i-3] = 1; dmat[i-3, i-2] = -3; dmat[i-3, i-1] = 3; dmat[i-3, i] = -1
+    # }
+    id1 = 1:(m-3)
+    id2 = 2:(m-2)
+    id3 = 3:(m-1)
+    id4 = 4:m
+    dmat[cbind(id1, id1)] = 1
+    dmat[cbind(id1, id2)] = -3
+    dmat[cbind(id1, id3)] = 3
+    dmat[cbind(id1, id4)] = -1
   }
   
   # fourth-order (new)
   if (q == 4) {
     dm3 = matrix(0, nrow = (m - 3), ncol = m)
     #  third-order
-    for (i in 4:m) {
-      dm3[i-3, i-3] = 1; dm3[i-3, i-2] = -3; dm3[i-3, i-1] = 3; dm3[i-3, i] = -1
-    }
+    # for (i in 4:m) {
+    #   dm3[i-3, i-3] = 1; dm3[i-3, i-2] = -3; dm3[i-3, i-1] = 3; dm3[i-3, i] = -1
+    # }
+    
+    id1 = 1:(m-3)
+    id2 = 2:(m-2)
+    id3 = 3:(m-1)
+    id4 = 4:m
+    dm3[cbind(id1, id1)] = 1
+    dm3[cbind(id1, id2)] = -3
+    dm3[cbind(id1, id3)] = 3
+    dm3[cbind(id1, id4)] = -1
+    
     dm1 = matrix(0, nrow = (m - 4), ncol = (m - 3))
-    for(i in 2:(m - 3)){
-      dm1[i-1, i-1] = 1; dm1[i-1, i] = -1
-    }
+    # for(i in 2:(m - 3)){
+    #   dm1[i-1, i-1] = 1; dm1[i-1, i] = -1
+    # }
+    # 
+    id1 = 1:(m - 4)
+    id2 = 2:(m - 3)
+    dm1[cbind(id1, id1)] = 1
+    dm1[cbind(id1, id2)] = -1
+    
     dmat = dm1 %*% dm3
   }
+  
   return (dmat)
 }
+
+# 
+# makedmat_1D = function(m, q = 2) {
+#   #dmat = NULL
+#   dmat = matrix(0, nrow = (m - q), ncol = m)
+#   #  third-order
+#   if (q == 3) {
+#     for (i in 4:m) {
+#       dmat[i-3, i-3] = 1; dmat[i-3, i-2] = -3; dmat[i-3, i-1] = 3; dmat[i-3, i] = -1
+#     }
+#   }
+#   # second order
+#   if (q == 2) {
+#     for (i in 3:m) {
+#       dmat[i-2, i-2] = 1; dmat[i-2, i-1] = -2; dmat[i-2, i] = 1
+#     }
+#   }
+#   # first order
+#   if (q == 1) {
+#     for (i in 2:m) {
+#       dmat[i-1, i-1] = 1; dmat[i-1, i] = -1
+#     }
+#   }
+#   # zero order
+#   if (q == 0) {
+#     for (i in 1:m) {
+#       dmat[i, i] = 1
+#     }
+#   }
+#   
+#   # fourth-order (new)
+#   if (q == 4) {
+#     dm3 = matrix(0, nrow = (m - 3), ncol = m)
+#     #  third-order
+#     for (i in 4:m) {
+#       dm3[i-3, i-3] = 1; dm3[i-3, i-2] = -3; dm3[i-3, i-1] = 3; dm3[i-3, i] = -1
+#     }
+#     dm1 = matrix(0, nrow = (m - 4), ncol = (m - 3))
+#     for(i in 2:(m - 3)){
+#       dm1[i-1, i-1] = 1; dm1[i-1, i] = -1
+#     }
+#     dmat = dm1 %*% dm3
+#   }
+#   return (dmat)
+# }
 
 #------------------------------------------
 #create penalty matrix for wps
