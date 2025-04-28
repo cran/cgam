@@ -1728,11 +1728,25 @@ CicFamily <- function(object) {
 #######################
 #eight shape functions#
 #######################
+#new: handle names like `Year of higest degree`
+#test more!
+get_varname <- function(expr) {
+  if (is.call(expr)) {
+    # Recursive extraction of the first symbol in a call
+    return(get_varname(expr[[2]]))
+  }
+  if (is.name(expr)) {
+    return(as.character(expr))
+  }
+  stop("Unsupported expression for variable name extraction.")
+}
+
 incr <- function(x, numknots = 0, knots = 0, space = "E")
 {
     cl <- match.call()
     pars <- match.call()[-1]
-    attr(x, "nm") <- deparse(pars$x)
+    attr(x, "nm") <- get_varname(pars$x)
+    #attr(x, "nm") <- deparse(pars$x)
     #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- 1
     attr(x, "numknots") <- numknots
@@ -1747,7 +1761,8 @@ decr <- function(x, numknots = 0, knots = 0, space = "E")
 {
     cl <- match.call()
     pars <- match.call()[-1]
-    attr(x, "nm") <- deparse(pars$x)
+    attr(x, "nm") <- get_varname(pars$x)
+    #attr(x, "nm") <- deparse(pars$x)
     #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- 2
     attr(x, "numknots") <- numknots
@@ -2797,7 +2812,9 @@ makedelta = function(x, sh, numknots = 0, knots = 0, space = "E", suppre = FALSE
 			
 			nt = length(t)
 			amat = cSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
-			x_sc = (x - min(x)) / (max(x) - min(x))
+			#will give NaN when predicting for a single data point!
+			#x_sc = (x - min(x)) / (max(x) - min(x))
+			x_sc = x
 			amat = cbind(amat, x_sc)
 			#cat('use splines2!', '\n')
 			ms = colMeans(amat)
@@ -2818,7 +2835,9 @@ makedelta = function(x, sh, numknots = 0, knots = 0, space = "E", suppre = FALSE
 			
 		  nt = length(t)
 		  amat = -cSpline(-x, knots = -rev(t[-c(1, nt)]), Boundary.knots = -c(t[nt], t[1]), degree = 1) 
-		  x_sc = (-x - min(-x)) / (max(-x) - min(-x))
+		  #wrong!
+		  #x_sc = (-x - min(-x)) / (max(-x) - min(-x))
+		  x_sc = -x
 		  amat = cbind(-x_sc, amat)
 		  #cat('use splines2!', '\n')
 		  ms = colMeans(amat)
@@ -2842,7 +2861,9 @@ makedelta = function(x, sh, numknots = 0, knots = 0, space = "E", suppre = FALSE
 		  
 		  nt = length(t)
 		  amat = cSpline(-x, knots = -rev(t[-c(1, nt)]), Boundary.knots = -c(t[nt], t[1]), degree = 1) 
-		  x_sc = (-x - min(-x)) / (max(-x) - min(-x))
+		  #wrong!
+		  #x_sc = (-x - min(-x)) / (max(-x) - min(-x))
+		  x_sc = -x
 		  amat = cbind(x_sc, amat)
 		  #cat('use splines2!', '\n')
 		  ms = colMeans(amat)
@@ -2866,7 +2887,9 @@ makedelta = function(x, sh, numknots = 0, knots = 0, space = "E", suppre = FALSE
 		  
 		  nt = length(t)
 		  amat = -cSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
-		  x_sc = (x - min(x)) / (max(x) - min(x))
+		  #wrong!
+		  #x_sc = (x - min(x)) / (max(x) - min(x))
+		  x_sc = x
 		  amat = cbind(amat, -x_sc)
 		  #cat('use splines2!', '\n')
 		  #if (!interp) {
@@ -2890,7 +2913,9 @@ makedelta = function(x, sh, numknots = 0, knots = 0, space = "E", suppre = FALSE
 		
 		  nt = length(t)
 		  amat = cSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
-		  x_sc = (x - min(x)) / (max(x) - min(x))
+		  #wrong!
+		  #x_sc = (x - min(x)) / (max(x) - min(x))
+		  x_sc = x
 		  amat = cbind(amat, x_sc)
 		  #cat('use splines2!', '\n')
 		  ms = colMeans(amat)
@@ -3649,21 +3674,22 @@ print.summary.wps <- function(x,...) {
   }
 }
 
-
 ##############
 #predict.cgam#
 ##############
-predict.cgam = function(object, newdata = NULL, interval = c("none", "confidence", "prediction"), type = c("response", "link"), level = 0.95, n.mix = 500,...) {
+predict.cgam = function(object, newdata, interval = c("none", "confidence", "prediction"), type = c("response", "link"), level = 0.95, n.mix = 500,...) {
   #print (is.data.frame(newData))
   #print (newData)
   #new:
+  #easy fix...avoid errors in this complicated function...
+  newData = newdata
   family = object$family
   cicfamily = CicFamily(family)
   muhat.fun = cicfamily$muhat.fun
   if (!inherits(object, "cgam")) {
     warning("calling predict.cgam(<fake-cgam-object>) ...")
   }
-  if (missing(newdata) || is.null(newdata)) {
+  if (missing(newData) || is.null(newData)) {
     #if (missing(newData)) {
     etahat = object$etahat
     muhat = muhat.fun(etahat, fml = family$family)
@@ -3671,9 +3697,9 @@ predict.cgam = function(object, newdata = NULL, interval = c("none", "confidence
     ans = list(fit = muhat)
     return (ans)
   }
-  if (!is.data.frame(newdata)) {
+  if (!is.data.frame(newData)) {
     #newData = as.data.frame(newData)
-    stop ("newdata must be a data frame!")
+    stop ("newData must be a data frame!")
   }
   #shapes = object$shapes
   #new: used for ci
@@ -3695,10 +3721,8 @@ predict.cgam = function(object, newdata = NULL, interval = c("none", "confidence
   coefs = object$coefs; zcoefs = object$zcoefs; vcoefs = object$vcoefs; xcoefs0 = object$xcoefs; ucoefs = object$ucoefs; tcoefs = object$tcoefs
   tt = object$tms
   Terms = delete.response(tt)
-  #new: used in tree.delta
-  nr_newData = NROW(newdata)
   #model.frame will re-organize newData in the original order in formula
-  m = model.frame(Terms, newdata)
+  m = model.frame(Terms, newData)
   #print (m)
   newdata = m
   #print (head(newdata))
@@ -3856,7 +3880,7 @@ predict.cgam = function(object, newdata = NULL, interval = c("none", "confidence
       sh_x = shapes[shapes < 9]
       ms_x = ms0[shapes < 9]
       xid1 = xid10[shapes < 9]; xid2 = xid20[shapes < 9]
-
+      
       newx_s = newx0[, shapes > 8, drop = FALSE]
       xmat_s = xmat0[, shapes > 8, drop = FALSE]
       sh = shapes[shapes > 8]
@@ -4055,8 +4079,7 @@ predict.cgam = function(object, newdata = NULL, interval = c("none", "confidence
   newetahat = etahat_v + etahat_s + etahat_x + etahat_u + etahat_t
   newmuhat = as.vector(muhat.fun(newetahat, fml = family$family))
   if (!is.null(newt)) {
-    #new: changed newData into newdata
-    newtbasis = t(tree.delta[,1:nr_newData,drop = FALSE])
+    newtbasis = t(tree.delta[,1:nrow(newData),drop = FALSE])
   }
   #print (newv)
   #newbigmat = t(cbind(newv, newx_sbasis, newxbasis, newubasis, newtbasis))
@@ -4186,8 +4209,8 @@ predict.cgam = function(object, newdata = NULL, interval = c("none", "confidence
       #bsec = bsec[keep,]
       #ns = dim(bsec)[1]
       #bsec[,2] = bsec[,2] / sum(bsec[,2])
-
-
+      
+      
       #new: not use sector = 1:nsec*0; simulate for 1,000 times and record the faces used more than once
       # if times / nloop < 1e-3, then delete
       sector = NULL
@@ -4215,20 +4238,20 @@ predict.cgam = function(object, newdata = NULL, interval = c("none", "confidence
           }
         }
       }
-
+      
       #remove times/sum(times) < 1e-3??
       sm_id = which((df[,2]/nloop) < 1e-3)
       if (any(sm_id)) {
         df = df[-sm_id, ,drop=FALSE]
       }
-
+      
       #new:
       ns = nrow(df)
       bsec = df
       bsec[,2] = bsec[,2] / sum(bsec[,2])
       ord = order(bsec[,1])
       bsec = bsec[ord, ,drop=FALSE]
-
+      
       ### calculate the mixture cov(alpha) matrix:
       obs = 1:m_acc;oobs = 1:(m_acc+nv)
       acov = matrix(0, nrow = m_acc+nv, ncol = m_acc+nv)
@@ -4311,11 +4334,11 @@ predict.cgam = function(object, newdata = NULL, interval = c("none", "confidence
       w[ch] = muhat[ch]*(1-muhat[ch])
       w[!ch] = 1e-5
       ztil = z*sqrt(w)
-
+      
       #z = etahat + (y - muhat) / family$variance(muhat)
       #print (family$variance(muhat)): sometimes give a value that is almost zero and it creates NA in thhat
       #ztil = z*sqrt(w)
-
+      
       rw = round(amat%*% bh, 6) == 0
       #print (rw)
       #print (sum(rw))
@@ -4409,7 +4432,7 @@ predict.cgam = function(object, newdata = NULL, interval = c("none", "confidence
         thvs_upp[i,] = ei + hli
         thvs_lwr[i,] = ei - hli
       }
-
+      
       # order thvs back
       if (length(idx_s) > 0) {
         thvs0_upp = thvs_upp
@@ -4442,7 +4465,7 @@ predict.cgam = function(object, newdata = NULL, interval = c("none", "confidence
     #for now, only handles one predictor
     if (length(object$shapes) == 1) {
       ord = order(newx0) #need a better way for > 1 predictor case
-
+      
       lwr_tmp = lwr[ord]
       upp_tmp = upp[ord]
       lwr_tmp_u = unique(lwr_tmp)
@@ -4462,7 +4485,7 @@ predict.cgam = function(object, newdata = NULL, interval = c("none", "confidence
           }
         }
         #lwr_tmp[ps_lwr + 1] = lwr_tmp[ps_lwr]
-
+        
         ps_upp = which(check_ps_upp < 0)
         n_ps_upp = length(ps_upp)
         if(n_ps_upp > 0) {
@@ -4487,7 +4510,7 @@ predict.cgam = function(object, newdata = NULL, interval = c("none", "confidence
           }
         }
         #lwr_tmp[ps_lwr] = lwr_tmp[ps_lwr + 1]
-
+        
         ps_upp = which(check_ps_upp > 0)
         n_ps_upp = length(ps_upp)
         if(n_ps_upp > 0) {
@@ -4500,21 +4523,21 @@ predict.cgam = function(object, newdata = NULL, interval = c("none", "confidence
         }
         #upp_tmp[ps_upp + 1] = upp_tmp[ps_upp]
       }
-
+      
       lwr = lwr_tmp[order(ord)]
       upp = upp_tmp[order(ord)]
       #loweta = lwr
       #uppeta = upp
-
+      
       #lwr = lwr_tmp
       #upp = upp_tmp
     }
-
+    
     if ("response" %in% type) {
       lwr = family$linkinv(lwr)
       upp = family$linkinv(upp)
     }
-
+    
     if (family$family == "gaussian") {
       ans = list(fit = muhatpr, lower = lwr, upper = upp, acov = acov, object = object, mult = mult, thvs_upp = thvs_upp, thvs_lwr = thvs_lwr)
       #ans = list(fit = muhatpr, lower = muhatpr - hl, upper = muhatpr + hl, acov = acov, object = object, mult = mult, thvs_upp = thvs_upp, thvs_lwr = thvs_lwr)

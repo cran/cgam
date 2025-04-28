@@ -75,3 +75,6 @@
 * fix the formula0 bug in testpar
 * makedmat_1D is faster
 * newData is changed to be newdata in predict.cgam() to be consistent with predict.glm()
+
+1.26
+* fix a bug in makedelta when shape = 13,14,15,16: cannot scale x like this x_sc = (x - min(x)) / (max(x) - min(x))! -> NaN when predict for 1 data point
