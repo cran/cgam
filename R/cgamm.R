@@ -1114,7 +1114,9 @@ cgamm.fit = function(y, xmat, zmat, id, shapes, numknots, knots, space, nsim,
   }
 
   if(!wt.iter){
-    rslt = list(etahat = muhat, muhat = muhat, coefs = coefs, bh = bh, zcoefs = zcoefs,
+    #coefs is now like coefs of lmer: includes rf, should not be used for predict.cgamm
+    #change: let coefs keep coefskeep
+    rslt = list(etahat = muhat, muhat = muhat, coefs = coefskeep, coefs_rf = coefs, bh = bh, zcoefs = zcoefs,
                 pvals.beta = pvals.beta, se.beta = se.beta, vcoefs = vcoefs,
                 ahat = ahat, sig2hat = sig2hat, siga2hat = siga2hat, thhat = thhat,
                 bigmat = bigmat, gtil = gtil, dd2=dd2, np = np, knots = knotsuse,
@@ -2082,9 +2084,11 @@ fixef.cgamm <- function(object,...) {
 #smooth only  #
 #guasisan and binomial#
 ###############
-predict.cgamm = function(object, newData, interval = c("none", "confidence", "prediction"), type = c("response", "link"), level = 0.95, n.mix = 500, var.f = NULL,...) {
+predict.cgamm = function(object, newdata, interval = c("none", "confidence", "prediction"), type = c("response", "link"), level = 0.95, n.mix = 500, var.f = NULL,...) {
   #print (is.data.frame(newData))
   #print (newData)
+  #easy fix:
+  newData = newdata
   #new:
   family = object$family
   cicfamily = CicFamily(family)
@@ -2130,15 +2134,31 @@ predict.cgamm = function(object, newData, interval = c("none", "confidence", "pr
   coefs = object$coefs; zcoefs = object$zcoefs; vcoefs = object$vcoefs; xcoefs0 = object$xcoefs; ucoefs = object$ucoefs; tcoefs = object$tcoefs
   tt = object$tms
   Terms = delete.response(tt)
+
+  #new: remove rf and them create terms
+  randvars = sapply(attr(tt, "predvars.random"), function(x) deparse(x))
+  labels_all = attr(tt, "term.labels")
+  #keep only fixed-effect terms
+  labels_keep = labels_all[!labels_all %in% randvars]
+  rf_nm = labels_all[labels_all %in% randvars]
+  #rebuild a fixed-only formula
+  fixed_formula = reformulate(labels_keep)
+  Terms_fixed = terms(fixed_formula)
+  
   #model.frame will re-organize newData in the original order in formula
   #temp: need a better method, create fake id
   lbs = attributes(object$tms)$term.labels
   idlb = rev(lbs)[1]
   group = object$id
-  if (!any(names(newData) %in% lbs)){
+  #if (!any(names(newData) %in% lbs)){
+  if(!rf_nm %in% colnames(newData)){ #test more; use for ci; random-effect vars should not be in newData
     #used for confidence interval
+    #no need:
     newData[[idlb]] = rep(1, nrow(newData))
     m = model.frame(Terms, newData)
+    
+    #new:
+    #m = model.frame(Terms_fixed, newData)
     #use real group for prediction interval
     #group = object$id
     group_new = NULL
@@ -2166,8 +2186,13 @@ predict.cgamm = function(object, newData, interval = c("none", "confidence", "pr
   #}
   #}
   nmsm = names(m)
+  
+  #no need anymore: when creating m, rf is already removed when creasing Terms_fixed.
   rm_id = which(nmsm%in%idlb)
   newdata = m[, -rm_id, drop=F]
+  
+  #new:
+  #newdata = model.frame(Terms_fixed, newData)
   #new: need id or group for prediction interval
   #print (head(newdata))
   #new:

@@ -1777,8 +1777,9 @@ conv <- function(x, numknots = 0, knots = 0, space = "E")
 {
     cl <- match.call()
     pars <- match.call()[-1]
-    attr(x, "nm") <- deparse(pars$x)
+    #attr(x, "nm") <- deparse(pars$x)
     #attr(x, "nm") <- deparse(substitute(pars$x))
+    attr(x, "nm") <- get_varname(pars$x)
     attr(x, "shape") <- 3
     attr(x, "numknots") <- numknots
     attr(x, "knots") <- knots
@@ -1792,8 +1793,9 @@ conc <- function(x, numknots = 0, knots = 0, space = "E")
 {
     cl <- match.call()
     pars <- match.call()[-1]
-    attr(x, "nm") <- deparse(pars$x)
+    #attr(x, "nm") <- deparse(pars$x)
     #attr(x, "nm") <- deparse(substitute(pars$x))
+    attr(x, "nm") <- get_varname(pars$x)
     attr(x, "shape") <- 4
     attr(x, "numknots") <- numknots
     attr(x, "knots") <- knots
@@ -1807,8 +1809,9 @@ incr.conv <- function(x, numknots = 0, knots = 0, space = "E")
 {
     cl <- match.call()
     pars <- match.call()[-1]
-    attr(x, "nm") <- deparse(pars$x)
+    #attr(x, "nm") <- deparse(pars$x)
     #attr(x, "nm") <- deparse(substitute(pars$x))
+    attr(x, "nm") <- get_varname(pars$x)
     attr(x, "shape") <- 5
     attr(x, "numknots") <- numknots
     attr(x, "knots") <- knots
@@ -1822,8 +1825,9 @@ decr.conv <- function(x, numknots = 0, knots = 0, space = "E")
 {
     cl <- match.call()
     pars <- match.call()[-1]
-    attr(x, "nm") <- deparse(pars$x)
+    #attr(x, "nm") <- deparse(pars$x)
     #attr(x, "nm") <- deparse(substitute(pars$x))
+    attr(x, "nm") <- get_varname(pars$x)
     attr(x, "shape") <- 6
     attr(x, "numknots") <- numknots
     attr(x, "knots") <- knots
@@ -1837,8 +1841,9 @@ incr.conc <- function(x, numknots = 0, knots = 0, space = "E")
 {
     cl <- match.call()
     pars <- match.call()[-1]
-    attr(x, "nm") <- deparse(pars$x)
+    #attr(x, "nm") <- deparse(pars$x)
     #attr(x, "nm") <- deparse(substitute(pars$x))
+    attr(x, "nm") <- get_varname(pars$x)
     attr(x, "shape") <- 7
     attr(x, "numknots") <- numknots
     attr(x, "knots") <- knots
@@ -1852,8 +1857,9 @@ decr.conc <- function(x, numknots = 0, knots = 0, space = "E")
 {
     cl <- match.call()
     pars <- match.call()[-1]
-    attr(x, "nm") <- deparse(pars$x)
+    #attr(x, "nm") <- deparse(pars$x)
     #attr(x, "nm") <- deparse(substitute(pars$x))
+    attr(x, "nm") <- get_varname(pars$x)
     attr(x, "shape") <- 8
     attr(x, "numknots") <- numknots
     attr(x, "knots") <- knots
@@ -1896,7 +1902,8 @@ s.incr <- function(x, numknots = 0, knots = 0, var.knots = 0, space = "Q", db.ex
 {
     cl <- match.call()
     pars <- match.call()[-1]
-    attr(x, "nm") <- deparse(pars$x)
+    attr(x, "nm") <- get_varname(pars$x)
+    #attr(x, "nm") <- deparse(pars$x)
     #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- 9
     attr(x, "numknots") <- numknots
@@ -1913,7 +1920,8 @@ s.decr <- function(x, numknots = 0, knots = 0, var.knots = 0, space = "Q", db.ex
 {
     cl <- match.call()
     pars <- match.call()[-1]
-    attr(x, "nm") <- deparse(pars$x)
+    attr(x, "nm") <- get_varname(pars$x)
+    #attr(x, "nm") <- deparse(pars$x)
     #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- 10
     attr(x, "numknots") <- numknots
@@ -1931,7 +1939,8 @@ s.conv <- function(x, numknots = 0, knots = 0, space = "Q")
 {
     cl <- match.call()
     pars <- match.call()[-1]
-    attr(x, "nm") <- deparse(pars$x)
+    attr(x, "nm") <- get_varname(pars$x)
+    #attr(x, "nm") <- deparse(pars$x)
     #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- 11
     attr(x, "numknots") <- numknots
@@ -1946,7 +1955,8 @@ s.conc <- function(x, numknots = 0, knots = 0, space = "Q")
 {
     cl <- match.call()
     pars <- match.call()[-1]
-    attr(x, "nm") <- deparse(pars$x)
+    attr(x, "nm") <- get_varname(pars$x)
+    #attr(x, "nm") <- deparse(pars$x)
     #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- 12
     attr(x, "numknots") <- numknots
@@ -1961,7 +1971,8 @@ s.incr.conv <- function(x, numknots = 0, knots = 0, space = "Q")
 {
     cl <- match.call()
     pars <- match.call()[-1]
-    attr(x, "nm") <- deparse(pars$x)
+    attr(x, "nm") <- get_varname(pars$x)
+    #attr(x, "nm") <- deparse(pars$x)
     #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- 13
     attr(x, "numknots") <- numknots
@@ -1976,7 +1987,8 @@ s.incr.conc <- function(x, numknots = 0, knots = 0, space = "Q")
 {
     cl <- match.call()
     pars <- match.call()[-1]
-    attr(x, "nm") <- deparse(pars$x)
+    attr(x, "nm") <- get_varname(pars$x)
+    #attr(x, "nm") <- deparse(pars$x)
     #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- 14
     attr(x, "numknots") <- numknots
@@ -1991,7 +2003,8 @@ s.decr.conv <- function(x, numknots = 0, knots = 0, space = "Q")
 {
     cl <- match.call()
     pars <- match.call()[-1]
-    attr(x, "nm") <- deparse(pars$x)
+    attr(x, "nm") <- get_varname(pars$x)
+    #attr(x, "nm") <- deparse(pars$x)
     #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- 15
     attr(x, "numknots") <- numknots
@@ -2006,7 +2019,8 @@ s.decr.conc <- function(x, numknots = 0, knots = 0, space = "Q")
 {
    cl <- match.call()
    pars <- match.call()[-1]
-   attr(x, "nm") <- deparse(pars$x)
+   attr(x, "nm") <- get_varname(pars$x)
+   #attr(x, "nm") <- deparse(pars$x)
    #attr(x, "nm") <- deparse(substitute(pars$x))
    attr(x, "shape") <- 16
    attr(x, "numknots") <- numknots
@@ -2021,7 +2035,8 @@ s <- function(x, numknots = 0, knots = 0, space = "Q")
 {
    cl <- match.call()
    pars <- match.call()[-1]
-   attr(x, "nm") <- deparse(pars$x)
+   attr(x, "nm") <- get_varname(pars$x)
+   #attr(x, "nm") <- deparse(pars$x)
    #attr(x, "nm") <- deparse(substitute(pars$x))
    attr(x, "shape") <- 17
    attr(x, "numknots") <- numknots
@@ -2039,7 +2054,8 @@ tree <- function(x, pl = NULL)
 {
     cl <- match.call()
     pars <- match.call()[-1]
-    attr(x, "nm") <- deparse(pars$x)
+    attr(x, "nm") <- get_varname(pars$x)
+    #attr(x, "nm") <- deparse(pars$x)
     #attr(x, "nm") <- deparse(substitute(pars$x))
     attr(x, "shape") <- "tree"
     #stop (print (x))
@@ -2130,7 +2146,8 @@ umbrella <- function(x)
 {
   cl <- match.call()
   pars <- match.call()[-1]
-  attr(x, "nm") <- deparse(pars$x)
+  attr(x, "nm") <- get_varname(pars$x)
+  #attr(x, "nm") <- deparse(pars$x)
   #attr(x, "nm") <- deparse(substitute(pars$x))
   attr(x, "shape") <- "umbrella"
   attr(x, "categ") <- "additive"
@@ -5603,38 +5620,64 @@ plotpersp <- function(object,...) {
 ################
 #plotpersp.cgam#
 ################
-plotpersp.cgam <- function(object, x1 = NULL, x2 = NULL, x1nm = NULL, x2nm = NULL,
-                           data = NULL, surface = "mu", categ = NULL,
-                           col = NULL, random = FALSE, ngrid = 12,
-                           xlim = range(x1), ylim = range(x2), zlim = NULL,
-                           xlab = NULL, ylab = NULL, zlab = NULL, th = NULL,
-                           ltheta = NULL, main = NULL, ticktype = "simple",...) {
-	#if (class(object) == "list") {
-	#	object <- object[[1]]
-	#}
-    #print (class(object))
+#new: control function for aesthetics
+plotpersp_control <- function(surface = "mu", x1nm = NULL, x2nm = NULL, categ = NULL,
+                                   col = NULL, random = FALSE, ngrid = 12,
+                                   xlim = NULL, ylim = NULL, zlim = NULL,
+                                   xlab = NULL, ylab = NULL, zlab = NULL,
+                                   th = NULL, ltheta = NULL, main = NULL,
+                                   sub = NULL, ticktype = "simple") {
+  list(x1nm = x1nm, x2nm = x2nm, surface = surface, categ = categ, 
+       col = col, random = random, ngrid = ngrid,
+       xlim = xlim, ylim = ylim, zlim = zlim,
+       xlab = xlab, ylab = ylab, zlab = zlab,
+       th = th, ltheta = ltheta, main = main,
+       sub = sub, 
+       ticktype = ticktype)
+}
+
+plotpersp.cgam <- function(object, x1 = NULL, x2 = NULL, control = plotpersp_control(),...) {
 	if (!inherits(object, "cgam")) {
 		warning("calling plotpersp(<fake-cgam-object>) ...")
-    }
-	#xmat <- object$xmat
-	#cl <- match.call()
-	#nms <- cl[-c(1, 2)]
-	#lnms <- length(nms)
-	#x1nm <- nms[1]$x
-	#x1nm <- deparse(x1nm)
-	#x2nm <- nms[2]$x
-	#x2nm <- deparse(x2nm)
-#new: default is plotpersp(object)
-  #must include deparse; otherwise cannot change x1 and x2?
-	#x1nm <- deparse(substitute(x1))
-	#x2nm <- deparse(substitute(x2))
-	#print (x1nm)
-	#print (x2nm)
-#stop (print (x1nm))
-	xnms <- object$xnms_add
-	xmat <- object$xmat_add
+	}
+  
+  #new: unpack aesthetics
+  defaults <- plotpersp_control()
+  control <- modifyList(defaults, control)
+  x1nm   <- control$x1nm
+  x2nm   <- control$x2nm
+  surface <- control$surface
+  categ  <- control$categ
+  col    <- control$col
+  random <- control$random
+  ngrid  <- control$ngrid
+  xlim   <- control$xlim
+  ylim   <- control$ylim
+  zlim   <- control$zlim
+  xlab   <- control$xlab
+  ylab   <- control$ylab
+  zlab   <- control$zlab
+  th     <- control$th
+  ltheta <- control$ltheta
+  main   <- control$main
+  ticktype <- control$ticktype
+  sub <- control$sub
+  # c(x1nm, x2nm, surface, categ, col, random, ngrid, xlim, ylim, zlim, 
+  #    xlab, ylab, zlab, th, ltheta, main, ticktype, sub) %<-% control
+  # 
+  #new: capture x1nm and x2nm cleanly
+  x1nm <- x1nm %||% if (!is.null(x1)) { 
+    if (is.character(x1)) x1 else deparse(substitute(x1)) 
+  }
+  x2nm <- x2nm %||% if (!is.null(x2)) { 
+    if (is.character(x2)) x2 else deparse(substitute(x2)) 
+  }
+  
+  xnms <- object$xnms_add
+  xmat <- object$xmat_add
+
 	#if (x1nm == "NULL" | x2nm == "NULL") {
-	if (is.null(x1nm) | is.null(x2nm)) {
+	if (is.null(x1nm) || is.null(x2nm)) {
 		if (length(xnms) >= 2) {
 			x1nm <- xnms[1]
 			x2nm <- xnms[2]
@@ -5716,57 +5759,9 @@ if (fml != "ordered" & all(class(object) != "trispl")) {
 	#xmatnms <- object$xmatnms
 	knms <- length(xnms)
 	obs <- 1:knms
-	#if (!any(xmatnms == x1nm)) {
-	#	warning(paste(x1nm, "is not an exact character name defined in the cgam fit!"))
-	#}
-	#if (!any(xmatnms == x2nm)) {
-	#	warning(paste(x2nm, "is not an exact character name defined in the cgam fit!"))
-	#}
-	#x1id = obs[xmatnms == x1nm]
-	#x2id = obs[xmatnms == x2nm]
-	if (!is.null(data)) {
-		if (!is.data.frame(data)) {
-			stop ("User need to make the data argument a data frame with names for each variable!")
-		}
-		datnms <- names(data)
-		if (!any(datnms == x1nm) | !any(datnms == x2nm)) {
-			stop ("Check the accuracy of the names of x1 and x2!")
-		}
-		x1 <- data[ ,which(datnms == x1nm)]
-		x2 <- data[ ,which(datnms == x2nm)]
-		if (length(x1) != nrow(xmat)) {
-			warning ("Number of observations in the data set is not the same as the number of elements in x1!")
-		}
-		#bool <- apply(xmat, 2, function(x) all(x1 == x))
-		#if (any(bool)) {
-			x1id <- obs[xnms == x1nm]
-		#}
-		if (length(x2) != nrow(xmat)) {
-			warning ("Number of observations in the data set is not the same as the number of elements in x2!")
-		}
-		#bool <- apply(xmat, 2, function(x) all(x2 == x))
-		#if (any(bool)) {
-			x2id <- obs[xnms == x2nm]
-		#}
-	} else {
-		#if (any(xmatnms == x1nm)) {
-		#	x1id <- obs[xmatnms == x1nm]
-		#} else {
-		#	bool <- apply(xmat, 2, function(x) all(x1 == x))
-		#	if (any(bool)) {
-		#		x1id <- obs[bool]
-		#	}
-		#}
-		#if (any(xmatnms == x2nm)) {
-		#	x2id <- obs[xmatnms == x2nm]
-		#} else {
-		#	bool <- apply(xmat, 2, function(x) all(x2 == x))
-		#	if (any(bool)) {
-		#		x2id <- obs[bool]
-		#	}
-		#}
+#new: remove data argument; very rare to use it anyway
 #new: x1 and x2 are in .Globe, not in formula
-		if (all(xnms != x1nm)) {
+	if (all(xnms != x1nm)) {
 			if (length(x1) != nrow(xmat)) {
 				stop ("Number of observations in the data set is not the same as the number of elements in x1!")
 			}
@@ -5778,10 +5773,10 @@ if (fml != "ordered" & all(class(object) != "trispl")) {
 			} else {
 				stop (paste(paste("'", x1nm, "'", sep = ''), "is not a predictor defined in the cgam fit!"))
 			}
-		} else {
+	} else {
 			x1id <- obs[xnms == x1nm]
-		}
-		if (all(xnms != x2nm)) {
+	}
+	if (all(xnms != x2nm)) {
 			if (length(x2) != nrow(xmat)) {
 				stop ("Number of observations in the data set is not the same as the number of elements in x2!")
 			}
@@ -5792,10 +5787,10 @@ if (fml != "ordered" & all(class(object) != "trispl")) {
 			} else {
 				stop (paste(paste("'", x2nm, "'", sep = ''), "is not a predictor defined in the cgam fit!"))
 			}
-		} else {
+	} else {
 			x2id <- obs[xnms == x2nm]
-		}
 	}
+	#}
 #xmat is not the one in fit
 #print (length(x1))
 #print (length(x2))
@@ -5803,6 +5798,9 @@ if (fml != "ordered" & all(class(object) != "trispl")) {
 	xm <- xmat[, c(x1id, x2id)]
 #print (all(xm == cbind(x1, x2)))
 #print (head(cbind(x1, x2)))
+#new:
+	xlim <- range(xm[,1])
+	ylim <- range(xm[,2])
 	x_grid <- ngrid
 	y_grid <- ngrid
 	x1g <- 0:x_grid / x_grid * .95 * (max(xm[,1]) - min(xm[,1])) + min(xm[,1]) + .025 * (max(xm[,1]) - min(xm[,1]))
@@ -5897,13 +5895,6 @@ if (fml != "ordered" & all(class(object) != "trispl")) {
 		zcoefsi = c(0, zcoefsi)
 		z_add = sort(zcoefsi)
 		kz_add <- length(z_add)
-		#for (j in 1:ncol(zi)) {
-		#	zij <- zi[,j]
-		#	zijhat <- zij * zcoefsi[j]
-		#	z_add <- z_add + zijhat
-		#}
-		#z_add <- unique(z_add)
-		#kz_add <- length(z_add)
 #new: plot the smallest one first:
 		#z_add <- z_add[order(z_add)]
 #print (z_add)
@@ -5972,24 +5963,6 @@ if (fml != "ordered" & all(class(object) != "trispl")) {
 				if (kxgm > 1 & kxgm < 11) {
 					col <- palette[1:kxgm]
 				} else {
-					#integ <- floor(kxgm / 10)
-					#rem <- kxgm %% 10
-					#kint <- length(integ)
-					#col = character(length = kxgm)
-#print (col)
-					#col <- NULL
-					#for (i in 1:kint) {
-#print (col[1 + (i - 1) * 10: i * 10])
-#print (palette)
-						#col[1 + (i - 1) * 10: i * 10] = palette
-					#	col <- c(col, palette)
-					#}
-#print (col)
-					#col[(kint * 10 + 1):kxgm] = palette[(kint * 10 + 1):kxgm]
-					#col <- c(col, palette[1:rem])
-#print ((kint * 10 + 1):kxgm)
-#print (col)
-#print (integ)
 #new: use rainbow
 					col <- topo.colors(kxgm)
 				}
@@ -6023,14 +5996,6 @@ if (fml != "ordered" & all(class(object) != "trispl")) {
 				nrem <- length(rem)
 				rem_col <- palette[1:nrem]
 				col <- c(col0, rem_col)
-#new:
-				#nr <- nrow(xgmat)
-				#nc <- ncol(xgmat)
-				#ncol <- 100
-				#facet <- xgmat[-1,-1] + xgmat[-1,-nc] + xgmat[-nr,-1] + xgmat[-nr,-nc]
-				#facetcol <- cut[facet, ncol]
-				#col <- topo.colors[facetcol]
-
 			} else if (length(col0) > kxgm) {
 				col <- col0[1:kxgm]
 				#print (paste("The first", kxgm, "colors are used!"))
@@ -6094,9 +6059,6 @@ if (fml != "ordered" & all(class(object) != "trispl")) {
 				coli = unlist(col[[i]])
 				#print (head(coli))
 			} else {coli = col[i]}
-			#print (head(coli))
-			#print (head(xgmat[[i]]))
-			#print (head(col[[1]]))
             if (is.null(zlim)) {
                 lwr = min(mins)
                 upp = max(maxs)

@@ -188,7 +188,9 @@ testpar <- function(formula0, formula, data, family = gaussian(link = "identity"
       } else {zmat <- NULL}
       #print (zmat)
       #add znm later
-      dd <- model.matrix(~ z[, is_fac], drop = FALSE)[, -1, drop = FALSE]
+      #not work:
+      #dd <- model.matrix(~ z[, is_fac], drop = FALSE)[, -1, drop = FALSE]
+      dd <- model.matrix(~ ., data = z[, is_fac, drop = FALSE])[, -1, drop = FALSE]
       zmat <- cbind(zmat, dd)
     } else {
       zmat <- as.matrix(z)
@@ -400,6 +402,8 @@ testpar.fit = function(X, y, zmat = NULL, family = gaussian(link="identity"),
   nz = 0
   if(!is.null(zmat)){
     nz = NCOL(zmat)
+    #test more: center zmat to avoid solve() error
+    #zmat = scale(zmat, center = TRUE, scale = FALSE)
   }
   xm0 = NULL #combine dd columnwise
   amat_lst = vector("list", length = capl)
@@ -597,14 +601,14 @@ testpar.fit = function(X, y, zmat = NULL, family = gaussian(link="identity"),
   #----------------------------------------------------------------------------
   nc = nc_noz = NCOL(dd)
   if(nz > 0){
-    dd_1 = dd_lst[[1]]
-    dd_1 = cbind(zmat, dd_1)
-    dd_lst[[1]] = dd_1
+    # dd_1 = dd_lst[[1]]
+    # dd_1 = cbind(zmat, dd_1)
+    # dd_lst[[1]] = dd_1
     
-    dm_1 = dmat_lst[[1]]
-    dm1_zero = matrix(0, nrow = nrow(dm_1), ncol = nz)
-    dm_1 = cbind(dm1_zero, dm_1)
-    dmat_lst[[1]] = dm_1
+    # dm_1 = dmat_lst[[1]]
+    # dm1_zero = matrix(0, nrow = nrow(dm_1), ncol = nz)
+    # dm_1 = cbind(dm1_zero, dm_1)
+    # dmat_lst[[1]] = dm_1
     
     dd = cbind(zmat, dd)
     dmat_zero = matrix(0, nrow = nrow(dmat), ncol = nz)
@@ -656,9 +660,10 @@ testpar.fit = function(X, y, zmat = NULL, family = gaussian(link="identity"),
     if(is.null(ps)){
       #edfu = sum(edfu_vec) + nz
       edfu = edfu_vec
-      if(nz > 0){
-        edfu[1] = edfu_vec[1] + nz
-      }
+      #not right:...
+      #if(nz > 0){
+      #  edfu[1] = edfu_vec[1] + nz
+      #}
       #if(!arp){
       if(capl == 1){
         #ps = uniroot(f = .search_ps, qv0 = qv0, dv = dv, dd = dd, edfu = edfu, interval = c(1e-10, 2e+2), tol = .Machine$double.eps^0.32)$root
@@ -697,10 +702,10 @@ testpar.fit = function(X, y, zmat = NULL, family = gaussian(link="identity"),
       #already add zmat in the 1st element of dmat_lst
       dmat = Matrix::bdiag(dmat_lst) |> as.matrix()
       #recreate dmat
-      # if(nz > 0){
-      #   dmat_zero = matrix(0, nrow = nrow(dmat), ncol = nz)
-      #   dmat = cbind(dmat_zero, dmat)
-      # }
+      if(nz > 0){
+        dmat_zero = matrix(0, nrow = nrow(dmat), ncol = nz)
+        dmat = cbind(dmat_zero, dmat)
+      }
       dv = crossprod(dmat)
     }
     if(length(p) == 1){ 
@@ -854,9 +859,9 @@ testpar.fit = function(X, y, zmat = NULL, family = gaussian(link="identity"),
     ahatc_noz = ahatc_noz[-c(1:nz), ,drop=F] #|> as.vector()
     ahatl_noz = ahatl_noz[-c(1:nz), ,drop=F] #|> as.vector()
     #new:
-    dd_1 = dd_lst[[1]]
-    dd_1 = dd_1[, -c(1:nz), drop=F]
-    dd_lst[[1]] = dd_1
+    # dd_1 = dd_lst[[1]]
+    # dd_1 = dd_1[, -c(1:nz), drop=F]
+    # dd_lst[[1]] = dd_1
   }
   for(icomp in 1:capl){
     x = X[[icomp]]

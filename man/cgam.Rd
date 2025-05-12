@@ -220,8 +220,10 @@ See references cited in this section and the official manual (\url{https://cran.
   anova(fit.cgam.s)
   
   # make a 3D plot based on fit.cgam and fit.cgam.s
-  plotpersp(fit.cgam, th = 120, main = "3D Plot of a Cgam Fit")
-  plotpersp(fit.cgam.s, tens, hard, data = Rubber, th = 120, main = "3D Plot of a Smooth Cgam Fit")
+  ctl <- list(th = 120, main = "3D Plot of a Cgam Fit")
+  plotpersp(fit.cgam, control = ctl)
+  ctl <- list(th = 120, main = "3D Plot of a Smooth Cgam Fit")
+  plotpersp(fit.cgam.s, "tens", "hard", control = ctl)
 
 # Example 3. monotonic variance estimation
   n <- 400

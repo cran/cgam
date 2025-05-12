@@ -1,8 +1,12 @@
-export("cgam", "cgamm", "testpar", "incr", "decr", "conc", "conv", "incr.conc", "incr.conv", "decr.conc", "decr.conv", "tree", "umbrella", "s", "s.incr", "s.decr", "s.conc", "s.conv", "s.incr.conc", "s.incr.conv", "s.decr.conc", "s.decr.conv", "plotpersp", "s.incr.incr", "s.decr.decr", "s.decr.incr", "s.incr.decr", "s.conv.conv", "s.conc.conc", "ShapeSelect", "shapes", "in.or.out", "best.fit", "Ord", "predict.cgam")
+export("cgam", "cgamm", "testpar", "incr", "decr", "conc", "conv", "incr.conc", "incr.conv", "decr.conc",
+       "decr.conv", "tree", "umbrella", "s", "s.incr", "s.decr", "s.conc", "s.conv", 
+       "s.incr.conc", "s.incr.conv", "s.decr.conc", "s.decr.conv", "plotpersp", "plotpersp_control",
+       "s.incr.incr", "s.decr.decr", "s.decr.incr", "s.incr.decr", "s.conv.conv", 
+       "s.conc.conc", "ShapeSelect", "shapes", "in.or.out", "best.fit", "Ord", "predict.cgam")
 import("coneproj", "svDialogs", "lme4", "splines2", "splines")
 importFrom("stats", "fitted", "delete.response", "gaussian", "median", "model.frame", "model.matrix", "model.response", "pchisq", "printCoefmat", "pt", "quantile", "rnorm", "rpois", "runif", "as.formula", "sd", "Gamma", "binomial", "coef", "make.link", "rgamma",
 "rlogis", "optim", "qnorm", "pbeta", "pf", "qchisq", "uniroot", "nlminb", "rbinom", "arima.sim", "Box.test", "pnorm", "toeplitz")
-importFrom("utils", "head")
+importFrom("utils", "head", "modifyList")
 importFrom("rlang", "enquo", "eval_tidy")
 importFrom("dplyr", "case_when", "bind_rows")
 importFrom("splines", "bs")
@@ -11,7 +15,7 @@ importFrom("zeallot", `%<-%`)
 importFrom("lme4", "lmer")
 importFrom("svDialogs", "dlgMessage")
 importFrom("statmod", "gauss.quad")
-importFrom("stats", "var", "nlminb", "predict", "terms")
+importFrom("stats", "var", "nlminb", "predict", "terms", "reformulate")
 importFrom("Matrix", "bdiag", "rankMatrix")
 importFrom("ggplot2", "ggplot", "geom_line", "facet_wrap", "labs", "theme_minimal")
 importFrom("graphics", "par", "persp", "grid", "legend", "plot", "points", "segments")
