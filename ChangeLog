@@ -82,3 +82,7 @@
 1.27
 * fixed a bug in cgamm.fit: let coefs = coefskeep, not use coefs that include rf
 * new plotpersp with plotpersp_control
+
+1.28
+* add parallel code for windows users
+* nsim = 1000 for testpar

@@ -1,10 +1,10 @@
-0c4012b7fcad1e4ec5c1869a60b52d76 *ChangeLog
-a117bed41eeea3e2b50e029b3bbbcbda *DESCRIPTION
-78cb9a1d297b6a1a7afbf22be82bfbdc *NAMESPACE
-ae34c22f75c531aa85132ea52a9650f3 *R/cgam.R
+514d26f7109e87bfc60cd4101c4b3e77 *ChangeLog
+b9bfe95ac507c8cc59cbf4adcd8c07f2 *DESCRIPTION
+b14c6a61692a7dcb6995d7dddbed85e2 *NAMESPACE
+ea18fb4578889a29100c9b3c1dba3d5a *R/cgam.R
 e884837caf9e90449a96f69379d59e15 *R/cgamm.R
-55b0e369ab351466aecbea4fff7d19dd *R/globals.R
-98d9943431797be61dce9f045914918c *R/testpar.R
+f8cf7b4731372cf1f802fd14e50ff741 *R/globals.R
+c6126f466d0c891c69de8809d22f8b93 *R/testpar.R
 30371bbfb1b09c61689e34133389c96b *data/COforest.rda
 a0db33d4a416d9f938daadefe0e246d8 *data/cubic.rda
 38989ead0193c484041448d86a606c2e *data/mental.rda
@@ -47,6 +47,6 @@ dcbc6a2f0c42e8b3ac5f10e9b1746cdc *man/s.incr.conc.Rd
 62f4e9383416587d6cabddefc65476a6 *man/s.incr.decr.Rd
 fefc40df95cc8698d49693e7424e9e4b *man/s.incr.incr.Rd
 b1754149bc1925d1016f24a96eb3db09 *man/shapes.Rd
-f4d7daa5df7b6788599421aa1c1514c6 *man/testpar.Rd
+0849e98c372f3649ee704ff0f4678be5 *man/testpar.Rd
 23aabd09022aff40accf844153cda0e1 *man/tree.Rd
 413da2c5d8d914721a923c2b386b0df4 *man/umbrella.Rd

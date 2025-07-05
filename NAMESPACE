@@ -20,6 +20,8 @@ importFrom("Matrix", "bdiag", "rankMatrix")
 importFrom("ggplot2", "ggplot", "geom_line", "facet_wrap", "labs", "theme_minimal")
 importFrom("graphics", "par", "persp", "grid", "legend", "plot", "points", "segments")
 importFrom("grDevices", "topo.colors", "cm.colors", "heat.colors", "terrain.colors", "rgb","col2rgb")  
+importFrom("quadprog", "solve.QP")
+importFrom("MASS", "ginv")
 
 S3method(summary, cgam)
 S3method(print, cgam)

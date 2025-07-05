@@ -11,7 +11,7 @@ testpar(
   family = gaussian(link = "identity"),
   ps = NULL,
   edfu = NULL,
-  nsim = 200,
+  nsim = 1000,
   multicore = getOption("cgam.parallel"),
   method = "testpar.fit",
   arp = FALSE,
@@ -33,7 +33,7 @@ testpar(
 
 \item{edfu}{User-defined unconstrained effective degrees of freedom.}
 
-\item{nsim}{Number of simulations to perform to get the mixture distribution of the test statistic. (default is 200).}
+\item{nsim}{Number of simulations to perform to get the mixture distribution of the test statistic. (default is 1000).}
 
 \item{multicore}{Logical. Whether to enable parallel computation (default uses global option \code{cgam.parallel}).}
 

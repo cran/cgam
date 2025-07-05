@@ -9,7 +9,7 @@
 #' @param family A description of the error distribution and link function to be used in the model (e.g., \code{gaussian()}). Gaussian and binomial are now included.
 #' @param ps User-defined penalty term. If \code{NULL}, optimal values are estimated.
 #' @param edfu User-defined unconstrained effective degrees of freedom. 
-#' @param nsim Number of simulations to perform to get the mixture distribution of the test statistic. (default is 200).
+#' @param nsim Number of simulations to perform to get the mixture distribution of the test statistic. (default is 1000).
 #' @param multicore Logical. Whether to enable parallel computation (default uses global option \code{cgam.parallel}).
 #' @param method A character string (default is \code{"testpar.fit"}), currently unused.
 #' @param arp Logical. If \code{TRUE}, uses autoregressive structure estimation.
@@ -103,8 +103,9 @@
 #' summary(ans)
 #' }
 #' @export
-testpar <- function(formula0, formula, data, family = gaussian(link = "identity"), ps = NULL, edfu = NULL, 
-                    nsim = 200, multicore = getOption("cgam.parallel"), method = "testpar.fit",
+testpar <- function(formula0, formula, data, family = gaussian(link = "identity"), 
+                    ps = NULL, edfu = NULL, 
+                    nsim = 1000, multicore = getOption("cgam.parallel"), method = "testpar.fit",
                     arp = FALSE, p = NULL, space = "E",...) {
   cl <- match.call()
   if (is.character(family))
@@ -121,28 +122,45 @@ testpar <- function(formula0, formula, data, family = gaussian(link = "identity"
   #----------------------------------------------------------------------------------------------------------------------
   #formula0 is not very useful; we just need it to see if H0 is linear or quadratic, or a linear plane/interaction plane?
   #----------------------------------------------------------------------------------------------------------------------
-  #form0_expr <- deparse(mf[c(1L, m[1])])
-  #print (head(mf))
-  #print (mf[c(1L, m[1])])
-  #expr_inside <- sub(".*\\((.*)\\)", "\\1", form0_expr) 
-  #expr_parts <- strsplit(expr_inside, " \\+ ")[[1]]
-  #expr_parts <- lapply(expr_parts, function(x) trimws(gsub("[()]", "", x)))
-  #print (expr_parts)
+  form0_expr <- deparse(mf[c(1L, m[1])])
+  expr_inside <- sub(".*\\((.*)\\)", "\\1", form0_expr)
+  expr_inside <- sub(".*?\\((.*)\\)", "\\1", form0_expr)
+  expr_parts <- strsplit(expr_inside, " \\+ ")[[1]]
+  expr_parts <- lapply(expr_parts, function(x) {
+    x <- trimws(x)
+    # Remove outer parentheses ONLY if they wrap the entire string
+    if (grepl("^\\(.*\\)$", x)) {
+      x <- substr(x, 2, nchar(x) - 1)
+    }
+    trimws(x)
+  })
   
-  # new: 
-  form0_expr <- match.call()$formula0
-  if (!inherits(form0_expr, "formula")) {
-    form0_expr <- eval(form0_expr, parent.frame())
-  }
-  form0_expr <- rlang::enquo(form0_expr) |> rlang::eval_tidy()
-  # Extract RHS terms in a formula
-  expr_parts <- attr(terms(form0_expr), "term.labels")
+  parametric <- lapply(expr_parts, function(x) {
+    if (grepl("\\*", x) && grepl("\\^\\d+", x)) {
+      degree <- as.numeric(sub(".*\\^(\\d+).*", "\\1", x))
+      if (!is.na(degree) && degree >= 2) {
+        warning("Interaction terms (*) with polynomial degrees >= 2 are not allowed in a warped-plane test. Reduced the degree to be 1!", call. = FALSE)
+      }
+    }
+    
+    dplyr::case_when(grepl("\\*", x) ~ "warped_plane", 
+                     grepl("\\^\\d+", x) &
+                       ifelse(grepl("\\^\\d+", x),
+                              as.numeric(sub(".*\\^(\\d+).*", "\\1", x)) >= 4, FALSE) ~ "polynomial higher than cubic",
+                     grepl("\\^3", x) ~ "cubic", 
+                     grepl("\\^2", x) ~ "quadratic", 
+                     grepl("\\^1", x) ~ "linear", 
+                     grepl("^factor\\(", x) ~ "linear",
+                     TRUE ~ "linear")}) |> unlist()
   
-  parametric <- lapply(expr_parts, function(x) {dplyr::case_when(grepl("\\*", x) ~ "warped_plane", 
-                                                                 grepl("\\^2", x) ~ "quadratic", 
-                                                                 grepl("\\^1", x) ~ "linear", 
-                                                                 grepl("^factor\\(", x) ~ "linear",
-                                                                 TRUE ~ "linear")}) |> unlist()
+  #cat("parametric = ", '\n')
+  #print (parametric)
+  #new: handle x + I(x^2) + I(x^3); y ~ x + x^2, keep x^2
+  #levels <- c("linear", "quadratic", "cubic", "polynomial higher than cubic")
+  #if(length(parametric) > 1) {
+  #  factor_param <- factor(parametric, levels = levels, ordered = TRUE)
+  #  parametric <- as.character(max(factor_param))
+  #}
   #cat("parametric = ", '\n')
   #print (parametric)
   form_expr <- deparse(mf[c(1L, m[2])])
@@ -153,9 +171,10 @@ testpar <- function(formula0, formula, data, family = gaussian(link = "identity"
   #check attributes in cgam formula; get shapes and x's and y
   #----------------------------------------------------------
   mf <- mf[c(1L, m[-1])] #used formula 
-  #print (mf)
+  #print (head(mf))
   mf[[1L]] <- as.name("model.frame")
   mf <- eval(mf, parent.frame())
+  #print (head(mf))
   ynm <- names(mf)[1]
   mt <- attr(mf, "terms")
   y <- model.response(mf, "any")
@@ -165,7 +184,7 @@ testpar <- function(formula0, formula, data, family = gaussian(link = "identity"
   #mf is a data frame and can be treated as a list
   mf_xz <- mf[, -1, drop = FALSE]
   x_or_z <- lapply(mf_xz, function(e) attr(e, "categ"))
-  # #print (x_or_z)
+  #print (x_or_z)
   #print (names(x_or_z))
   is_z <- sapply(x_or_z, is.null)
   #print (is_z)
@@ -175,12 +194,17 @@ testpar <- function(formula0, formula, data, family = gaussian(link = "identity"
   #print (parametric)
   if(any(is_z)){
     #temp!
+    #parametric <- parametric[-which(is_z)] #wrong when we have y~x1+x2+x3+x4+z, y~x1+x2+s.incr.incr(x3,x4)+z
+    #print (parametric)
     znm_in_form <- names(x_or_z)[which(is_z)]
     z_ps_in_param <- sapply(expr_parts, function(e) e == znm_in_form)
     parametric <- parametric[-which(z_ps_in_param)]
-    
+    #print (parametric)
     z <- mf_xz[, is_z, drop = FALSE]
     is_fac <- sapply(z, function(e) is.factor(e))
+    #print (which(is_fac))
+    #print (class(z))
+    #print (head(z[, which(is_fac), drop = FALSE]))
     if(any(is_fac)){
       #test more
       if(sum(!is_fac) > 0){
@@ -189,19 +213,30 @@ testpar <- function(formula0, formula, data, family = gaussian(link = "identity"
       #print (zmat)
       #add znm later
       #not work:
-      #dd <- model.matrix(~ z[, is_fac], drop = FALSE)[, -1, drop = FALSE]
-      dd <- model.matrix(~ ., data = z[, is_fac, drop = FALSE])[, -1, drop = FALSE]
+      #dd <- model.matrix(~ z[, which(is_fac)])[, -1, drop = FALSE]
+      #vars_id <- which(is_fac)
+      dd <- model.matrix(~ ., data = z[, is_fac, drop = FALSE])[, -1]
+      #print (head(dd))
       zmat <- cbind(zmat, dd)
     } else {
       zmat <- as.matrix(z)
     }
+    #print (class(zmat))
   }
+  # nx <- 0
+  # print (parametric)
   if(any(!is_z)){
     #print (parametric)
     x <- mf_xz[, !is_z, drop = FALSE]
+    #print (colnames(x))
     add_or_wps <- lapply(x, function(e) attr(e, "categ")) |> simplify2array()
     nx <- length(add_or_wps)
     X <- vector("list", length = nx)
+    #print (add_or_wps)
+    #print (nx)
+    #test! for y~x1+x2+x3*x4, y~s.incr.incr(x1,x2)+s.incr.incr(x3,x4)
+    #if(any(add_or_wps == "warp") & any(add_or_wps == "additive")){
+    #print (parametric)
     if(any(add_or_wps == "warp")){
       #print (nx)
       parametric2 <- rep("linear", length = nx)
@@ -212,7 +247,10 @@ testpar <- function(formula0, formula, data, family = gaussian(link = "identity"
       if(any(rp_ps > nx)){
         rp_ps <- rp_ps - (rp_ps - nx)
       }
+      #print (rp_ps)
       parametric2[rp_ps] <- parametric[rp_ps0]
+      #parametric2 <- unique(parametric)
+      #print (parametric2)
       if(any(parametric == "warped_plane")){
         wp_ps <- which(parametric == "warped_plane")
         #print (wp_ps)
@@ -247,6 +285,8 @@ testpar <- function(formula0, formula, data, family = gaussian(link = "identity"
     }
     #print (parametric)
     
+    #new: need to match parametric and type first
+    type <- rep("monotone", nx)
     for(ix in 1:nx){
       #for(ix in nx:1){
       X[[ix]] <- x[, ix]
@@ -271,14 +311,686 @@ testpar <- function(formula0, formula, data, family = gaussian(link = "identity"
         attr(X[[ix]], "parametric") <- parametric[ix]
         #print (parametric[ix])
       } 
+      type[ix] <- attr(X[[ix]], "type")
     }
   }
-  #print (multicore)
+  # cat("parametric = ", '\n')
+  # print (parametric)
+  # 
+  # cat("type = ", '\n')
+  # print (type)
+  X <- match_H0_H1(X)
+  #----------------------------------------------------------
+  #call testpar.fit
+  #----------------------------------------------------------
+  #print (identical(parent.frame(), environment()))
+  #print (ls(parent.frame()))
+  #seems to be worse than just call testpar.fit?
+  #fit <- eval(call("testpar.fit", x=x, y=y, zmat=zmat, family=family, nsim=nsim, parametric=parametric, type=type, arp=arp, p=p, space=space), envir = environment())
   fit <- testpar.fit(X=X, y=y, zmat=zmat, family=family, ps=ps, edfu=edfu, nsim=nsim, multicore=multicore,
                      GCV=FALSE, lams=NULL, arp=arp, p=p, space=space, parametric=parametric)
-  rslt <- structure(c(fit, list(X = X, zmat = zmat, call = cl, formula0 = formula0, formula = formula, terms = mt, 
-                                data = data, parametric=parametric, family = family)))
+  rslt <- structure(c(fit, list(X = X, expr_parts = expr_parts, zmat = zmat, call = cl, formula0 = formula0, formula = formula, terms = mt, data = data,
+                                parametric=parametric, type=type, family = family)))
   class(rslt) <- c("testpar", "cgam")
+  return(rslt)
+}
+
+
+#----------------------------------------------------------
+#check if the user specifies the right H0 and H1 symbols
+#----------------------------------------------------------
+match_H0_H1 <- function(X){
+  nx <- length(X)
+  for(ix in 1:nx){
+    x <- X[[ix]]
+    if(NCOL(x) == 1){
+      # if(attr(x, "parametric") == "linear" & attr(x, "type") == "convex") {
+      #   attr(x, "parametric") <- "quadratic"
+      #   X[[ix]] <- x
+      #   warning(paste(attr(x, "nm"), "is defined with dgree = 1 in H0 but the test is for convexity. Not work. Increased the degree to be quadratic!"), call.=FALSE)
+      # }
+      if(attr(x, "parametric") == "cubic" & attr(x, "type") == "monotone") {
+        attr(x, "parametric") <- "quadratic"
+        X[[ix]] <- x
+        warning(paste(attr(x, "nm"), "is defined with dgree = 3 in H0 but the test is for monotonicity. Not work. Reduced the degree to be quadratic!"), call.=FALSE)
+      }
+      if(attr(x, "parametric") == "polynomial higher than cubic"){
+        attr(x, "parametric") <- "quadratic"
+        X[[ix]] <- x
+        warning(paste(attr(x, "nm"), "is defined with dgree > 3 in H0. Not work. Reduced the degree to be quadratic!"), call.=FALSE)
+      }
+    }
+    if(NCOL(x) == 2){
+      if(attr(x, "parametric") %in% c("quadratic", "cubic", "polynomial higher than cubic")){
+        attr(x, "parametric") <- "linear"
+        X[[ix]] <- x
+        #temp
+        warning(paste("H1 is for", attr(x, "type"), "test. Terms in H0 cannot have a degree > 1. All terms are changed to be linear!"), call.=FALSE)
+      }
+    }
+  }
+  return(X)
+}
+
+#-----------------------------------------------------
+#similar to glm.fit
+#X is a list with attributes: shp, parametric, type
+#-----------------------------------------------------
+testpar.fit = function(X, y, zmat = NULL, family = gaussian(link="identity"), 
+                       ps = NULL, edfu = NULL, nsim = 1000, multicore = TRUE, 
+                       GCV = FALSE, lams = NULL, 
+                       arp = FALSE, p = NULL, space = "E",...)
+{
+  wt.iter = ifelse(family$family == "gaussian", FALSE, TRUE)
+  extras = list(...)
+  #new:
+  #capl = NCOL(x)
+  capl = length(X)
+  n = length(y)
+  k1 = k2 = NULL
+  p_optim = 0
+  if(arp){
+    #if the user didn't provide p, then choose p from 0:3
+    if(is.null(p)){
+      p = 0:4 
+    } else if (p < 0 || p > 4) {
+      warning("The order in AR(p) must be an integer >= 0 and <= 4!")
+      p = 1
+    }
+  } else {
+    p = 0
+  }
+  #-------------------
+  #get xm, amat, dmat
+  #-------------------
+  mult = 2
+  nz = 0
+  if(!is.null(zmat)){
+    nz = NCOL(zmat)
+  }
+  xm0 = NULL #combine dd columnwise
+  amat_lst = vector("list", length = capl)
+  awmat_lst = vector("list", length = capl)
+  dmat_lst = vector("list", length = capl)
+  dd_lst = kts_lst = vector("list", length = capl)
+  edfu_vec = numeric(capl)
+  var_track = var_track_param = NULL
+  iadd = ipr = 0
+  use_constreg = FALSE
+  for(icomp in 1:capl){
+    x = X[[icomp]] #|> as.matrix()
+    if(NCOL(x) == 1){
+      iadd = iadd + 1
+      xu = unique(x)
+      n1 = length(xu)
+      type = attr(x, "type")
+      parametric = attr(x, "parametric")
+      #new:
+      shp = attr(x, "shape")
+      if(parametric == "linear"){
+        use_constreg = TRUE
+      } 
+      if(parametric == "quadratic"){
+        use_constreg = TRUE
+      } 
+      if(parametric == "cubic" & type == "convex"){#otherwise give a warning
+        use_constreg = TRUE
+      }
+      nkts = mult * switch(type, monotone = trunc(n1^(1/5)) + 6, convex = trunc(n1^(1/7)) + 6)
+      if(space == "Q"){
+        kts = quantile(xu, probs = seq(0, 1, length = nkts), names = FALSE)
+      }
+      
+      if(space == "E"){
+        #this will avoid the inflated test size problem when using s.decr.conv
+        kts = 0:(nkts - 1) / (nkts - 1) * (max(x) - min(x)) + min(x)
+        #kts = seq.int(min(x), max(x), length.out = nkts) # use this for numerical precision; otherwise may get weird H0 fit; see 1996 in CiscoTL.R
+      }
+      
+      #new: if there is any empty interval; do it again
+      #no need to worry about linear or quadratic, which use the clumsy way
+      #use clumsy way for cubic as well? faster
+      # if(attr(x, "parametric") == "cubic"){
+      #   nkts0 = nkts
+      #   repeat {
+      #     #kts <- seq.int(min(x), max(x), length.out = nkts)
+      #     kts = 0:(nkts - 1) / (nkts - 1) * (max(x) - min(x)) + min(x)
+      #     bins <- cut(x, breaks = kts, include.lowest = TRUE, right = FALSE)
+      #     if (all(table(bins) > 0)) break
+      #     nkts <- nkts - 1
+      #     if (nkts < nkts0 * 2/3) message("Data is too sparse! Too few knots to offer flexible fit!")
+      #   }
+      # }
+      
+      kts_lst[[icomp]] = kts
+      #new: make delta here; combine it into xm
+      spl_degree = switch(type, monotone = 2L, convex = 3L)
+      spl_ord = spl_degree + 1
+      #dd_ans = bqspl(x, m=NULL, knots=kts)
+      #dd = dd_ans$bmat
+      dd = bSpline(x, knots = kts[-c(1, nkts)], degree = spl_degree, intercept = TRUE)
+      #dd = bs(x, knots = kts[-c(1, nkts)], degree = spl_degree, intercept = TRUE)
+      #xm = cbind(xm, dd)
+      #test!
+      if(icomp > 1){
+        dd = dd[, -1]
+      }
+      dd_lst[[icomp]] = dd
+      var_track = c(var_track, rep(icomp, NCOL(dd)))
+      #check more
+      #if(is.null(edfu)){
+      edfu = switch(type, monotone = (nkts/mult) , convex = (nkts/mult + 1))
+      edfu_vec[icomp] = edfu #+ nz
+      #}
+      shp = attr(x, "shape")
+      #parametric = attr(x, "parametric")
+      #new: make amat here; add it to amat_lst
+      amat = makeamat_1D(shp=shp, spl_ord=spl_ord, kts=kts, x=x, x1=min(x), xn=max(x))
+      #check more
+      #if(iadd > 1) {
+      if(icomp > 1){  
+        amat = amat[, -1]
+      }
+      amat_lst[[icomp]] = amat
+      #new: make awmat in case we have plane comps.
+      #new: make dmat here; add it to dmat_lst
+      nc = NCOL(dd)
+      dmat = makedmat_1D(nc, q = spl_ord)
+      dmat_lst[[icomp]] = dmat
+      #dv_lst[[icomp]] = crossprod(dmat)
+      #make xm0 here 
+      #xm0 = switch(attr(x, "parametric"), linear = cbind(1, x), quadratic = cbind(1, x, x^2))
+      xm0_icomp = switch(parametric, linear = cbind(1, x), quadratic = cbind(1, x, x^2), cubic = cbind(1, x, x^2, x^3))
+      #check more
+      #if(iadd > 1 |ipr > 1) {
+      if(icomp > 1){  
+        xm0_icomp = xm0_icomp[, -1]
+      }
+      xm0 = cbind(xm0, xm0_icomp) 
+      var_track_param = c(var_track_param, rep(icomp, NCOL(xm0_icomp)))
+      #ddwm_lst[[icomp]] = xm0_icomp 
+      #print (shp)
+      awmat = makeamat_param(shp = shp, parametric = parametric, x1=min(x), xn=max(x))
+      #if(ipr > 1 | iadd > 1){
+      if(icomp > 1){  
+        awmat = awmat[, -1]
+      }
+      awmat_lst[[icomp]] = awmat
+    }
+    
+    if(NCOL(x) == 2){
+      use_constreg = TRUE
+      shp = shp_pr = attr(x, "shape")
+      #print (shp_pr)
+      parametric = attr(x, "parametric")
+      ipr = ipr + 1
+      x1 = x[, 1]
+      x2 = x[, 2]
+      xu1 = unique(x1)
+      xu2 = unique(x2)
+      m1 = round(5*n^(1/6))
+      m2 = round(5*n^(1/6))
+      x1sc = (x1 - min(x1)) / (max(x1) - min(x1))
+      x2sc = (x2 - min(x2)) / (max(x2) - min(x2))
+      if(parametric == "linear"){
+        if(space == "Q"){
+          k1 = quantile(x1, probs = seq(0, 1, length = m1), names = FALSE)
+          k2 = quantile(x2, probs = seq(0, 1, length = m2), names = FALSE)
+        }
+        if(space == "E"){
+          k1 = 0:(m1 - 1) / (m1 - 1) * (max(x1) - min(x1)) + min(x1)
+          k2 = 0:(m2 - 1) / (m2 - 1) * (max(x2) - min(x2)) + min(x2)
+        }
+      } 
+      if(parametric == "warped_plane"){
+        if(space == "Q"){
+          k1 = quantile(x1sc, probs = seq(0, 1, length = m1), names = FALSE)
+          k2 = quantile(x2sc, probs = seq(0, 1, length = m2), names = FALSE)
+        }
+        if(space == "E"){
+          k1 = 0:(m1 - 1) / (m1 - 1) * (max(x1sc) - min(x1sc)) + min(x1sc)
+          k2 = 0:(m2 - 1) / (m2 - 1) * (max(x2sc) - min(x2sc)) + min(x2sc)
+        }
+      }
+      #if(is.null(edfu)){
+      edfu = 3*(n^(1/3))
+      edfu_vec[icomp] = edfu
+      #}
+      #new: make delta here; combine it into xm
+      if(parametric == "linear"){
+        sp = space
+        dd_ans = makedelta_wps(x1, x2, space = c(sp, sp), k1 = k1, k2 = k2, decreasing = c(FALSE, FALSE))
+      }
+      if(parametric == "warped_plane"){
+        sp = space
+        dd_ans = makedelta_wps(x1sc, x2sc, space = c(sp, sp), k1 = k1, k2 = k2, decreasing = c(FALSE, FALSE))
+      }
+      dd = dd_ans$delta
+      if(icomp > 1){
+        dd = dd[, -1]
+      }
+      dd_lst[[icomp]] = dd
+      var_track = c(var_track, rep(icomp, NCOL(dd)))
+      #new: need to re-define k1 and k2; some cells might be empty
+      k1 = dd_ans$k1
+      k2 = dd_ans$k2
+      kts = list(k1 = k1, k2 = k2)
+      kts_lst[[icomp]] = kts 
+      m1 = length(k1)
+      m2 = length(k2)
+      use_constreg = TRUE
+      #new: make amat here; add it to amat_lst
+      amat = makeamat_nonadd(k1, k2, shp_pr)
+      #check more
+      if(icomp > 1){
+        amat = amat[, -1]
+      }
+      amat_lst[[icomp]] = amat
+      #new: make dmat here; add it to dmat_lst
+      dmat = makedmat_2D(k1, k2)
+      #check more
+      if(icomp > 1){ 
+        dmat = dmat[, -1]
+      }
+      dmat_lst[[icomp]] = dmat
+      #dv_lst[[icomp]] = crossprod(dmat)
+      #make xm0 here
+      #conv.conv or conc.conc not implemented now
+      xm0_icomp = switch(parametric, linear = cbind(1, x1, x2), warped_plane = cbind(1, x1sc, x2sc, x1sc*x2sc))
+      #check more
+      if(icomp > 1){
+        xm0_icomp = xm0_icomp[, -1]
+      }
+      xm0 = cbind(xm0, xm0_icomp)
+      var_track_param = c(var_track_param, rep(icomp, NCOL(xm0_icomp)))
+      #print (shp)
+      #need a new name for makeamat_1D_param; it's not just for 1D
+      awmat = makeamat_param(shp, parametric = parametric)
+      if(icomp > 1){ 
+        awmat = awmat[, -1]
+      }
+      awmat_lst[[icomp]] = awmat
+    } 
+    #make xm0 here 
+    #xm0 = switch(attr(x, "parametric"), linear = cbind(1, x), quadratic = cbind(1, x, x^2), linear_plane = cbind(1, x1, x2), warped_plane = cbind(1, x1sc, x2sc, x1sc*x2sc))
+  }
+  amat = Matrix::bdiag(amat_lst) |> as.matrix()
+  dmat = Matrix::bdiag(dmat_lst) |> as.matrix()
+  #dv = Matrix::bdiag(dv_lst) |> as.matrix()
+  
+  dd = do.call(cbind, dd_lst)
+  #dd = Matrix(dd, sparse = TRUE)
+  
+  nr_am = NROW(amat)
+  #----------------------
+  #create bvec for qprog
+  #----------------------
+  bvec = rep(0, nr_am) #will be different when using constreg
+  #----------------------------------------------------------------------------
+  #2.get H1 fit: cone \ L satisfying some shape constraint
+  #write a new function: fit.alt
+  #----------------------------------------------------------------------------
+  nc = nc_noz = NCOL(dd)
+  if(nz > 0){
+    dd = cbind(zmat, dd)
+    dmat_zero = matrix(0, nrow = nrow(dmat), ncol = nz)
+    dmat = cbind(dmat_zero, dmat)
+    amat_zero = matrix(0, nrow = nrow(amat), ncol = nz)
+    amat = cbind(amat_zero, amat)
+  }
+  dv = crossprod(dmat)
+  #new:
+  qv0 = crossprod(dd)
+
+  use_parallel = isTRUE(getOption("cgam.parallel", FALSE))
+  #decide how many cores to use
+  cores = 1
+  if(use_parallel){
+    cores = min(4, getOption("cgam.parallel", parallel::detectCores(logical = FALSE) - 1))
+  }
+  #detect OS platform
+  is_windows = .Platform$OS.type == "windows"
+  
+  nc_am = NCOL(amat)
+  imat = diag(nc_am)
+  if(GCV){
+    #temp:
+    edfu = sum(edfu_vec)
+    edfu_grid = c(edfu-1, edfu, edfu + (1:2) * 3)
+    if(is.null(lams)){
+      lams = sapply(edfu_grid, function(e){uniroot(f = .search_ps, qv0 = qv0, dv = dv, dd = dd, edfu = e, interval = c(1e-10, 2e+2), tol=1e-6)$root})
+      lams = c(1e-3, rev(lams))
+      if(arp){
+        #test!
+        lams = 2^(2:8)
+        #lams = 2^(1:7)
+        lams = lams/2^7/n^(2*spl_ord/(2*spl_ord+1))
+        # lams = 2^(1:8)
+        # lams = lams/2^8/n^(3/4)
+      }
+      if(is_windows){
+        # Windows: use parLapply with a PSOCK cluster
+        cl = parallel::makeCluster(cores)
+        on.exit(parallel::stopCluster(cl))  # ensure cleanup
+        #mixture_rslt = parallel::parLapply(cl, 1:n.mix, compute_mixture, ysims=ysims, amat=amat, w=w)
+        gcvs_rslt = parallel::parLapply(cl, lams, function(e) fit.hypo(p=p, dd=dd, y=y, amat=amat, bvec=bvec,
+                                                                  dv=dv, family=family, arp=arp, ps=e))
+      } else {
+        # Unix/macOS: use mclapply
+        gcvs_rslt = parallel::mclapply(lams, function(e) fit.hypo(p=p, dd=dd, y=y, amat=amat, bvec=bvec,
+                                                                  dv=dv, family=family, arp=arp, ps=e), mc.cores = (cores))
+      }
+      #gcvs_rslt = parallel::mclapply(lams, function(e) fit.hypo(p=p, dd=dd, y=y, amat=amat, bvec=bvec,
+      #                                                          dv=dv, family=family, arp=arp, ps=e), mc.cores = (8L))
+      #gcvs_rslt = parallel::mclapply(lams, function(e) fit.hypo(p=p, dd=dd, y=y, amat=amat, bvec=bvec,
+      #                                                          dv=dv, family=family, arp=arp, ps=e), mc.cores = (8L))
+      gcvs = sapply(gcvs_rslt, function(rslti) rslti$gcv, simplify = TRUE)
+      edfs = sapply(gcvs_rslt, function(rslti) rslti$edf, simplify = TRUE)
+      choice_id = which(gcvs == min(gcvs))[1]
+      ps = lams[choice_id] 
+      p_optim = p
+      c(sse1, etahat, ahatc, face, qv, edf, edfs, gcv, gcvs, sighat, edfu_use, covmat, covmat_inv, phi1, mat1) %<-% gcvs_rslt[[choice_id]][1:15]
+    }
+    #print (head(etahat))
+    etahat = as.matrix(etahat)
+    muhat = family$linkinv(etahat)
+    #only for H1 fit
+  } else {
+    #lams = ps
+    if(is.null(ps)){
+      edfu = edfu_vec
+      #if(capl == 1){
+        #ps = uniroot(f = .search_ps, qv0 = qv0, dv = dv, dd = dd, edfu = edfu, interval = c(1e-10, 2e+2), tol = .Machine$double.eps^0.32)$root
+      #  ps = uniroot(f = .search_ps, qv0 = qv0, dv = dv, dd = dd, edfu = edfu, interval = c(1e-10, 2e+2), tol=1e-6)$root
+        #ps = uniroot(f = .search_ps, qv0 = qv0, dv = dv, dd = dd, edfu = edfu, interval = c(1e-10, 2e+2))$root
+      #} else if (capl > 1) {
+      if (capl >= 1) {
+        ps = NULL
+        for(ic in 1:capl){
+          dd_ic = dd_lst[[ic]]
+          qv0_ic = crossprod(dd_ic)
+          dm_ic = dmat_lst[[ic]]
+          dv_ic = crossprod(dm_ic)
+          #psi = uniroot(f = .search_ps, qv0 = qv0_ic, dv = dv_ic, dd = dd_ic, edfu = edfu[ic], interval = c(1e-10, 2e+2), tol = .Machine$double.eps^0.32)$root
+          psi = uniroot(f = .search_ps, qv0 = qv0_ic, dv = dv_ic, dd = dd_ic, edfu = edfu[ic], interval = c(1e-10, 2e+2), tol=1e-6)$root
+          ps = c(ps, psi)
+        }
+        #ps = sapply(1:capl, function(ic)uniroot(f = .search_ps, qv0 = crossprod(dd_lst[[ic]]), dv = crossprod(dmat_lst[[ic]]), dd = dd_lst[[ic]], edfu = edfu[ic], interval = c(1e-10, 2e+2), tol = .Machine$double.eps^0.32)$root)
+      #}
+      }
+    } 
+    lams = ps
+    covmat = covmat_inv = phi = NULL
+    #new:
+    #dv_lst = vector("list", length = (length(dmat_lst) + sum(nz > 0)))
+    if(length(ps) >= 1){
+      for(ic in 1:capl){
+        #dmat_ic = dmat_lst[[ic]]
+        #dv_lst[[ic]] = ps[ic] * crossprod(dmat_ic)
+        dmat_lst[[ic]] = sqrt(ps[ic]) * dmat_lst[[ic]]
+      }
+      #dv = Matrix::bdiag(dv_lst) |> as.matrix()
+      #already add zmat in the 1st element of dmat_lst
+      dmat = Matrix::bdiag(dmat_lst) |> as.matrix()
+      #recreate dmat
+      if(nz > 0){
+        dmat_zero = matrix(0, nrow = nrow(dmat), ncol = nz)
+        dmat = cbind(dmat_zero, dmat)
+      }
+      dv = crossprod(dmat)
+    }
+    if(length(p) == 1){ 
+      #arp with user-defined order, or !arp and p=0
+      #cat('call arp with user-defined order, ps=', ps, '\n')
+      ansc = fit.hypo(p=p, dd=dd, y=y, amat=amat, bvec=bvec, dv=dv, wmat=NULL, family=family, ps=ps, arp=arp)
+      c(sse1, etahat, ahatc, face, qv, edf, edfs, gcv, gcvs, sighat, edfu_use, covmat, covmat_inv, phi1, mat1) %<-% ansc[1:15]
+      p_optim = p
+    }else{
+      #p = 0:4
+      #new: test p=0 first
+      ansc = fit.hypo(p=0, dd=dd, y=y, amat=amat, bvec=bvec, dv=dv, family=family, ps=ps, arp=FALSE)
+      if(ansc$pval.ts > 0.05){
+        c(sse1, etahat, ahatc, face, qv, edf, edfs, gcv, gcvs, sighat, edfu_use, covmat, covmat_inv, phi1, mat1) %<-% ansc[1:15]
+        p_optim = 0
+      }else{
+        if(is_windows){
+          # Windows: use parLapply with a PSOCK cluster
+          cl = parallel::makeCluster(cores)
+          on.exit(parallel::stopCluster(cl))  # ensure cleanup
+          aic_rslt = parallel::parLapply(cl, p[-1], fit.hypo, dd=dd, y=y, amat=amat, bvec=bvec, 
+                                        dv=dv, family=family, ps=ps, arp=arp)
+        } else {
+          # Unix/macOS: use mclapply
+          aic_rslt = parallel::mclapply(p[-1], fit.hypo, dd=dd, y=y, amat=amat, bvec=bvec, 
+                                        dv=dv, family=family, ps=ps, arp=arp, mc.cores=(cores))
+        }
+        #aic_rslt = parallel::mclapply(p[-1], fit.hypo, dd=dd, y=y, amat=amat, bvec=bvec, 
+        #                              dv=dv, family=family, ps=ps, arp=arp, mc.cores=(8L))
+        aics = sapply(aic_rslt, function(rslti) rslti$aic, simplify = TRUE)
+        #print (aics)
+        choice_id = which(aics == min(aics))
+        p_optim = (p[-1])[choice_id] 
+        c(sse1, etahat, ahatc, face, qv, edf, edfs, gcv, gcvs, sighat, edfu_use, covmat, covmat_inv, phi1, mat1) %<-% (aic_rslt[[choice_id]])[1:15]
+      }
+    }
+    muhat = family$linkinv(etahat)
+  }
+  #----------------------------------------------------------------------------
+  #1.get H0 fit: linear space satisfying some shape constraint
+  #use sparse matrix later
+  #write a new function: fit.null
+  #----------------------------------------------------------------------------
+  wmat = x1m0 = x1m = NULL
+  #test!
+  #use_constreg = FALSE
+  used_lm = FALSE
+  if(!use_constreg){
+    pm0 = xm0 %*% solve(crossprod(xm0), t(xm0))
+    #modify dd: keep the columns that give a full column rank; which can pass solve()
+    #test!
+    qr_obj = qr(dd)
+    rk1 = qr_obj$rank
+    rk2 = sum(svd(dd)$d > 1e-7)
+    rk = rk1 # min(rk2, rk1)
+    kept_id = qr_obj$pivot[1:rk]
+    #kept_id = 1:rk
+    #x1m0 = dd[, kept_id] - pm0 %*% dd[, kept_id]
+    x1m0 = dd - pm0 %*% dd
+    qr_x1m = qr(x1m0)
+    x1m = qr.Q(qr_x1m)[, 1:(qr_x1m$rank), drop = FALSE]
+    #test!
+    #assume that xm0 is full column rank
+    #x1m = qr.Q(qr_x1m, complete = TRUE)[, 1:(rk - ncol(xm0))]
+    #xm1tb = crossprod(x1m, dd[, kept_id])
+    xm1tb = crossprod(x1m, dd)
+    qr_xm1tb = qr(t(xm1tb))
+    #new:
+    #wmat = qr.Q(qr_xm1tb, complete = TRUE)[, -c(1:rk), drop = FALSE]
+    wmat = qr.Q(qr_xm1tb, complete = TRUE)[, -c(1:qr_xm1tb$rank), drop = FALSE]
+    ddwm = dd %*% wmat #should match the num of columns in xm0?
+    awmat = amat %*% wmat
+    
+    #new: remove all zero rows
+    awmat = round(awmat, 10)
+    awmat = awmat[!apply(awmat, 1, function(row) all(row == 0)), , drop = FALSE]
+    
+    #new: remove redundant rows
+    awmat = unique(awmat)
+  } else {
+    ddwm = xm0
+    #avoid solve error for H0
+    #ddwm <- scale(xm0, center = FALSE)
+    awmat = Matrix::bdiag(awmat_lst) |> as.matrix()
+  }
+  if(nz > 0){
+    #add z before splines
+    ddwm = cbind(zmat, ddwm)
+    awmat_zero = matrix(0, nrow = nrow(awmat), ncol = nz)
+    awmat = cbind(awmat_zero, awmat)
+  }
+  #ansl = fit.hypo(p=p_optim, dd=dd, y=y, amat=awmat, bvec=rep(0, nrow(awmat)), dv=dv, wmat=wmat, family=family, ps=0, arp=arp)
+  #if(!used_lm){
+  ansl = fit.hypo(p=p_optim, dd=ddwm, y=y, amat=awmat, bvec=rep(0, nrow(awmat)), 
+                  dv=NULL, family=family, ps=0, arp=arp)
+  sse0 = ansl$dev
+  etahat0 = ansl$etahat
+  muhat0 = family$linkinv(etahat0)
+  ahatl = ansl$ahat
+  qvl = ansl$qv
+  #}
+  #cat(arp, '\n')
+  #----------------------------------------------------------------------------
+  #test: H0 vs H1
+  #----------------------------------------------------------------------------
+  if(wt.iter){
+    bval = (sse0 - sse1) / n #sse0 is llh0; sse1 is llh1
+  } else {
+    bval = (sse0 - sse1) / sse0
+  }
+  #temp
+  #test!
+  bval = round(bval, 7)
+  sm=1e-7
+  #sm = 1e-10
+  if (bval > sm & nsim > 0) {
+    if (multicore) {
+      #tot_cores = parallel::detectCores()
+      if(is_windows){
+        # Windows: use parLapply with a PSOCK cluster
+        cl = parallel::makeCluster(cores)
+        on.exit(parallel::stopCluster(cl))  # ensure cleanup
+        #mixture_rslt = parallel::parLapply(cl, 1:n.mix, compute_mixture, ysims=ysims, amat=amat, w=w)
+        bdist = parallel::parLapply(cl, 1:nsim, .compute_bstat, etahat0=etahat0, n=n, sighat=sighat,
+                                   dd=dd, ddwm=ddwm, qv=NULL, qvl=NULL, amat=amat, awmat=awmat,
+                                   bvec=bvec, imat=imat, dv=dv, lams=ps, w=NULL, arp=arp, p=p_optim, phi=phi1, 
+                                   family=family)
+      } else {
+        # Unix/macOS: use mclapply
+        bdist = parallel::mclapply(1:nsim, .compute_bstat, etahat0=etahat0, n=n, sighat=sighat,
+                                   dd=dd, ddwm=ddwm, qv=NULL, qvl=NULL, amat=amat, awmat=awmat,
+                                   bvec=bvec, imat=imat, dv=dv, lams=ps, w=NULL, arp=arp, p=p_optim, phi=phi1, 
+                                   family=family, mc.cores=(cores))
+      }
+      #bdist = parallel::mclapply(1:nsim, .compute_bstat, etahat0=etahat0, n=n, sighat=sighat,
+      #                           dd=dd, ddwm=ddwm, qv=NULL, qvl=NULL, amat=amat, awmat=awmat,
+      #                           bvec=bvec, imat=imat, dv=dv, lams=ps, w=NULL, arp=arp, p=p_optim, phi=phi1, 
+      #                           family=family, mc.cores=(4L))
+    } else {
+      bdist = lapply(1:nsim, .compute_bstat, etahat0=etahat0, n=n, sighat=sighat, dd=dd, ddwm=ddwm, qv=NULL, qvl=NULL,
+                     amat=amat, awmat=awmat, bvec=bvec, imat=imat, dv=dv, lams=ps, w=NULL, arp=arp, p=p_optim, phi=phi1, family=family)
+    }
+    bdist = simplify2array(bdist)
+    pval = sum(bdist > bval) / nsim
+  } else {
+    pval = 1
+  }
+  #----------------------
+  #for visualization
+  #----------------------
+  etacomps = etacomps0 = vector("list", length = capl)
+  etahat0_surf = etahat_surf = NULL
+  muhat0_surf = muhat_surf = NULL
+  ahatc_noz = round(ahatc, 6) |> as.matrix()
+  ahatl_noz = round(ahatl, 6) |> as.matrix()
+  #print (ahatc_noz)
+  #print (nz)
+  if(nz > 0){
+    #print (dim(ahatc_noz))
+    ahatc_noz = ahatc_noz[-c(1:nz), ,drop=F] #|> as.vector()
+    ahatl_noz = ahatl_noz[-c(1:nz), ,drop=F] #|> as.vector()
+  }
+  for(icomp in 1:capl){
+    x = X[[icomp]]
+    if(NCOL(x) == 1){
+      #print (dim(dd_lst[[icomp]]))
+      #print (dim(ahatc_noz[var_track == icomp]))
+      etahat_icomp = dd_lst[[icomp]] %*% ahatc_noz[var_track == icomp,,drop=F]
+      #print (dim(etahat_icomp))
+      etacomps[[icomp]] = etahat_icomp
+    }
+    if(NCOL(x) == 2){
+      kts = kts_lst[[icomp]]
+      k1 = kts$k1
+      k2 = kts$k2
+      newd = expand.grid(k1, k2)
+      newd = as.matrix(newd)
+      
+      #H0 surface
+      x1p = newd[,1]
+      x2p = newd[,2]
+      if(attr(x, "parametric") == "warped_plane"){
+        xm0p = cbind(1, x1p, x2p, x1p*x2p)
+        if(icomp > 1){
+          xm0p = xm0p[, -1]
+        }
+      }
+      if(attr(x, "parametric") == "linear"){
+        xm0p = cbind(1, x1p, x2p)
+        if(icomp > 1){
+          xm0p = xm0p[, -1]
+        }
+      }
+      psurf0 = xm0p %*% ahatl_noz[var_track_param == icomp,,drop=F]
+      etahat0_surf = matrix(psurf0, m1, m2)
+      muhat0_surf = family$linkinv(etahat0_surf)
+      
+      #H1 surface
+      pans = makedelta_wps(newd[,1], newd[,2], k1 = k1, k2 = k2, decreasing = c(FALSE, FALSE))
+      ddp = pans$delta
+      if(icomp > 1){
+        ddp = ddp[, -1]
+      }
+      psurf = ddp %*% ahatc_noz[var_track == icomp,,drop=F]
+      etahat_surf = matrix(psurf, m1, m2)
+      muhat_surf = family$linkinv(etahat_surf)
+      etacomps[[icomp]] = etahat_surf
+      etacomps0[[icomp]] = etahat0_surf
+    }
+  }
+  rslt = list(pval = pval, bval = bval, knots = kts, k1=k1, k2=k2, bmat = dd, wmat = wmat, dmat = dmat, ps = ps,
+              xm0 = xm0, x1m = x1m, amat = amat, awmat = awmat, face = face, etahat = etahat, etahat0 = etahat0,
+              etahat0_surf = etahat0_surf, etahat_surf = etahat_surf, muhat0_surf = muhat0_surf, muhat_surf = muhat_surf,
+              sighat = sighat, edf = edf, edfu = edfu_use, lams = lams, gcvs = gcvs, edfs = edfs, ahatl = ahatl, ahatc = ahatc,
+              phi = phi1, covmat = covmat, covmat_inv = covmat_inv, etacomps = etacomps, p_optim = p_optim, kts_lst = kts_lst, 
+              var_track = var_track, var_track_param = var_track_param, etacomps0 = etacomps0, use_constreg=use_constreg)
+  if(nz >= 1){
+    #assume y is iid with common sig2
+    if(!wt.iter){
+      #should work for ar(p)?
+      if(!arp || arp & p_optim == 0){
+        covmat0 = sighat^2 * mat1 %*% t(mat1)
+      } else {
+        #print (sig2hat_z)
+        #covmat0 = sig2hat_z * mat1 %*% t(mat1)
+        covmat0 = mat1 %*% t(mat1) #seems working with unscaled covariance
+        #covmat0 = sighat^2 * mat1 %*% t(mat1)
+      }
+    } else {
+      wt = wt.fun(y, etahat, n, weights = rep(1, n), fml = family$family)
+      covmat0 = mat1 %*% diag(wt) %*% t(mat1)
+    }
+    covmat = covmat0[(1):(nz), (1):(nz), drop=FALSE]
+    sez = sqrt(diag(covmat))
+    zcoefs = ahatc[(1):(nz)]
+    tz = zcoefs / sez
+    cpar = 1.2
+    #test more!
+    if(!wt.iter){
+      if ((n - cpar * edf) <= 0) {
+        pz = 2*(1 - pt(abs(tz), edf))
+      } else {
+        #why not pnorm?
+        pz = 2*(1 - pt(abs(tz), n - cpar * edf))
+      }
+    } else {
+      #why not pnorm?
+      pz = 2*(1 - pnorm(abs(tz)))
+    }
+    rslt$sez = sez
+    rslt$pz = pz
+    rslt$tz = tz
+    rslt$zcoefs = zcoefs
+  } else {rslt$sez = NULL; rslt$pz = NULL; rslt$tz = NULL; rslt$zcoefs = NULL}
   return(rslt)
 }
 
@@ -364,612 +1076,612 @@ summary.testpar <- function(object,...) {
 #similar to glm.fit
 #X is a list with attributes: shp, parametric, type
 #-----------------------------------------------------
-testpar.fit = function(X, y, zmat = NULL, family = gaussian(link="identity"), 
-                       ps = NULL, edfu = NULL, nsim = 200, multicore = TRUE, 
-                       GCV = FALSE, lams = NULL, 
-                       arp = FALSE, p = NULL, space = "Q",...)
-{
-  #print (head(y))
-  #print (multicore)
-  wt.iter = ifelse(family$family == "gaussian", FALSE, TRUE)
-  extras = list(...)
-  #new:
-  #capl = NCOL(x)
-  capl = length(X)
-  n = length(y)
-  k1 = k2 = NULL
-  p_optim = 0
-  if(arp){
-    #if the user didn't provide p, then choose p from 0:3
-    if(is.null(p)){
-      p = 0:2 
-    } else if (p < 0 || p > 2) {
-      warning("The order in AR(p) must be an integer >= 0 and <= 2!")
-      p = 1
-    }
-  } else {
-    p = 0
-  }
-  #test more
-  # if(!wt.iter){
-  #   mu = mean(y)
-  #   y = y - mu
-  # }
-  #-------------------
-  #get xm, amat, dmat
-  #-------------------
-  mult = 2
-  nz = 0
-  if(!is.null(zmat)){
-    nz = NCOL(zmat)
-    #test more: center zmat to avoid solve() error
-    #zmat = scale(zmat, center = TRUE, scale = FALSE)
-  }
-  xm0 = NULL #combine dd columnwise
-  amat_lst = vector("list", length = capl)
-  awmat_lst = vector("list", length = capl)
-  dmat_lst = vector("list", length = capl)
-  dd_lst = kts_lst = vector("list", length = capl)
-  edfu_vec = numeric(capl)
-  var_track = var_track_param = NULL
-  iadd = ipr = 0
-  for(icomp in 1:capl){
-    x = X[[icomp]] #|> as.matrix()
-    if(NCOL(x) == 1){
-      iadd = iadd + 1
-      xu = unique(x)
-      n1 = length(xu)
-      type = attr(x, "type")
-      nkts = mult * switch(type, monotone = trunc(n1^(1/5)) + 6, convex = trunc(n1^(1/7)) + 6)
-      if(space == "Q"){
-        kts = quantile(xu, probs = seq(0, 1, length = nkts), names = FALSE)
-      }
-      if(space == "E"){
-        kts = 0:(nkts - 1) / (nkts - 1) * (max(x) - min(x)) + min(x)
-        #kts = seq.int(min(x), max(x), length = nkts)
-      }
-      kts_lst[[icomp]] = kts
-      #new: make delta here; combine it into xm
-      spl_degree = switch(type, monotone = 2L, convex = 3L)
-      spl_ord = spl_degree + 1
-      #dd_ans = bqspl(x, m=NULL, knots=kts)
-      #dd = dd_ans$bmat
-      dd = bSpline(x, knots = kts[-c(1, nkts)], degree = spl_degree, intercept = TRUE)
-      #dd = bs(x, knots = kts[-c(1, nkts)], degree = spl_degree, intercept = TRUE)
-      #xm = cbind(xm, dd)
-      #test!
-      if(icomp > 1){
-        dd = dd[, -1]
-      }
-      dd_lst[[icomp]] = dd
-      var_track = c(var_track, rep(icomp, NCOL(dd)))
-      #check more
-      #if(is.null(edfu)){
-      edfu = switch(type, monotone = (nkts/mult) , convex = (nkts/mult + 1))
-      edfu_vec[icomp] = edfu #+ nz
-      #}
-      shp = attr(x, "shape")
-      parametric = attr(x, "parametric")
-      #new: make amat here; add it to amat_lst
-      #print (kts)
-      # print (spl_ord)
-      # print (min(x))
-      # print (max(x))
-      amat = makeamat_1D(shp=shp, spl_ord=spl_ord, kts=kts, x=x, x1=min(x), xn=max(x))
-      #check more
-      #if(iadd > 1) {
-      if(icomp > 1){  
-        amat = amat[, -1]
-      }
-      amat_lst[[icomp]] = amat
-      #new: make awmat in case we have plane comps.
-      #new: make dmat here; add it to dmat_lst
-      nc = NCOL(dd)
-      dmat = makedmat_1D(nc, q = spl_ord)
-      dmat_lst[[icomp]] = dmat
-      #dv_lst[[icomp]] = crossprod(dmat)
-      #make xm0 here 
-      #xm0 = switch(attr(x, "parametric"), linear = cbind(1, x), quadratic = cbind(1, x, x^2))
-      xm0_icomp = switch(parametric, linear = cbind(1, x), quadratic = cbind(1, x, x^2))
-      #check more
-      #if(iadd > 1 |ipr > 1) {
-      if(icomp > 1){  
-        xm0_icomp = xm0_icomp[, -1]
-      }
-      xm0 = cbind(xm0, xm0_icomp) 
-      var_track_param = c(var_track_param, rep(icomp, NCOL(xm0_icomp)))
-      #ddwm_lst[[icomp]] = xm0_icomp 
-      #print (shp)
-      awmat = makeamat_1D_param(shp = shp, parametric = parametric, x1=min(x), xn=max(x))
-      #if(ipr > 1 | iadd > 1){
-      if(icomp > 1){  
-        awmat = awmat[, -1]
-      }
-      awmat_lst[[icomp]] = awmat
-    }
-    
-    use_constreg = FALSE
-    if(NCOL(x) == 2){
-      use_constreg = TRUE
-      shp = shp_pr = attr(x, "shape")
-      #print (shp_pr)
-      parametric = attr(x, "parametric")
-      ipr = ipr + 1
-      x1 = x[, 1]
-      x2 = x[, 2]
-      xu1 = unique(x1)
-      xu2 = unique(x2)
-      m1 = round(5*n^(1/6))
-      m2 = round(5*n^(1/6))
-      x1sc = (x1 - min(x1)) / (max(x1) - min(x1))
-      x2sc = (x2 - min(x2)) / (max(x2) - min(x2))
-      if(parametric == "linear"){
-        if(space == "Q"){
-          k1 = quantile(x1, probs = seq(0, 1, length = m1), names = FALSE)
-          k2 = quantile(x2, probs = seq(0, 1, length = m2), names = FALSE)
-        }
-        if(space == "E"){
-          k1 = 0:(m1 - 1) / (m1 - 1) * (max(x1) - min(x1)) + min(x1)
-          k2 = 0:(m2 - 1) / (m2 - 1) * (max(x2) - min(x2)) + min(x2)
-        }
-      } 
-      if(parametric == "warped_plane"){
-        if(space == "Q"){
-          k1 = quantile(x1sc, probs = seq(0, 1, length = m1), names = FALSE)
-          k2 = quantile(x2sc, probs = seq(0, 1, length = m2), names = FALSE)
-        }
-        if(space == "E"){
-          k1 = 0:(m1 - 1) / (m1 - 1) * (max(x1sc) - min(x1sc)) + min(x1sc)
-          k2 = 0:(m2 - 1) / (m2 - 1) * (max(x2sc) - min(x2sc)) + min(x2sc)
-        }
-      }
-      #if(is.null(edfu)){
-      edfu = 3*(n^(1/3))
-      edfu_vec[icomp] = edfu
-      #}
-      #new: make delta here; combine it into xm
-      if(parametric == "linear"){
-        sp = space
-        dd_ans = makedelta_wps(x1, x2, space = c(sp, sp), k1 = k1, k2 = k2, decreasing = c(FALSE, FALSE))
-      }
-      if(parametric == "warped_plane"){
-        sp = space
-        dd_ans = makedelta_wps(x1sc, x2sc, space = c(sp, sp), k1 = k1, k2 = k2, decreasing = c(FALSE, FALSE))
-      }
-      dd = dd_ans$delta
-      if(icomp > 1){
-        dd = dd[, -1]
-      }
-      dd_lst[[icomp]] = dd
-      var_track = c(var_track, rep(icomp, NCOL(dd)))
-      #new: need to re-define k1 and k2; some cells might be empty
-      k1 = dd_ans$k1
-      k2 = dd_ans$k2
-      kts = list(k1 = k1, k2 = k2)
-      kts_lst[[icomp]] = kts 
-      m1 = length(k1)
-      m2 = length(k2)
-      use_constreg = TRUE
-      #new: make amat here; add it to amat_lst
-      amat = makeamat_nonadd(k1, k2, shp_pr)
-      #check more
-      if(icomp > 1){
-        amat = amat[, -1]
-      }
-      amat_lst[[icomp]] = amat
-      #new: make dmat here; add it to dmat_lst
-      dmat = makedmat_2D(k1, k2)
-      #check more
-      if(icomp > 1){ 
-        dmat = dmat[, -1]
-      }
-      dmat_lst[[icomp]] = dmat
-      #dv_lst[[icomp]] = crossprod(dmat)
-      #make xm0 here 
-      xm0_icomp = switch(parametric, linear = cbind(1, x1, x2), warped_plane = cbind(1, x1sc, x2sc, x1sc*x2sc))
-      #check more
-      if(icomp > 1){
-        xm0_icomp = xm0_icomp[, -1]
-      }
-      xm0 = cbind(xm0, xm0_icomp)
-      var_track_param = c(var_track_param, rep(icomp, NCOL(xm0_icomp)))
-      #print (shp)
-      awmat = makeamat_1D_param(shp, parametric = parametric)
-      if(icomp > 1){ 
-        awmat = awmat[, -1]
-      }
-      awmat_lst[[icomp]] = awmat
-    } 
-    #make xm0 here 
-    #xm0 = switch(attr(x, "parametric"), linear = cbind(1, x), quadratic = cbind(1, x, x^2), linear_plane = cbind(1, x1, x2), warped_plane = cbind(1, x1sc, x2sc, x1sc*x2sc))
-  }
-  amat = Matrix::bdiag(amat_lst) |> as.matrix()
-  dmat = Matrix::bdiag(dmat_lst) |> as.matrix()
-  #dv = Matrix::bdiag(dv_lst) |> as.matrix()
-  
-  dd = do.call(cbind, dd_lst)
-  #dd = Matrix(dd, sparse = TRUE)
-  
-  nr_am = NROW(amat)
-  #----------------------
-  #create bvec for qprog
-  #----------------------
-  bvec = rep(0, nr_am) #will be different when using constreg
-  #----------------------------------------------------------------------------
-  #2.get H1 fit: cone \ L satisfying some shape constraint
-  #write a new function: fit.alt
-  #----------------------------------------------------------------------------
-  nc = nc_noz = NCOL(dd)
-  if(nz > 0){
-    # dd_1 = dd_lst[[1]]
-    # dd_1 = cbind(zmat, dd_1)
-    # dd_lst[[1]] = dd_1
-    
-    # dm_1 = dmat_lst[[1]]
-    # dm1_zero = matrix(0, nrow = nrow(dm_1), ncol = nz)
-    # dm_1 = cbind(dm1_zero, dm_1)
-    # dmat_lst[[1]] = dm_1
-    
-    dd = cbind(zmat, dd)
-    dmat_zero = matrix(0, nrow = nrow(dmat), ncol = nz)
-    dmat = cbind(dmat_zero, dmat)
-    amat_zero = matrix(0, nrow = nrow(amat), ncol = nz)
-    amat = cbind(amat_zero, amat)
-  }
-  dv = crossprod(dmat)
-  #new:
-  qv0 = crossprod(dd)
-  
-  #dv = Matrix(dv, sparse = TRUE)
-  #qv0 = Matrix(qv0, sparse = TRUE)
-  
-  nc_am = NCOL(amat)
-  imat = diag(nc_am)
-  if(GCV){
-    #temp:
-    edfu = sum(edfu_vec)
-    edfu_grid = c(edfu-1, edfu, edfu + (1:2) * 3)
-    if(is.null(lams)){
-      lams = sapply(edfu_grid, function(e){uniroot(f = .search_ps, qv0 = qv0, dv = dv, dd = dd, edfu = e, interval = c(1e-10, 2e+2), tol=1e-6)$root})
-      lams = c(1e-3, rev(lams))
-      if(arp){
-        #test!
-        lams = 2^(2:8)
-        #lams = 2^(1:7)
-        lams = lams/2^7/n^(2*spl_ord/(2*spl_ord+1))
-        # lams = 2^(1:8)
-        # lams = lams/2^8/n^(3/4)
-      }
-      gcvs_rslt = parallel::mclapply(lams, function(e) fit.hypo(p=p, dd=dd, y=y, amat=amat, bvec=bvec,
-                                                                dv=dv, family=family, arp=arp, ps=e), mc.cores = (8L))
-      #gcvs_rslt = parallel::mclapply(lams, function(e) fit.hypo(p=p, dd=dd, y=y, amat=amat, bvec=bvec,
-      #                                                          dv=dv, family=family, arp=arp, ps=e), mc.cores = (8L))
-      gcvs = sapply(gcvs_rslt, function(rslti) rslti$gcv, simplify = TRUE)
-      edfs = sapply(gcvs_rslt, function(rslti) rslti$edf, simplify = TRUE)
-      choice_id = which(gcvs == min(gcvs))
-      ps = lams[choice_id] 
-      p_optim = p
-      c(sse1, etahat, ahatc, face, qv, edf, edfs, gcv, gcvs, sighat, edfu_use, covmat, covmat_inv, phi1, mat1) %<-% gcvs_rslt[[choice_id]][1:15]
-    }
-    #print (head(etahat))
-    etahat = as.matrix(etahat)
-    muhat = family$linkinv(etahat)
-    #only for H1 fit
-  } else {
-    #lams = ps
-    if(is.null(ps)){
-      #edfu = sum(edfu_vec) + nz
-      edfu = edfu_vec
-      #not right:...
-      #if(nz > 0){
-      #  edfu[1] = edfu_vec[1] + nz
-      #}
-      #if(!arp){
-      if(capl == 1){
-        #ps = uniroot(f = .search_ps, qv0 = qv0, dv = dv, dd = dd, edfu = edfu, interval = c(1e-10, 2e+2), tol = .Machine$double.eps^0.32)$root
-        ps = uniroot(f = .search_ps, qv0 = qv0, dv = dv, dd = dd, edfu = edfu, interval = c(1e-10, 2e+2), tol=1e-6)$root
-        #test!
-        #if(arp & p >= 1){
-        #print (ps)
-        #ps = ps * 0.6 #1/2 (2/3) will be unbiased for p=2 but inflated for p=1, 2/3 is inflated for p=1
-        #print (ps)
-        #}
-      } else if (capl > 1) {
-        ps = NULL
-        for(ic in 1:capl){
-          dd_ic = dd_lst[[ic]]
-          qv0_ic = crossprod(dd_ic)
-          dm_ic = dmat_lst[[ic]]
-          dv_ic = crossprod(dm_ic)
-          #psi = uniroot(f = .search_ps, qv0 = qv0_ic, dv = dv_ic, dd = dd_ic, edfu = edfu[ic], interval = c(1e-10, 2e+2), tol = .Machine$double.eps^0.32)$root
-          psi = uniroot(f = .search_ps, qv0 = qv0_ic, dv = dv_ic, dd = dd_ic, edfu = edfu[ic], interval = c(1e-10, 2e+2), tol=1e-6)$root
-          ps = c(ps, psi)
-        }
-        #ps = sapply(1:capl, function(ic)uniroot(f = .search_ps, qv0 = crossprod(dd_lst[[ic]]), dv = crossprod(dmat_lst[[ic]]), dd = dd_lst[[ic]], edfu = edfu[ic], interval = c(1e-10, 2e+2), tol = .Machine$double.eps^0.32)$root)
-      }
-      #}else{
-      #ps = 2/n^(2*spl_ord/(2*spl_ord+1)) #seems working
-      #  ps = 1/n^(2*spl_ord/(2*spl_ord+1)) #a little inflated
-      #}
-    } 
-    lams = ps
-    covmat = covmat_inv = phi = NULL
-    #new:
-    if(length(ps) >= 1){
-      for(ic in 1:capl){
-        dmat_lst[[ic]] = sqrt(ps[ic]) * dmat_lst[[ic]]
-      }
-      #already add zmat in the 1st element of dmat_lst
-      dmat = Matrix::bdiag(dmat_lst) |> as.matrix()
-      #recreate dmat
-      if(nz > 0){
-        dmat_zero = matrix(0, nrow = nrow(dmat), ncol = nz)
-        dmat = cbind(dmat_zero, dmat)
-      }
-      dv = crossprod(dmat)
-    }
-    if(length(p) == 1){ 
-      #arp with user-defined order, or !arp and p=0
-      #cat('call arp with user-defined order, ps=', ps, '\n')
-      ansc = fit.hypo(p=p, dd=dd, y=y, amat=amat, bvec=bvec, dv=dv, family=family, ps=ps, arp=arp)
-      c(sse1, etahat, ahatc, face, qv, edf, edfs, gcv, gcvs, sighat, edfu_use, covmat, covmat_inv, phi1, mat1) %<-% ansc[1:15]
-      p_optim = p
-    } else{
-      #p = 0:2
-      #new: test p=0 first
-      ansc = fit.hypo(p=0, dd=dd, y=y, amat=amat, bvec=bvec, dv=dv, family=family, ps=ps, arp=FALSE)
-      if(ansc$pval.ts > 0.05){
-        c(sse1, etahat, ahatc, face, qv, edf, edfs, gcv, gcvs, sighat, edfu_use, covmat, covmat_inv, phi1, mat1) %<-% ansc[1:15]
-        p_optim = 0
-      }else{
-        aic_rslt = parallel::mclapply(p[-1], fit.hypo, dd=dd, y=y, amat=amat, bvec=bvec, dv=dv, family=family, ps=ps, arp=arp, mc.cores=(8L))
-        aics = sapply(aic_rslt, function(rslti) rslti$aic, simplify = TRUE)
-        #print (aics)
-        choice_id = which(aics == min(aics))
-        p_optim = (p[-1])[choice_id] 
-        c(sse1, etahat, ahatc, face, qv, edf, edfs, gcv, gcvs, sighat, edfu_use, covmat, covmat_inv, phi1, mat1) %<-% (aic_rslt[[choice_id]])[1:15]
-      }
-    }
-    muhat = family$linkinv(etahat)
-  }
-  #----------------------------------------------------------------------------
-  #1.get H0 fit: linear space satisfying some shape constraint
-  #use sparse matrix later
-  #write a new function: fit.null
-  #----------------------------------------------------------------------------
-  wmat = x1m0 = x1m = NULL
-  if(!use_constreg){
-    pm0 = xm0 %*% solve(crossprod(xm0), t(xm0))
-    #x1m0 = dd - pm0 %*% dd
-    
-    # nc = ncol(dd)
-    # qr_dd = qr(dd)
-    # dd_r = qr_dd$rank
-    # if(dd_r < nc){
-    #   dd_2 = qr.Q(qr_dd, complete = TRUE)[, 1:dd_r]
-    #   rm_id = qr_dd$pivot[(dd_r+1):nc]
-    #   x1m0 = dd_2 - pm0 %*% dd_2
-    # }else{
-    x1m0 = dd - pm0 %*% dd
-    #}
-    
-    qr_x1m = qr(x1m0)
-    x1m = qr.Q(qr_x1m, complete = TRUE)[, 1:qr_x1m$rank]
-    # if(dd_r < nc){
-    #   xm1tb = crossprod(x1m, dd_2)
-    # } else {
-    xm1tb = crossprod(x1m, dd)
-    #}
-    qr_xm1tb = qr(t(xm1tb))
-    wmat = qr.Q(qr_xm1tb, complete = TRUE)[, -c(1:qr_xm1tb$rank), drop = FALSE]
-    # if(dd_r < nc){
-    #   ddwm = dd_2 %*% wmat
-    #   awmat = amat[,-rm_id] %*% wmat
-    # }else {
-    ddwm = dd %*% wmat
-    awmat = amat %*% wmat
-    #}
-  } else {
-    ddwm = xm0
-    awmat = Matrix::bdiag(awmat_lst) |> as.matrix()
-  }
-  if(nz > 0){
-    #add z before splines
-    ddwm = cbind(zmat, ddwm)
-    awmat_zero = matrix(0, nrow = nrow(awmat), ncol = nz)
-    awmat = cbind(awmat_zero, awmat)
-  }
-  ansl = fit.hypo(p=p_optim, dd=ddwm, y=y, amat=awmat, bvec=rep(0, nrow(awmat)), dv=NULL, family=family, ps=0, arp=arp)
-  sse0 = ansl$dev
-  etahat0 = ansl$etahat
-  muhat0 = family$linkinv(etahat0)
-  ahatl = ansl$ahat
-  qvl = ansl$qv
-  #cat(arp, '\n')
-  #----------------------------------------------------------------------------
-  #test: H0 vs H1
-  #----------------------------------------------------------------------------
-  if(wt.iter){
-    bval = (sse0 - sse1) / n #sse0 is llh0; sse1 is llh1
-  } else {
-    bval = (sse0 - sse1) / sse0
-  }
-  #temp
-  sm=1e-7
-  #sm = 1e-9
-  
-  #new
-  #Check if the user wants parallel computing
-  #assume user-default is FALSE; user needs to call option() to change this
-  use_parallel = isTRUE(getOption("cgam.parallel", FALSE))
-  #Decide how many cores to use
-  cores = 1
-  if(use_parallel){
-    #cores = getOption("cgam.cores", parallel::detectCores(logical = FALSE) - 1)
-    cores = min(8, getOption("cgam.cores", parallel::detectCores(logical = FALSE) - 1))
-    cores = max(1, cores)
-  }
-  
-  #Detect OS platform
-  is_windows = .Platform$OS.type == "windows"
-  #print (use_parallel)
-  #print (cores)
-  if(bval > sm){
-    #if(multicore){
-    if(use_parallel && cores > 1){
-      #tot_cores = parallel::detectCores()
-      #message(sprintf("Running in parallel using %d cores.", cores))
-      if(is_windows){
-        # Windows: use parLapply with a PSOCK cluster
-        cl = parallel::makeCluster(cores)
-        on.exit(parallel::stopCluster(cl))  # ensure cleanup
-        bdist = parallel::parLapply(cl, 1:nsim, .compute_bstat, etahat0=etahat0, n=n, sighat=sighat,
-                                    dd=dd, ddwm=ddwm, qv=NULL, qvl=NULL, amat=amat, awmat=awmat,
-                                    bvec=bvec, imat=imat, dv=dv, lams=ps, w=NULL, arp=arp, p=p_optim, phi=phi1, 
-                                    family=family)
-      } else {
-        # Unix/macOS: use mclapply
-        bdist = parallel::mclapply(1:nsim, .compute_bstat, etahat0=etahat0, n=n, sighat=sighat,
-                                   dd=dd, ddwm=ddwm, qv=NULL, qvl=NULL, amat=amat, awmat=awmat,
-                                   bvec=bvec, imat=imat, dv=dv, lams=ps, w=NULL, arp=arp, p=p_optim, phi=phi1, 
-                                   family=family, mc.cores=cores)
-      }
-    }else{
-      #message("Running in serial mode.")
-      bdist = lapply(1:nsim, .compute_bstat, etahat0=etahat0, n=n, sighat=sighat, dd=dd, ddwm=ddwm, qv=NULL, qvl=NULL,
-                     amat=amat, awmat=awmat, bvec=bvec, imat=imat, dv=dv, lams=ps, w=NULL, arp=arp, p=p_optim, phi=phi1, family=family)
-    }
-    bdist = simplify2array(bdist)
-    pval = sum(bdist > bval) / nsim
-  } else {
-    pval = 1
-  }
-  #----------------------
-  #for visualization
-  #----------------------
-  etacomps = etacomps0 = vector("list", length = capl)
-  etahat0_surf = etahat_surf = NULL
-  muhat0_surf = muhat_surf = NULL
-  ahatc_noz = round(ahatc, 6) |> as.matrix()
-  ahatl_noz = round(ahatl, 6) |> as.matrix()
-  #print (ahatc_noz)
-  #print (nz)
-  if(nz > 0){
-    #print (dim(ahatc_noz))
-    ahatc_noz = ahatc_noz[-c(1:nz), ,drop=F] #|> as.vector()
-    ahatl_noz = ahatl_noz[-c(1:nz), ,drop=F] #|> as.vector()
-    #new:
-    # dd_1 = dd_lst[[1]]
-    # dd_1 = dd_1[, -c(1:nz), drop=F]
-    # dd_lst[[1]] = dd_1
-  }
-  for(icomp in 1:capl){
-    x = X[[icomp]]
-    if(NCOL(x) == 1){
-      #print (dim(dd_lst[[icomp]]))
-      #print (dim(ahatc_noz[var_track == icomp]))
-      etahat_icomp = dd_lst[[icomp]] %*% ahatc_noz[var_track == icomp,,drop=F]
-      #print (dim(etahat_icomp))
-      etacomps[[icomp]] = etahat_icomp
-    }
-    if(NCOL(x) == 2){
-      kts = kts_lst[[icomp]]
-      k1 = kts$k1
-      k2 = kts$k2
-      newd = expand.grid(k1, k2)
-      newd = as.matrix(newd)
-      
-      #H0 surface
-      x1p = newd[,1]
-      x2p = newd[,2]
-      if(attr(x, "parametric") == "warped_plane"){
-        xm0p = cbind(1, x1p, x2p, x1p*x2p)
-        if(icomp > 1){
-          xm0p = xm0p[, -1]
-        }
-      }
-      if(attr(x, "parametric") == "linear"){
-        xm0p = cbind(1, x1p, x2p)
-        if(icomp > 1){
-          xm0p = xm0p[, -1]
-        }
-      }
-      #if(nz == 0){
-      #print (dim(xm0p))
-      #print (length(ahatl_noz))
-      #print (icomp)
-      psurf0 = xm0p %*% ahatl_noz[var_track_param == icomp,,drop=F]
-      # } else if (nz > 0){
-      #   psurf0 = xm0p %*% ahatl[-((ncol(xm0p) + 1):(ncol(xm0p) + nz))]
-      # }
-      etahat0_surf = matrix(psurf0, m1, m2)
-      muhat0_surf = family$linkinv(etahat0_surf)
-      
-      #H1 surface
-      pans = makedelta_wps(newd[,1], newd[,2], k1 = k1, k2 = k2, decreasing = c(FALSE, FALSE))
-      ddp = pans$delta
-      if(icomp > 1){
-        ddp = ddp[, -1]
-      }
-      #if(nz == 0){
-      psurf = ddp %*% ahatc_noz[var_track == icomp,,drop=F]
-      # } else {
-      #   psurf = ddp %*% ahatc[-((nc_noz + 1):(nc_noz + nz))]
-      # }
-      etahat_surf = matrix(psurf, m1, m2)
-      muhat_surf = family$linkinv(etahat_surf)
-      etacomps[[icomp]] = etahat_surf
-      etacomps0[[icomp]] = etahat0_surf
-    }
-  }
-  rslt = list(pval = pval, bval = bval, knots = kts, k1=k1, k2=k2, bmat = dd, wmat = wmat, dmat = dmat, ps = ps,
-              xm0 = xm0, x1m = x1m, amat = amat, awmat = awmat, face = face, etahat = etahat, etahat0 = etahat0,
-              etahat0_surf = etahat0_surf, etahat_surf = etahat_surf, muhat0_surf = muhat0_surf, muhat_surf = muhat_surf,
-              sighat = sighat, edf = edf, edfu = edfu_use, lams = lams, gcvs = gcvs, edfs = edfs, ahatl = ahatl, ahatc = ahatc,
-              phi = phi1, covmat = covmat, covmat_inv = covmat_inv, etacomps = etacomps, p_optim = p_optim, kts_lst = kts_lst, 
-              var_track = var_track, var_track_param = var_track_param, etacomps0 = etacomps0)
-  if(nz >= 1){
-    #assume y is iid with common sig2
-    if(!wt.iter){
-      #should work for ar(p)?
-      if(!arp || arp & p_optim == 0){
-        covmat0 = sighat^2 * mat1 %*% t(mat1)
-      } else {
-        #print (sig2hat_z)
-        #covmat0 = sig2hat_z * mat1 %*% t(mat1)
-        covmat0 = mat1 %*% t(mat1) #seems working with unscaled covariance
-        #covmat0 = sighat^2 * mat1 %*% t(mat1)
-      }
-    } else {
-      cicfamily = CicFamily(family)
-      wt.fun = cicfamily$wt.fun
-      wt = wt.fun(y, etahat, n, weights = rep(1, n), fml = family$family)
-      covmat0 = mat1 %*% diag(wt) %*% t(mat1)
-    }
-    covmat = covmat0[(1):(nz), (1):(nz), drop=FALSE]
-    sez = sqrt(diag(covmat))
-    zcoefs = ahatc[(1):(nz)]
-    tz = zcoefs / sez
-    cpar = 1.2
-    #test more!
-    if(!wt.iter){
-      if ((n - cpar * edf) <= 0) {
-        pz = 2*(1 - pt(abs(tz), edf))
-      } else {
-        #why not pnorm?
-        pz = 2*(1 - pt(abs(tz), n - cpar * edf))
-      }
-    } else {
-      #why not pnorm?
-      pz = 2*(1 - pnorm(abs(tz)))
-    }
-    rslt$sez = sez
-    rslt$pz = pz
-    rslt$tz = tz
-    rslt$zcoefs = zcoefs
-  } else {rslt$sez = NULL; rslt$pz = NULL; rslt$tz = NULL; rslt$zcoefs = NULL}
-  return(rslt)
-}
+# testpar.fit = function(X, y, zmat = NULL, family = gaussian(link="identity"), 
+#                        ps = NULL, edfu = NULL, nsim = 200, multicore = TRUE, 
+#                        GCV = FALSE, lams = NULL, 
+#                        arp = FALSE, p = NULL, space = "Q",...)
+# {
+#   #print (head(y))
+#   #print (multicore)
+#   wt.iter = ifelse(family$family == "gaussian", FALSE, TRUE)
+#   extras = list(...)
+#   #new:
+#   #capl = NCOL(x)
+#   capl = length(X)
+#   n = length(y)
+#   k1 = k2 = NULL
+#   p_optim = 0
+#   if(arp){
+#     #if the user didn't provide p, then choose p from 0:3
+#     if(is.null(p)){
+#       p = 0:2 
+#     } else if (p < 0 || p > 2) {
+#       warning("The order in AR(p) must be an integer >= 0 and <= 2!")
+#       p = 1
+#     }
+#   } else {
+#     p = 0
+#   }
+#   #test more
+#   # if(!wt.iter){
+#   #   mu = mean(y)
+#   #   y = y - mu
+#   # }
+#   #-------------------
+#   #get xm, amat, dmat
+#   #-------------------
+#   mult = 2
+#   nz = 0
+#   if(!is.null(zmat)){
+#     nz = NCOL(zmat)
+#     #test more: center zmat to avoid solve() error
+#     #zmat = scale(zmat, center = TRUE, scale = FALSE)
+#   }
+#   xm0 = NULL #combine dd columnwise
+#   amat_lst = vector("list", length = capl)
+#   awmat_lst = vector("list", length = capl)
+#   dmat_lst = vector("list", length = capl)
+#   dd_lst = kts_lst = vector("list", length = capl)
+#   edfu_vec = numeric(capl)
+#   var_track = var_track_param = NULL
+#   iadd = ipr = 0
+#   for(icomp in 1:capl){
+#     x = X[[icomp]] #|> as.matrix()
+#     if(NCOL(x) == 1){
+#       iadd = iadd + 1
+#       xu = unique(x)
+#       n1 = length(xu)
+#       type = attr(x, "type")
+#       nkts = mult * switch(type, monotone = trunc(n1^(1/5)) + 6, convex = trunc(n1^(1/7)) + 6)
+#       if(space == "Q"){
+#         kts = quantile(xu, probs = seq(0, 1, length = nkts), names = FALSE)
+#       }
+#       if(space == "E"){
+#         kts = 0:(nkts - 1) / (nkts - 1) * (max(x) - min(x)) + min(x)
+#         #kts = seq.int(min(x), max(x), length = nkts)
+#       }
+#       kts_lst[[icomp]] = kts
+#       #new: make delta here; combine it into xm
+#       spl_degree = switch(type, monotone = 2L, convex = 3L)
+#       spl_ord = spl_degree + 1
+#       #dd_ans = bqspl(x, m=NULL, knots=kts)
+#       #dd = dd_ans$bmat
+#       dd = bSpline(x, knots = kts[-c(1, nkts)], degree = spl_degree, intercept = TRUE)
+#       #dd = bs(x, knots = kts[-c(1, nkts)], degree = spl_degree, intercept = TRUE)
+#       #xm = cbind(xm, dd)
+#       #test!
+#       if(icomp > 1){
+#         dd = dd[, -1]
+#       }
+#       dd_lst[[icomp]] = dd
+#       var_track = c(var_track, rep(icomp, NCOL(dd)))
+#       #check more
+#       #if(is.null(edfu)){
+#       edfu = switch(type, monotone = (nkts/mult) , convex = (nkts/mult + 1))
+#       edfu_vec[icomp] = edfu #+ nz
+#       #}
+#       shp = attr(x, "shape")
+#       parametric = attr(x, "parametric")
+#       #new: make amat here; add it to amat_lst
+#       #print (kts)
+#       # print (spl_ord)
+#       # print (min(x))
+#       # print (max(x))
+#       amat = makeamat_1D(shp=shp, spl_ord=spl_ord, kts=kts, x=x, x1=min(x), xn=max(x))
+#       #check more
+#       #if(iadd > 1) {
+#       if(icomp > 1){  
+#         amat = amat[, -1]
+#       }
+#       amat_lst[[icomp]] = amat
+#       #new: make awmat in case we have plane comps.
+#       #new: make dmat here; add it to dmat_lst
+#       nc = NCOL(dd)
+#       dmat = makedmat_1D(nc, q = spl_ord)
+#       dmat_lst[[icomp]] = dmat
+#       #dv_lst[[icomp]] = crossprod(dmat)
+#       #make xm0 here 
+#       #xm0 = switch(attr(x, "parametric"), linear = cbind(1, x), quadratic = cbind(1, x, x^2))
+#       xm0_icomp = switch(parametric, linear = cbind(1, x), quadratic = cbind(1, x, x^2))
+#       #check more
+#       #if(iadd > 1 |ipr > 1) {
+#       if(icomp > 1){  
+#         xm0_icomp = xm0_icomp[, -1]
+#       }
+#       xm0 = cbind(xm0, xm0_icomp) 
+#       var_track_param = c(var_track_param, rep(icomp, NCOL(xm0_icomp)))
+#       #ddwm_lst[[icomp]] = xm0_icomp 
+#       #print (shp)
+#       awmat = makeamat_1D_param(shp = shp, parametric = parametric, x1=min(x), xn=max(x))
+#       #if(ipr > 1 | iadd > 1){
+#       if(icomp > 1){  
+#         awmat = awmat[, -1]
+#       }
+#       awmat_lst[[icomp]] = awmat
+#     }
+#     
+#     use_constreg = FALSE
+#     if(NCOL(x) == 2){
+#       use_constreg = TRUE
+#       shp = shp_pr = attr(x, "shape")
+#       #print (shp_pr)
+#       parametric = attr(x, "parametric")
+#       ipr = ipr + 1
+#       x1 = x[, 1]
+#       x2 = x[, 2]
+#       xu1 = unique(x1)
+#       xu2 = unique(x2)
+#       m1 = round(5*n^(1/6))
+#       m2 = round(5*n^(1/6))
+#       x1sc = (x1 - min(x1)) / (max(x1) - min(x1))
+#       x2sc = (x2 - min(x2)) / (max(x2) - min(x2))
+#       if(parametric == "linear"){
+#         if(space == "Q"){
+#           k1 = quantile(x1, probs = seq(0, 1, length = m1), names = FALSE)
+#           k2 = quantile(x2, probs = seq(0, 1, length = m2), names = FALSE)
+#         }
+#         if(space == "E"){
+#           k1 = 0:(m1 - 1) / (m1 - 1) * (max(x1) - min(x1)) + min(x1)
+#           k2 = 0:(m2 - 1) / (m2 - 1) * (max(x2) - min(x2)) + min(x2)
+#         }
+#       } 
+#       if(parametric == "warped_plane"){
+#         if(space == "Q"){
+#           k1 = quantile(x1sc, probs = seq(0, 1, length = m1), names = FALSE)
+#           k2 = quantile(x2sc, probs = seq(0, 1, length = m2), names = FALSE)
+#         }
+#         if(space == "E"){
+#           k1 = 0:(m1 - 1) / (m1 - 1) * (max(x1sc) - min(x1sc)) + min(x1sc)
+#           k2 = 0:(m2 - 1) / (m2 - 1) * (max(x2sc) - min(x2sc)) + min(x2sc)
+#         }
+#       }
+#       #if(is.null(edfu)){
+#       edfu = 3*(n^(1/3))
+#       edfu_vec[icomp] = edfu
+#       #}
+#       #new: make delta here; combine it into xm
+#       if(parametric == "linear"){
+#         sp = space
+#         dd_ans = makedelta_wps(x1, x2, space = c(sp, sp), k1 = k1, k2 = k2, decreasing = c(FALSE, FALSE))
+#       }
+#       if(parametric == "warped_plane"){
+#         sp = space
+#         dd_ans = makedelta_wps(x1sc, x2sc, space = c(sp, sp), k1 = k1, k2 = k2, decreasing = c(FALSE, FALSE))
+#       }
+#       dd = dd_ans$delta
+#       if(icomp > 1){
+#         dd = dd[, -1]
+#       }
+#       dd_lst[[icomp]] = dd
+#       var_track = c(var_track, rep(icomp, NCOL(dd)))
+#       #new: need to re-define k1 and k2; some cells might be empty
+#       k1 = dd_ans$k1
+#       k2 = dd_ans$k2
+#       kts = list(k1 = k1, k2 = k2)
+#       kts_lst[[icomp]] = kts 
+#       m1 = length(k1)
+#       m2 = length(k2)
+#       use_constreg = TRUE
+#       #new: make amat here; add it to amat_lst
+#       amat = makeamat_nonadd(k1, k2, shp_pr)
+#       #check more
+#       if(icomp > 1){
+#         amat = amat[, -1]
+#       }
+#       amat_lst[[icomp]] = amat
+#       #new: make dmat here; add it to dmat_lst
+#       dmat = makedmat_2D(k1, k2)
+#       #check more
+#       if(icomp > 1){ 
+#         dmat = dmat[, -1]
+#       }
+#       dmat_lst[[icomp]] = dmat
+#       #dv_lst[[icomp]] = crossprod(dmat)
+#       #make xm0 here 
+#       xm0_icomp = switch(parametric, linear = cbind(1, x1, x2), warped_plane = cbind(1, x1sc, x2sc, x1sc*x2sc))
+#       #check more
+#       if(icomp > 1){
+#         xm0_icomp = xm0_icomp[, -1]
+#       }
+#       xm0 = cbind(xm0, xm0_icomp)
+#       var_track_param = c(var_track_param, rep(icomp, NCOL(xm0_icomp)))
+#       #print (shp)
+#       awmat = makeamat_1D_param(shp, parametric = parametric)
+#       if(icomp > 1){ 
+#         awmat = awmat[, -1]
+#       }
+#       awmat_lst[[icomp]] = awmat
+#     } 
+#     #make xm0 here 
+#     #xm0 = switch(attr(x, "parametric"), linear = cbind(1, x), quadratic = cbind(1, x, x^2), linear_plane = cbind(1, x1, x2), warped_plane = cbind(1, x1sc, x2sc, x1sc*x2sc))
+#   }
+#   amat = Matrix::bdiag(amat_lst) |> as.matrix()
+#   dmat = Matrix::bdiag(dmat_lst) |> as.matrix()
+#   #dv = Matrix::bdiag(dv_lst) |> as.matrix()
+#   
+#   dd = do.call(cbind, dd_lst)
+#   #dd = Matrix(dd, sparse = TRUE)
+#   
+#   nr_am = NROW(amat)
+#   #----------------------
+#   #create bvec for qprog
+#   #----------------------
+#   bvec = rep(0, nr_am) #will be different when using constreg
+#   #----------------------------------------------------------------------------
+#   #2.get H1 fit: cone \ L satisfying some shape constraint
+#   #write a new function: fit.alt
+#   #----------------------------------------------------------------------------
+#   nc = nc_noz = NCOL(dd)
+#   if(nz > 0){
+#     # dd_1 = dd_lst[[1]]
+#     # dd_1 = cbind(zmat, dd_1)
+#     # dd_lst[[1]] = dd_1
+#     
+#     # dm_1 = dmat_lst[[1]]
+#     # dm1_zero = matrix(0, nrow = nrow(dm_1), ncol = nz)
+#     # dm_1 = cbind(dm1_zero, dm_1)
+#     # dmat_lst[[1]] = dm_1
+#     
+#     dd = cbind(zmat, dd)
+#     dmat_zero = matrix(0, nrow = nrow(dmat), ncol = nz)
+#     dmat = cbind(dmat_zero, dmat)
+#     amat_zero = matrix(0, nrow = nrow(amat), ncol = nz)
+#     amat = cbind(amat_zero, amat)
+#   }
+#   dv = crossprod(dmat)
+#   #new:
+#   qv0 = crossprod(dd)
+#   
+#   #dv = Matrix(dv, sparse = TRUE)
+#   #qv0 = Matrix(qv0, sparse = TRUE)
+#   
+#   nc_am = NCOL(amat)
+#   imat = diag(nc_am)
+#   if(GCV){
+#     #temp:
+#     edfu = sum(edfu_vec)
+#     edfu_grid = c(edfu-1, edfu, edfu + (1:2) * 3)
+#     if(is.null(lams)){
+#       lams = sapply(edfu_grid, function(e){uniroot(f = .search_ps, qv0 = qv0, dv = dv, dd = dd, edfu = e, interval = c(1e-10, 2e+2), tol=1e-6)$root})
+#       lams = c(1e-3, rev(lams))
+#       if(arp){
+#         #test!
+#         lams = 2^(2:8)
+#         #lams = 2^(1:7)
+#         lams = lams/2^7/n^(2*spl_ord/(2*spl_ord+1))
+#         # lams = 2^(1:8)
+#         # lams = lams/2^8/n^(3/4)
+#       }
+#       gcvs_rslt = parallel::mclapply(lams, function(e) fit.hypo(p=p, dd=dd, y=y, amat=amat, bvec=bvec,
+#                                                                 dv=dv, family=family, arp=arp, ps=e), mc.cores = (8L))
+#       #gcvs_rslt = parallel::mclapply(lams, function(e) fit.hypo(p=p, dd=dd, y=y, amat=amat, bvec=bvec,
+#       #                                                          dv=dv, family=family, arp=arp, ps=e), mc.cores = (8L))
+#       gcvs = sapply(gcvs_rslt, function(rslti) rslti$gcv, simplify = TRUE)
+#       edfs = sapply(gcvs_rslt, function(rslti) rslti$edf, simplify = TRUE)
+#       choice_id = which(gcvs == min(gcvs))
+#       ps = lams[choice_id] 
+#       p_optim = p
+#       c(sse1, etahat, ahatc, face, qv, edf, edfs, gcv, gcvs, sighat, edfu_use, covmat, covmat_inv, phi1, mat1) %<-% gcvs_rslt[[choice_id]][1:15]
+#     }
+#     #print (head(etahat))
+#     etahat = as.matrix(etahat)
+#     muhat = family$linkinv(etahat)
+#     #only for H1 fit
+#   } else {
+#     #lams = ps
+#     if(is.null(ps)){
+#       #edfu = sum(edfu_vec) + nz
+#       edfu = edfu_vec
+#       #not right:...
+#       #if(nz > 0){
+#       #  edfu[1] = edfu_vec[1] + nz
+#       #}
+#       #if(!arp){
+#       if(capl == 1){
+#         #ps = uniroot(f = .search_ps, qv0 = qv0, dv = dv, dd = dd, edfu = edfu, interval = c(1e-10, 2e+2), tol = .Machine$double.eps^0.32)$root
+#         ps = uniroot(f = .search_ps, qv0 = qv0, dv = dv, dd = dd, edfu = edfu, interval = c(1e-10, 2e+2), tol=1e-6)$root
+#         #test!
+#         #if(arp & p >= 1){
+#         #print (ps)
+#         #ps = ps * 0.6 #1/2 (2/3) will be unbiased for p=2 but inflated for p=1, 2/3 is inflated for p=1
+#         #print (ps)
+#         #}
+#       } else if (capl > 1) {
+#         ps = NULL
+#         for(ic in 1:capl){
+#           dd_ic = dd_lst[[ic]]
+#           qv0_ic = crossprod(dd_ic)
+#           dm_ic = dmat_lst[[ic]]
+#           dv_ic = crossprod(dm_ic)
+#           #psi = uniroot(f = .search_ps, qv0 = qv0_ic, dv = dv_ic, dd = dd_ic, edfu = edfu[ic], interval = c(1e-10, 2e+2), tol = .Machine$double.eps^0.32)$root
+#           psi = uniroot(f = .search_ps, qv0 = qv0_ic, dv = dv_ic, dd = dd_ic, edfu = edfu[ic], interval = c(1e-10, 2e+2), tol=1e-6)$root
+#           ps = c(ps, psi)
+#         }
+#         #ps = sapply(1:capl, function(ic)uniroot(f = .search_ps, qv0 = crossprod(dd_lst[[ic]]), dv = crossprod(dmat_lst[[ic]]), dd = dd_lst[[ic]], edfu = edfu[ic], interval = c(1e-10, 2e+2), tol = .Machine$double.eps^0.32)$root)
+#       }
+#       #}else{
+#       #ps = 2/n^(2*spl_ord/(2*spl_ord+1)) #seems working
+#       #  ps = 1/n^(2*spl_ord/(2*spl_ord+1)) #a little inflated
+#       #}
+#     } 
+#     lams = ps
+#     covmat = covmat_inv = phi = NULL
+#     #new:
+#     if(length(ps) >= 1){
+#       for(ic in 1:capl){
+#         dmat_lst[[ic]] = sqrt(ps[ic]) * dmat_lst[[ic]]
+#       }
+#       #already add zmat in the 1st element of dmat_lst
+#       dmat = Matrix::bdiag(dmat_lst) |> as.matrix()
+#       #recreate dmat
+#       if(nz > 0){
+#         dmat_zero = matrix(0, nrow = nrow(dmat), ncol = nz)
+#         dmat = cbind(dmat_zero, dmat)
+#       }
+#       dv = crossprod(dmat)
+#     }
+#     if(length(p) == 1){ 
+#       #arp with user-defined order, or !arp and p=0
+#       #cat('call arp with user-defined order, ps=', ps, '\n')
+#       ansc = fit.hypo(p=p, dd=dd, y=y, amat=amat, bvec=bvec, dv=dv, family=family, ps=ps, arp=arp)
+#       c(sse1, etahat, ahatc, face, qv, edf, edfs, gcv, gcvs, sighat, edfu_use, covmat, covmat_inv, phi1, mat1) %<-% ansc[1:15]
+#       p_optim = p
+#     } else{
+#       #p = 0:2
+#       #new: test p=0 first
+#       ansc = fit.hypo(p=0, dd=dd, y=y, amat=amat, bvec=bvec, dv=dv, family=family, ps=ps, arp=FALSE)
+#       if(ansc$pval.ts > 0.05){
+#         c(sse1, etahat, ahatc, face, qv, edf, edfs, gcv, gcvs, sighat, edfu_use, covmat, covmat_inv, phi1, mat1) %<-% ansc[1:15]
+#         p_optim = 0
+#       }else{
+#         aic_rslt = parallel::mclapply(p[-1], fit.hypo, dd=dd, y=y, amat=amat, bvec=bvec, dv=dv, family=family, ps=ps, arp=arp, mc.cores=(8L))
+#         aics = sapply(aic_rslt, function(rslti) rslti$aic, simplify = TRUE)
+#         #print (aics)
+#         choice_id = which(aics == min(aics))
+#         p_optim = (p[-1])[choice_id] 
+#         c(sse1, etahat, ahatc, face, qv, edf, edfs, gcv, gcvs, sighat, edfu_use, covmat, covmat_inv, phi1, mat1) %<-% (aic_rslt[[choice_id]])[1:15]
+#       }
+#     }
+#     muhat = family$linkinv(etahat)
+#   }
+#   #----------------------------------------------------------------------------
+#   #1.get H0 fit: linear space satisfying some shape constraint
+#   #use sparse matrix later
+#   #write a new function: fit.null
+#   #----------------------------------------------------------------------------
+#   wmat = x1m0 = x1m = NULL
+#   if(!use_constreg){
+#     pm0 = xm0 %*% solve(crossprod(xm0), t(xm0))
+#     #x1m0 = dd - pm0 %*% dd
+#     
+#     # nc = ncol(dd)
+#     # qr_dd = qr(dd)
+#     # dd_r = qr_dd$rank
+#     # if(dd_r < nc){
+#     #   dd_2 = qr.Q(qr_dd, complete = TRUE)[, 1:dd_r]
+#     #   rm_id = qr_dd$pivot[(dd_r+1):nc]
+#     #   x1m0 = dd_2 - pm0 %*% dd_2
+#     # }else{
+#     x1m0 = dd - pm0 %*% dd
+#     #}
+#     
+#     qr_x1m = qr(x1m0)
+#     x1m = qr.Q(qr_x1m, complete = TRUE)[, 1:qr_x1m$rank]
+#     # if(dd_r < nc){
+#     #   xm1tb = crossprod(x1m, dd_2)
+#     # } else {
+#     xm1tb = crossprod(x1m, dd)
+#     #}
+#     qr_xm1tb = qr(t(xm1tb))
+#     wmat = qr.Q(qr_xm1tb, complete = TRUE)[, -c(1:qr_xm1tb$rank), drop = FALSE]
+#     # if(dd_r < nc){
+#     #   ddwm = dd_2 %*% wmat
+#     #   awmat = amat[,-rm_id] %*% wmat
+#     # }else {
+#     ddwm = dd %*% wmat
+#     awmat = amat %*% wmat
+#     #}
+#   } else {
+#     ddwm = xm0
+#     awmat = Matrix::bdiag(awmat_lst) |> as.matrix()
+#   }
+#   if(nz > 0){
+#     #add z before splines
+#     ddwm = cbind(zmat, ddwm)
+#     awmat_zero = matrix(0, nrow = nrow(awmat), ncol = nz)
+#     awmat = cbind(awmat_zero, awmat)
+#   }
+#   ansl = fit.hypo(p=p_optim, dd=ddwm, y=y, amat=awmat, bvec=rep(0, nrow(awmat)), dv=NULL, family=family, ps=0, arp=arp)
+#   sse0 = ansl$dev
+#   etahat0 = ansl$etahat
+#   muhat0 = family$linkinv(etahat0)
+#   ahatl = ansl$ahat
+#   qvl = ansl$qv
+#   #cat(arp, '\n')
+#   #----------------------------------------------------------------------------
+#   #test: H0 vs H1
+#   #----------------------------------------------------------------------------
+#   if(wt.iter){
+#     bval = (sse0 - sse1) / n #sse0 is llh0; sse1 is llh1
+#   } else {
+#     bval = (sse0 - sse1) / sse0
+#   }
+#   #temp
+#   sm=1e-7
+#   #sm = 1e-9
+#   
+#   #new
+#   #Check if the user wants parallel computing
+#   #assume user-default is FALSE; user needs to call option() to change this
+#   use_parallel = isTRUE(getOption("cgam.parallel", FALSE))
+#   #Decide how many cores to use
+#   cores = 1
+#   if(use_parallel){
+#     #cores = getOption("cgam.cores", parallel::detectCores(logical = FALSE) - 1)
+#     cores = min(8, getOption("cgam.cores", parallel::detectCores(logical = FALSE) - 1))
+#     cores = max(1, cores)
+#   }
+#   
+#   #Detect OS platform
+#   is_windows = .Platform$OS.type == "windows"
+#   #print (use_parallel)
+#   #print (cores)
+#   if(bval > sm){
+#     #if(multicore){
+#     if(use_parallel && cores > 1){
+#       #tot_cores = parallel::detectCores()
+#       #message(sprintf("Running in parallel using %d cores.", cores))
+#       if(is_windows){
+#         # Windows: use parLapply with a PSOCK cluster
+#         cl = parallel::makeCluster(cores)
+#         on.exit(parallel::stopCluster(cl))  # ensure cleanup
+#         bdist = parallel::parLapply(cl, 1:nsim, .compute_bstat, etahat0=etahat0, n=n, sighat=sighat,
+#                                     dd=dd, ddwm=ddwm, qv=NULL, qvl=NULL, amat=amat, awmat=awmat,
+#                                     bvec=bvec, imat=imat, dv=dv, lams=ps, w=NULL, arp=arp, p=p_optim, phi=phi1, 
+#                                     family=family)
+#       } else {
+#         # Unix/macOS: use mclapply
+#         bdist = parallel::mclapply(1:nsim, .compute_bstat, etahat0=etahat0, n=n, sighat=sighat,
+#                                    dd=dd, ddwm=ddwm, qv=NULL, qvl=NULL, amat=amat, awmat=awmat,
+#                                    bvec=bvec, imat=imat, dv=dv, lams=ps, w=NULL, arp=arp, p=p_optim, phi=phi1, 
+#                                    family=family, mc.cores=cores)
+#       }
+#     }else{
+#       #message("Running in serial mode.")
+#       bdist = lapply(1:nsim, .compute_bstat, etahat0=etahat0, n=n, sighat=sighat, dd=dd, ddwm=ddwm, qv=NULL, qvl=NULL,
+#                      amat=amat, awmat=awmat, bvec=bvec, imat=imat, dv=dv, lams=ps, w=NULL, arp=arp, p=p_optim, phi=phi1, family=family)
+#     }
+#     bdist = simplify2array(bdist)
+#     pval = sum(bdist > bval) / nsim
+#   } else {
+#     pval = 1
+#   }
+#   #----------------------
+#   #for visualization
+#   #----------------------
+#   etacomps = etacomps0 = vector("list", length = capl)
+#   etahat0_surf = etahat_surf = NULL
+#   muhat0_surf = muhat_surf = NULL
+#   ahatc_noz = round(ahatc, 6) |> as.matrix()
+#   ahatl_noz = round(ahatl, 6) |> as.matrix()
+#   #print (ahatc_noz)
+#   #print (nz)
+#   if(nz > 0){
+#     #print (dim(ahatc_noz))
+#     ahatc_noz = ahatc_noz[-c(1:nz), ,drop=F] #|> as.vector()
+#     ahatl_noz = ahatl_noz[-c(1:nz), ,drop=F] #|> as.vector()
+#     #new:
+#     # dd_1 = dd_lst[[1]]
+#     # dd_1 = dd_1[, -c(1:nz), drop=F]
+#     # dd_lst[[1]] = dd_1
+#   }
+#   for(icomp in 1:capl){
+#     x = X[[icomp]]
+#     if(NCOL(x) == 1){
+#       #print (dim(dd_lst[[icomp]]))
+#       #print (dim(ahatc_noz[var_track == icomp]))
+#       etahat_icomp = dd_lst[[icomp]] %*% ahatc_noz[var_track == icomp,,drop=F]
+#       #print (dim(etahat_icomp))
+#       etacomps[[icomp]] = etahat_icomp
+#     }
+#     if(NCOL(x) == 2){
+#       kts = kts_lst[[icomp]]
+#       k1 = kts$k1
+#       k2 = kts$k2
+#       newd = expand.grid(k1, k2)
+#       newd = as.matrix(newd)
+#       
+#       #H0 surface
+#       x1p = newd[,1]
+#       x2p = newd[,2]
+#       if(attr(x, "parametric") == "warped_plane"){
+#         xm0p = cbind(1, x1p, x2p, x1p*x2p)
+#         if(icomp > 1){
+#           xm0p = xm0p[, -1]
+#         }
+#       }
+#       if(attr(x, "parametric") == "linear"){
+#         xm0p = cbind(1, x1p, x2p)
+#         if(icomp > 1){
+#           xm0p = xm0p[, -1]
+#         }
+#       }
+#       #if(nz == 0){
+#       #print (dim(xm0p))
+#       #print (length(ahatl_noz))
+#       #print (icomp)
+#       psurf0 = xm0p %*% ahatl_noz[var_track_param == icomp,,drop=F]
+#       # } else if (nz > 0){
+#       #   psurf0 = xm0p %*% ahatl[-((ncol(xm0p) + 1):(ncol(xm0p) + nz))]
+#       # }
+#       etahat0_surf = matrix(psurf0, m1, m2)
+#       muhat0_surf = family$linkinv(etahat0_surf)
+#       
+#       #H1 surface
+#       pans = makedelta_wps(newd[,1], newd[,2], k1 = k1, k2 = k2, decreasing = c(FALSE, FALSE))
+#       ddp = pans$delta
+#       if(icomp > 1){
+#         ddp = ddp[, -1]
+#       }
+#       #if(nz == 0){
+#       psurf = ddp %*% ahatc_noz[var_track == icomp,,drop=F]
+#       # } else {
+#       #   psurf = ddp %*% ahatc[-((nc_noz + 1):(nc_noz + nz))]
+#       # }
+#       etahat_surf = matrix(psurf, m1, m2)
+#       muhat_surf = family$linkinv(etahat_surf)
+#       etacomps[[icomp]] = etahat_surf
+#       etacomps0[[icomp]] = etahat0_surf
+#     }
+#   }
+#   rslt = list(pval = pval, bval = bval, knots = kts, k1=k1, k2=k2, bmat = dd, wmat = wmat, dmat = dmat, ps = ps,
+#               xm0 = xm0, x1m = x1m, amat = amat, awmat = awmat, face = face, etahat = etahat, etahat0 = etahat0,
+#               etahat0_surf = etahat0_surf, etahat_surf = etahat_surf, muhat0_surf = muhat0_surf, muhat_surf = muhat_surf,
+#               sighat = sighat, edf = edf, edfu = edfu_use, lams = lams, gcvs = gcvs, edfs = edfs, ahatl = ahatl, ahatc = ahatc,
+#               phi = phi1, covmat = covmat, covmat_inv = covmat_inv, etacomps = etacomps, p_optim = p_optim, kts_lst = kts_lst, 
+#               var_track = var_track, var_track_param = var_track_param, etacomps0 = etacomps0)
+#   if(nz >= 1){
+#     #assume y is iid with common sig2
+#     if(!wt.iter){
+#       #should work for ar(p)?
+#       if(!arp || arp & p_optim == 0){
+#         covmat0 = sighat^2 * mat1 %*% t(mat1)
+#       } else {
+#         #print (sig2hat_z)
+#         #covmat0 = sig2hat_z * mat1 %*% t(mat1)
+#         covmat0 = mat1 %*% t(mat1) #seems working with unscaled covariance
+#         #covmat0 = sighat^2 * mat1 %*% t(mat1)
+#       }
+#     } else {
+#       cicfamily = CicFamily(family)
+#       wt.fun = cicfamily$wt.fun
+#       wt = wt.fun(y, etahat, n, weights = rep(1, n), fml = family$family)
+#       covmat0 = mat1 %*% diag(wt) %*% t(mat1)
+#     }
+#     covmat = covmat0[(1):(nz), (1):(nz), drop=FALSE]
+#     sez = sqrt(diag(covmat))
+#     zcoefs = ahatc[(1):(nz)]
+#     tz = zcoefs / sez
+#     cpar = 1.2
+#     #test more!
+#     if(!wt.iter){
+#       if ((n - cpar * edf) <= 0) {
+#         pz = 2*(1 - pt(abs(tz), edf))
+#       } else {
+#         #why not pnorm?
+#         pz = 2*(1 - pt(abs(tz), n - cpar * edf))
+#       }
+#     } else {
+#       #why not pnorm?
+#       pz = 2*(1 - pnorm(abs(tz)))
+#     }
+#     rslt$sez = sez
+#     rslt$pz = pz
+#     rslt$tz = tz
+#     rslt$zcoefs = zcoefs
+#   } else {rslt$sez = NULL; rslt$pz = NULL; rslt$tz = NULL; rslt$zcoefs = NULL}
+#   return(rslt)
+# }
 
 #####################################################################
 #for parallel
@@ -1200,7 +1912,6 @@ bcsplsecder = function(x, xi, knots) {
   secder
 }
 
-
 ###########################
 #bcspline first derivative#
 ###########################
@@ -1348,7 +2059,6 @@ bcsplfirderi = function(x, knots = NULL, xmin = 0, xmax = 1) {
   firder
 }
 
-
 #------------------------------------------
 #create penalty matrix
 #------------------------------------------
@@ -1376,69 +2086,69 @@ makedmat_1D = function(m, q = 2) {
   
   # first order
   if (q == 1) {
-    # for (i in 2:m) {
-    #   dmat[i-1, i-1] = 1; dmat[i-1, i] = -1
-    # }
-    id1 = 1:(m-1)
-    id2 = 2:m
-    dmat[cbind(id1, id1)] = 1
-    dmat[cbind(id1, id2)] = -1
+    for (i in 2:m) {
+      dmat[i-1, i-1] = 1; dmat[i-1, i] = -1
+    }
+    #id1 = 1:(m-1)
+    #id2 = 2:m
+    #dmat[cbind(id1, id1)] = 1
+    #dmat[cbind(id1, id2)] = -1
   }
   
   # second order
   if (q == 2) {
-    # for (i in 3:m) {
-    #   dmat[i-2, i-2] = 1; dmat[i-2, i-1] = -2; dmat[i-2, i] = 1
-    # }
-    id1 = 1:(m-2)
-    id2 = 2:(m-1)
-    id3 = 3:m
-    dmat[cbind(id1, id1)] = 1
-    dmat[cbind(id1, id2)] = -2
-    dmat[cbind(id1, id3)] = 1
+    for (i in 3:m) {
+      dmat[i-2, i-2] = 1; dmat[i-2, i-1] = -2; dmat[i-2, i] = 1
+    }
+    #id1 = 1:(m-2)
+    #id2 = 2:(m-1)
+    #id3 = 3:m
+    #dmat[cbind(id1, id1)] = 1
+    #dmat[cbind(id1, id2)] = -2
+    #dmat[cbind(id1, id3)] = 1
   }
   
   # third-order
   if (q == 3) {
-    # for (i in 4:m) {
-    #   dmat[i-3, i-3] = 1; dmat[i-3, i-2] = -3; dmat[i-3, i-1] = 3; dmat[i-3, i] = -1
-    # }
-    id1 = 1:(m-3)
-    id2 = 2:(m-2)
-    id3 = 3:(m-1)
-    id4 = 4:m
-    dmat[cbind(id1, id1)] = 1
-    dmat[cbind(id1, id2)] = -3
-    dmat[cbind(id1, id3)] = 3
-    dmat[cbind(id1, id4)] = -1
+    for (i in 4:m) {
+      dmat[i-3, i-3] = 1; dmat[i-3, i-2] = -3; dmat[i-3, i-1] = 3; dmat[i-3, i] = -1
+    }
+    # id1 = 1:(m-3)
+    # id2 = 2:(m-2)
+    # id3 = 3:(m-1)
+    # id4 = 4:m
+    # dmat[cbind(id1, id1)] = 1
+    # dmat[cbind(id1, id2)] = -3
+    # dmat[cbind(id1, id3)] = 3
+    # dmat[cbind(id1, id4)] = -1
   }
   
   # fourth-order (new)
   if (q == 4) {
     dm3 = matrix(0, nrow = (m - 3), ncol = m)
-    #  third-order
-    # for (i in 4:m) {
-    #   dm3[i-3, i-3] = 1; dm3[i-3, i-2] = -3; dm3[i-3, i-1] = 3; dm3[i-3, i] = -1
-    # }
+    #third-order
+    for (i in 4:m) {
+      dm3[i-3, i-3] = 1; dm3[i-3, i-2] = -3; dm3[i-3, i-1] = 3; dm3[i-3, i] = -1
+    }
     
-    id1 = 1:(m-3)
-    id2 = 2:(m-2)
-    id3 = 3:(m-1)
-    id4 = 4:m
-    dm3[cbind(id1, id1)] = 1
-    dm3[cbind(id1, id2)] = -3
-    dm3[cbind(id1, id3)] = 3
-    dm3[cbind(id1, id4)] = -1
+    # id1 = 1:(m-3)
+    # id2 = 2:(m-2)
+    # id3 = 3:(m-1)
+    # id4 = 4:m
+    # dm3[cbind(id1, id1)] = 1
+    # dm3[cbind(id1, id2)] = -3
+    # dm3[cbind(id1, id3)] = 3
+    # dm3[cbind(id1, id4)] = -1
     
     dm1 = matrix(0, nrow = (m - 4), ncol = (m - 3))
-    # for(i in 2:(m - 3)){
-    #   dm1[i-1, i-1] = 1; dm1[i-1, i] = -1
-    # }
-    # 
-    id1 = 1:(m - 4)
-    id2 = 2:(m - 3)
-    dm1[cbind(id1, id1)] = 1
-    dm1[cbind(id1, id2)] = -1
+    for(i in 2:(m - 3)){
+      dm1[i-1, i-1] = 1; dm1[i-1, i] = -1
+    }
+    
+    # id1 = 1:(m - 4)
+    # id2 = 2:(m - 3)
+    # dm1[cbind(id1, id1)] = 1
+    # dm1[cbind(id1, id2)] = -1
     
     dmat = dm1 %*% dm3
   }
@@ -1543,6 +2253,11 @@ makeamat_1D = function(shp = 9, spl_ord = 3L, kts, x, x1, xn){
     #x1_add = splines::splineDesign(knots = c(x1, x1, kts, xn, xn), x = x1, ord = spl_ord, derivs = 1, outer.ok = TRUE)
     #xn_add = splines::splineDesign(knots = c(x1, x1, kts, xn, xn), x = xn, ord = spl_ord, derivs = 1, outer.ok = TRUE)
     amat = Reduce(rbind, lapply(kts, function(e){bcsplsecder(x, e, knots = kts)}))
+    # amat = NULL
+    # for(kti in kts) {
+    #   ami = bcsplsecder(x, kti, knots = kts)
+    #   amat = rbind(amat, ami)
+    # }
     x1_add = bcsplfirderi(x1, knots = kts, xmin = x1, xmax = xn)
     xn_add = bcsplfirderi(xn, knots = kts, xmin = x1, xmax = xn)
   }
@@ -1568,15 +2283,15 @@ makeamat_1D = function(shp = 9, spl_ord = 3L, kts, x, x1, xn){
 
 #######################################################################################
 #1D amat for xmat'beta
-#used when we have wps; singular problem; use_constreg=T
+#2D amat when we have wps; singular problem; use_constreg=TRUE
 #######################################################################################
-makeamat_1D_param = function(shp = c(1, 1), parametric = "linear", x1=NULL, xn=NULL){
+makeamat_param = function(shp = c(1, 1), parametric = "linear", x1=NULL, xn=NULL){
   awmat = NULL
   if(length(shp) == 1){
     sgn = 1
-    #use 1,2,3,4; don't want to add another attribute in s.incr; shp - 8; no monotone+convex yet
+    #use 1,2,3,4; don't want to add another attribute in s.incr; shp - 8
     shp = shp - 8
-    if(sgn %in% c(2, 4)){
+    if(shp %in% c(2, 4)){
       sgn = -1
     }
     
@@ -1585,33 +2300,44 @@ makeamat_1D_param = function(shp = c(1, 1), parametric = "linear", x1=NULL, xn=N
         awmat = matrix(0, nrow=1, ncol=2)
         awmat[1, 2] = 1
         awmat = sgn * awmat
-      }
+      } #else {
+      #awmat = matrix(0, nrow=1, ncol=2) #avoid error in test.fit when do awmat[,-1]
+      #}
+      
+      #unconstrained: call lm
       if(shp %in% c(3, 4)){
-        awmat = matrix(0, nrow=1, ncol=3)
-        awmat[1, 3] = 1
-        awmat = sgn * awmat
+        awmat = matrix(0, nrow=1, ncol=2)
       }
       
-      #incr.conv 5
-      if(shp == 5){
-        x1_add = c(0, 1, 2*x1)
-        awmat = rbind(awmat, x1_add)
+      #incr.conv 5 | incr.conc 6
+      if(shp %in% c(5, 6)){
+        awmat = matrix(0, nrow=1, ncol=2)
+        awmat[1, 2] = 1
       }
+      
+      #decr.conv 7 | decr.conc 8
+      if(shp %in% c(7, 8)){
+        awmat = matrix(0, nrow=1, ncol=2)
+        awmat[1, 2] = -1
+      }
+      
       #incr.conc 7
-      if(shp == 7){
-        xn_add = c(0, 1, 2*xn)
-        awmat = rbind(awmat, xn_add)
-      }
+      # if(shp == 7){
+      #   xn_add = c(0, 1, 2*xn)
+      #   awmat = rbind(awmat, xn_add)
+      # }
+      
       #decr.conv 6
-      if(shp == 6){
-        xn_add = c(0, 1, 2*xn)
-        awmat = rbind(awmat, -xn_add)
-      }
+      # if(shp == 6){
+      #   xn_add = c(0, 1, 2*xn)
+      #   awmat = rbind(awmat, -xn_add)
+      # }
+      
       #decr.conc 8
-      if(shp == 8){
-        x1_add = c(0, 1, 2*x1)
-        awmat = rbind(awmat, -x1_add)
-      }
+      # if(shp == 8){
+      #   x1_add = c(0, 1, 2*x1)
+      #   awmat = rbind(awmat, -x1_add)
+      # }
     }
     
     if(parametric == "quadratic") {
@@ -1632,33 +2358,93 @@ makeamat_1D_param = function(shp = c(1, 1), parametric = "linear", x1=NULL, xn=N
       
       #incr.conv 5
       if(shp == 5){
+        awmat = matrix(0, nrow=1, ncol=3)
+        awmat[1, 3] = 1
         x1_add = c(0, 1, 2*x1)
         awmat = rbind(awmat, x1_add)
       }
-      #incr.conc 7
-      if(shp == 7){
+      #incr.conc 6
+      if(shp == 6){
+        awmat = matrix(0, nrow=1, ncol=3)
+        awmat[1, 3] = 1
+        awmat = -awmat
         xn_add = c(0, 1, 2*xn)
         awmat = rbind(awmat, xn_add)
       }
-      #decr.conv 6
-      if(shp == 6){
+      #decr.conv 7
+      if(shp == 7){
+        awmat = matrix(0, nrow=1, ncol=3)
+        awmat[1, 3] = 1
         xn_add = c(0, 1, 2*xn)
         awmat = rbind(awmat, -xn_add)
       }
       #decr.conc 8
       if(shp == 8){
+        awmat = matrix(0, nrow=1, ncol=3)
+        awmat[1, 3] = 1
+        awmat = -awmat
         x1_add = c(0, 1, 2*x1)
         awmat = rbind(awmat, -x1_add)
+      }
+    }
+    
+    #new: cubic
+    #no way to get increasing/decreasing when we have x^3
+    #only shapes are 3 or 4
+    #have to compute wmat and then get BW and AW
+    if(parametric == "cubic"){
+      if(shp %in% c(3, 5, 7)){
+        awmat = matrix(0, nrow=2, ncol=4)
+        awmat[1, 3] = 1
+        awmat[1, 4] = 3*x1
+        awmat[2, 3] = 1
+        awmat[2, 4] = 3*xn
+        
+        #incr.conv 5
+        if(shp == 5){
+          x1_add = c(0, 1, 2*x1, 3*x1^2)
+          awmat = rbind(awmat, x1_add)
+        }
+        
+        #decr.conv 7
+        if(shp == 7){
+          xn_add = c(0, 1, 2*xn, 3*xn^2)
+          awmat = rbind(awmat, -xn_add)
+        }
+      } 
+      
+      if(shp %in% c(4, 6, 8)){
+        awmat = matrix(0, nrow=2, ncol=4)
+        awmat[1, 3] = 1
+        awmat[1, 4] = 3*x1
+        awmat[2, 3] = 1
+        awmat[2, 4] = 3*xn
+        awmat = -awmat
+        
+        #incr.conc 6
+        if(shp == 6){
+          xn_add = c(0, 1, 2*xn, 3*xn^2)
+          awmat = rbind(awmat, xn_add)
+        }
+        #decr.conc 8
+        if(shp == 8){
+          x1_add = c(0, 1, 2*x1, 3*x1^2)
+          awmat = rbind(awmat, -x1_add)
+        }
+      }
+      
+      if (shp %in% c(1, 2)){
+        awmat = matrix(0, nrow=1, ncol=4)
       }
     }
   }
   
   if(length(shp) == 2) {
     sgn = c(1, 1)
-    if(sgn[1] %in% c(2, 4)){
+    if(shp[1] %in% c(2, 4)){
       sgn[1] = -1
     }
-    if(sgn[2] %in% c(2, 4)){
+    if(shp[2] %in% c(2, 4)){
       sgn[2] = -1
     }
     #incr/decr
@@ -1670,7 +2456,7 @@ makeamat_1D_param = function(shp = c(1, 1), parametric = "linear", x1=NULL, xn=N
         awmat[2, ] = awmat[2, ] * sgn[2]
       }
       
-      if(parametric == "warped_plane"){
+      if(parametric == "warped_plane"){ #x1 and x2 are scaled to be within [0,1]
         awmat = matrix(0, nrow = 4, ncol = 4)
         awmat[1, 2] = 1 * sgn[1]
         awmat[2, c(2, 4)] = 1 * sgn[1]
@@ -1678,22 +2464,34 @@ makeamat_1D_param = function(shp = c(1, 1), parametric = "linear", x1=NULL, xn=N
         awmat[4, 3:4] = 1 * sgn[2]
       }
     }
-    #convex/concave: not sure what to do with s.conc.conv
+    #convex/concave: not sure what to do with s.conc.conv: no such a shape!
+    #not implemented in testpar.fit 
+    #b0+b1x1+b2x2+b3x1^2+b4x2^2: should be quadratic not linear
+    #b0+b1x1+b2x2+b3x1^2+b4x2^2+b5x1x2
     if(shp[1] %in% c(3, 4) & shp[2] %in% c(3, 4)){
-      if(parametric == "linear"){
+      # if(parametric == "linear"){
+      #   awmat = matrix(0, nrow = 2, ncol = 5)
+      #   awmat[1, 3] = awmat[2, 5] = 1
+      #   awmat[1, ] = awmat[1, ] * sgn[1]
+      #   awmat[2, ] = awmat[2, ] * sgn[2]
+      # }
+      
+      #not test
+      if(parametric == "quadratic"){
         awmat = matrix(0, nrow = 2, ncol = 5)
-        awmat[1, 3] = awmat[2, 5] = 1
+        awmat[1, 4] = awmat[2, 5] = 1
         awmat[1, ] = awmat[1, ] * sgn[1]
         awmat[2, ] = awmat[2, ] * sgn[2]
       }
       
-      if(parametric == "warped_plane"){
-        awmat = matrix(0, nrow = 3, ncol = 6)
-        awmat[1, 3] = awmat[2, 5] = awmat[3, 6] = 1
-        awmat[1, ] = awmat[1, ] * sgn[1]
-        awmat[2, ] = awmat[2, ] * sgn[2]
-        awmat[3, ] = awmat[3, ] * sgn[3]
-      }
+      #should have another name....
+      # if(parametric == "warped_plane"){
+      #   awmat = matrix(0, nrow = 3, ncol = 6)
+      #   awmat[1, 3] = awmat[2, 5] = awmat[3, 6] = 1
+      #   awmat[1, ] = awmat[1, ] * sgn[1]
+      #   awmat[2, ] = awmat[2, ] * sgn[2]
+      #   awmat[3, ] = awmat[3, ] * sgn[3]
+      # }
     } 
   }
   return (awmat)
@@ -1842,6 +2640,7 @@ makeamat_nonadd = function(k1, k2, shp_pr){
     }
     if(shp_pr[2] == 7) {amat[(ed_dim1+1):irow, ] = -amat[(ed_dim1+1):irow, ]}
   }
+  
   return (amat)
 }
 
@@ -1855,8 +2654,6 @@ makeamat_nonadd = function(k1, k2, shp_pr){
                            arp = FALSE, p = 1, phi = NULL, covmat=NULL)
 {
   muhat0 = etahat0
-  cicfamily = CicFamily(family)
-  ysim.fun = cicfamily$ysim.fun
   if(family$family != "gaussian"){
     muhat0 = family$linkinv(etahat0)
   }
@@ -1877,7 +2674,7 @@ makeamat_nonadd = function(k1, k2, shp_pr){
   ahatsim = anssim$ahat
   etah = dd %*% ahatsim
   dev1sim = anssim$dev
-  
+
   if(family$family == "gaussian"){
     #new:
     if(arp){
@@ -1951,68 +2748,51 @@ fuinv = function(n, phi, sig2hat = 1){
 #-------------------------------------------------
 #for testpar_tobe_in_cgam.R, ps is absorbed in dv
 #-------------------------------------------------
-fit.hypo = function(p = 0, dd, y, amat, bvec = NULL, dv = NULL, family = gaussian(link='identity'), ps = 0, arp = FALSE,...){
+fit.hypo = function(p = 0, dd, y, amat, bvec = NULL, dv = NULL, 
+                    wmat=NULL, family = gaussian(link='identity'), 
+                    ps = 0, arp = FALSE,...){
   wt.iter = ifelse(family$family == "gaussian", FALSE, TRUE)
   covmat = covmat_inv = phi = gamma = sigma2 = sighat = sig2hat_z = xtil = aic = pval.ts = NULL
-  cicfamily <- CicFamily(family)
-  llh.fun <- cicfamily$llh.fun
-  #linkfun <- cicfamily$linkfun
-  #etahat.fun <- cicfamily$etahat.fun
-  gr.fun <- cicfamily$gr.fun
-  wt.fun <- cicfamily$wt.fun
   n = length(y)
-  #print (wt.fun)
-  #zvec.fun <- cicfamily$zvec.fun
-  #muhat.fun <- cicfamily$muhat.fun
-  #ysim.fun <- cicfamily$ysim.fun
+  #print (n)
   if(!wt.iter){
     qv0 = crossprod(dd)
-    #new:
-    #qv0 = Matrix::crossprod(dd)
-    
+    #print (head(dd))
     if(!is.null(dv)){ #only for H1
       qv = qv0 + dv #ps is absorbed in dv
     } else {
-      qv = qv0
+      qv = qv0 # + 1e-4 * diag(nrow(qv0))
     }
-    
-    # if(!is.null(dv)){ #only for H1
-    #   #qv = qv0 + ps*dv
-    #   qv = qv0 + dv #ps is absorbed in dv
-    # }else if(is.null(dv) & ps > 0){#?make no sense
-    #   qv = qv0 + ps*dv
-    # }else{
-    #   qv = qv0
-    # }
-    
-    # if(ps > 0){
-    #   qv = qv0 + ps*dv
-    # } else {
-    #   qv = qv0
-    # }
-    
     cv = crossprod(dd, y)
     #new:
     #cv = Matrix::crossprod(dd, y)
+    #new:
+    if(all(amat == 0)){
+      ahat = solve(qv, cv)
+      face = integer(0)
+    } else {
+      #ans = qprog(qv, cv, amat, bvec)
+      #ahat = ans$thetahat
+      #face = ans$face
+      
+      ans = solve.QP(qv, cv, t(amat), bvec)
+      ahat = ans$solution
+      face = ans$iact
+    }
     
-    ans = qprog(qv, cv, amat, bvec)
-    ahat = ans$thetahat
-    face = ans$face
-    
-    # ans = solve.QP(qv, cv, t(amat), bvec)
-    # ahat = ans$solution
-    # face = ans$iact
+    #ans = solve.QP(qv, cv, t(amat), bvec)
+    #ahat = ans$solution
+    #face = ans$iact
     
     #new:
     #amat = Matrix::Matrix(amat, sparse = T)
     #ans = solve.QP(qv, cv, t(amat), bvec)
     #ahat = ans$solution
     #face = ans$iact
-    
     etahat = dd %*% ahat
     etahat = as.numeric(etahat)
     sse = sum((y - etahat)^2)
-    
+    #print (sse)
     #new:
     pval.ts = Box.test(y-etahat, lag = 1)$p.value
     if(arp & p > 0){
@@ -2037,7 +2817,7 @@ fit.hypo = function(p = 0, dd, y, amat, bvec = NULL, dv = NULL, family = gaussia
           iumat = diag(ncol(umat))
           uinv = forwardsolve(umat, iumat)
         } else if(p==1){
-          uinv = fuinv(n = n, phi=phi, sig2hat = (sig2hat/gamma[1])) #scaled Sigma mat with gamma[1]
+          uinv = fuinv(n = length(y), phi=phi, sig2hat = (sig2hat/gamma[1])) #scaled Sigma mat with gamma[1]
           #n = length(y)
           #uinv = diag(rep(1/sig2hat^.5, n))
           #uinv[1,1] = sqrt(1-phi^2)/sig2hat^.5
@@ -2051,26 +2831,25 @@ fit.hypo = function(p = 0, dd, y, amat, bvec = NULL, dv = NULL, family = gaussia
         qv0 = crossprod(xtil)
         #qv0 = Matrix::crossprod(xtil)
         
-        # if(!is.null(dv)){
-        #   #qv = qv0 + ps * dv
-        #   qv = qv0 + dv
-        # }else if(is.null(dv) & ps > 0){
-        #   qv = qv0 + ps*dv
-        # }else{qv = qv0}
-        
         if(!is.null(dv)){ #only for H1
           qv = qv0 + dv #ps is absorbed in dv
         } else {
           qv = qv0
         }
         
-        ans = qprog(qv, cv, amat, bvec)
-        ahat = ans$thetahat
-        face = ans$face
-        
-        #ans = solve.QP(qv, cv, t(amat), bvec)
-        #ahat = ans$solution
-        #face = ans$iact
+        #new:
+        if(all(amat == 0)){
+          ahat = solve(qv, cv)
+          face = integer(0)
+        } else {
+          #ans = qprog(qv, cv, amat, bvec)
+          #ahat = ans$thetahat
+          #face = ans$face
+          
+          ans = solve.QP(qv, cv, t(amat), bvec)
+          ahat = ans$solution
+          face = ans$iact
+        }
         
         #new:
         #ans = solve.QP(qv, cv, t(amat), bvec)
@@ -2092,12 +2871,11 @@ fit.hypo = function(p = 0, dd, y, amat, bvec = NULL, dv = NULL, family = gaussia
       sig2hat = n/(n-p)*sig2hat
     }
   } else {
-    #n = length(y)
+    n = length(y)
     muhat = rep.int(1/2, n)
     etahat = family$linkfun(muhat)
     w = 1:n*0 + 1
     gr = gr.fun(y, etahat, weights = w, fml = family$family)
-    #print (wt.fun)
     wt = wt.fun(y, etahat, n, weights = w, fml = family$family)
     cv = crossprod(dd, (wt * etahat - gr))
     qv0 = crossprod(dd)
@@ -2107,22 +2885,20 @@ fit.hypo = function(p = 0, dd, y, amat, bvec = NULL, dv = NULL, family = gaussia
     } else {
       qv = qv0
     }
-    
-    # if(!is.null(dv)){
-    #   #dv = crossprod(dmat)
-    #   #qv = qv0 + ps*dv
-    #   qv = qv0 + dv
-    # } else if(is.null(dv) & ps > 0){
-    #   qv = qv0 + ps*dv
-    # } else {qv = qv0}
-    
-    # if(ps > 0) {
-    #   qv = qv0 + ps*dv
-    # }else {qv = qv0}
-    
-    ans = qprog(qv, cv, amat, bvec)
-    ahat = ans$thetahat
-    face = ans$face
+
+    #new:
+    if(all(amat == 0)){
+      ahat = solve(qv, cv)
+      face = integer(0)
+    } else {
+      #ans = qprog(qv, cv, amat, bvec)
+      #ahat = ans$thetahat
+      #face = ans$face
+      
+      ans = solve.QP(qv, cv, t(amat), bvec)
+      ahat = ans$solution
+      face = ans$iact
+    }
     
     # ans = solve.QP(qv, cv, t(amat), bvec)
     # ahat = ans$solution
@@ -2135,6 +2911,7 @@ fit.hypo = function(p = 0, dd, y, amat, bvec = NULL, dv = NULL, family = gaussia
     diff = 1
     nrep = 0
     sm = 1e-5
+    #sm = 1e-8
     while (diff > sm & nrep < 20){
       oldmu = muhat
       nrep = nrep + 1
@@ -2145,22 +2922,25 @@ fit.hypo = function(p = 0, dd, y, amat, bvec = NULL, dv = NULL, family = gaussia
       dd2 = apply(dd, 2, function(ddi) ddi * sqrt(wt))
       qv0 = crossprod(dd2)
       
-      # if(!is.null(dv)){
-      #   #qv = qv0 + ps*dv
-      #   qv = qv0 + dv
-      # } else if(is.null(dv) & ps > 0){
-      #   qv = qv0 + ps*dv
-      # } else {qv = qv0}
-      
       if(!is.null(dv)){ #only for H1
         qv = qv0 + dv #ps is absorbed in dv
       } else {
         qv = qv0
       }
       
-      ans = qprog(qv, cv, amat, bvec)
-      ahat = ans$thetahat
-      face = ans$face
+      #new:
+      if(all(amat == 0)){
+        ahat = solve(qv, cv)
+        face = integer(0)
+      } else {
+        #ans = qprog(qv, cv, amat, bvec)
+        #ahat = ans$thetahat
+        #face = ans$face
+        
+        ans = solve.QP(qv, cv, t(amat), bvec)
+        ahat = ans$solution
+        face = ans$iact
+      }
       
       # ans = solve.QP(qv, cv, t(amat), bvec)
       # ahat = ans$solution
@@ -2176,6 +2956,7 @@ fit.hypo = function(p = 0, dd, y, amat, bvec = NULL, dv = NULL, family = gaussia
     #want negative log-like
     llh = llh.fun(y, muhat, etahat, phihat=NULL, n, weights=NULL, fml = family$family) * n / 2
   }
+  #print (sse)
   dev = ifelse(wt.iter, llh, sse)
   #----------------------------------------------------------------------------
   #get obs edf and sig2hat
@@ -2189,14 +2970,18 @@ fit.hypo = function(p = 0, dd, y, amat, bvec = NULL, dv = NULL, family = gaussia
   
   atil = amat %*% uinv
   xw_uinv = dd %*% uinv
+  
   nc_am = NCOL(amat)
   imat = diag(nc_am)
-  #if (all(face == 0) | length(face) == 0) {
-  if(length(face) == 0) {
+  if (all(face == 0) | length(face) == 0) {
+    #if(length(face) == 0) {
     pmat = imat
   } else {
     dp = -t(atil)
     smat = dp[, face, drop = FALSE]
+    #new: avoid solve error
+    qr_smat = qr(smat)
+    smat = qr.Q(qr_smat)[, 1:(qr_smat$rank), drop = FALSE]
     for(ic in 1:NCOL(smat)){
       ic_norm = crossprod(smat[,ic])
       smat[,ic] = smat[,ic]/sqrt(ic_norm[1,1])
@@ -2232,23 +3017,33 @@ fit.hypo = function(p = 0, dd, y, amat, bvec = NULL, dv = NULL, family = gaussia
   if(!is.null(dv)){
     #bigp_un = dd %*% solve(qv0 + ps * dv, t(dd))
     if(is.null(covmat_inv)){
-      bigp_un = dd %*% solve(qv0 + dv, t(dd))
+      bigp_un = dd %*% solve(qv, t(dd))
     } else {
       #for arp qv0 is t(dd) * Rinv * dd
-      bigp_un = dd %*% solve(qv0 + dv, t(dd)) %*% covmat_inv
+      bigp_un = dd %*% solve(qv, t(dd)) %*% covmat_inv
     }
   } else {
     if(is.null(covmat_inv)){
-      bigp_un = dd %*% solve(qv0, t(dd))
+      #bigp_un = dd %*% solve(qv0, t(dd))
+      bigp_un = dd %*% MASS::ginv(qv0) %*% t(dd)
     } else {
-      bigp_un = dd %*% solve(qv0, t(dd)) %*% covmat_inv
+      #bigp_un = dd %*% solve(qv0, t(dd)) %*% covmat_inv
+      bigp_un = dd %*% MASS::ginv(qv0) %*% t(dd) %*% covmat_inv
     }
   }
   
   edfu_use = sum(diag(bigp_un))
   if(!wt.iter){
     sighat = sig2hat^.5
+    # if(!is.null(covmat_inv)){
+    #   aic = n*log(sig2hat*n)+2*(p+edf)
+    # }else{
+    #   aic = n*log(sig2hat*(n - 1 * edf))+2*(p+edf)
+    # }
+    #aic = n*log(sse) - n*log(n) + 2*(p + edf)
+    #if(!is.null(covmat_inv)){
     aic = n*log(sig2hat)+2*(p+edf)
+    #}
   }
   
   #mat1 is used for se of parametric covariates, same name as what is used in wps.fit
@@ -2264,6 +3059,11 @@ fit.hypo = function(p = 0, dd, y, amat, bvec = NULL, dv = NULL, family = gaussia
               sighat=sighat, edfu_use=edfu_use,
               covmat=covmat, covmat_inv=covmat_inv,
               phi=phi, mat1=mat1, pval.ts=pval.ts, sig2hat_z=sig2hat_z, aic=aic, gamma=gamma)
+  #rslt = list(etahat = etahat, dev = dev, ahat = ahat, face = face, edf = edf, edfs = edfs,
+  #            gcv = gcv, gcvs = gcv, edfu_use = edfu_use, sighat = sighat, covmat=covmat,
+  #            covmat_inv = covmat_inv,
+  #            qv = qv, phi = phi, gamma = gamma, sigma2 = sigma2,
+  #            ddtil = xtil)
   return (rslt)
 }
 
@@ -2274,7 +3074,10 @@ fit.hypo = function(p = 0, dd, y, amat, bvec = NULL, dv = NULL, family = gaussia
 {
   #if(is.null(covmat_inv)){
   qv = qv0 + pen * dv
+  #val = sum(diag(dd %*% ginv(qv, t(dd)))) - edfu * (.85)
+  #val = sum(diag(dd %*% solve(qv, t(dd)))) - edfu #edfu * (.8)
   val = sum(diag(dd %*% solve(qv, t(dd)))) - edfu * (.85)
+  #cat('uniroot: ', val, '\n')
   #val = sum(diag(dd %*% solve(qv) %*% t(dd))) - edfu
   #}else{
   #  bigp_un = dd %*% solve(t(dd) %*% covmat_inv %*% dd + pen * dv, t(dd)) %*% covmat_inv
@@ -2284,4 +3087,142 @@ fit.hypo = function(p = 0, dd, y, amat, bvec = NULL, dv = NULL, family = gaussia
   return (val)
 }
 
+#---------------------------------------------
+#gradient of hessian for binomial, poisson,etc
+#---------------------------------------------
+gr.fun <- function(y, etahat = NULL, weights = NULL, fml = object$family){
+  n <- length(y)
+  if (is.null(weights)) {
+    weights <- 1:n*0 + 1
+  }
+  w <- weights
+  if (fml == "poisson") {
+    #cut_id = etahat > 5
+    #if(sum(cut_id) == 0){
+    gr <- w * (exp(etahat) -  y)
+    #} else {
+    #  gr <- 1:n*0
+    #  gr[!cut_id] <- w[!cut_id] * (exp(etahat[!cut_id]) -  y[!cut_id])
+    #  gr[cut_id] <- w[cut_id] * (exp(5) -  y[cut_id])
+    #}
+    #gr <- w * (exp(etahat) -  y)
+  }
+  if (fml == "binomial") {
+    if (all(etahat == 0)) {
+      gr <- w * (1/2 - y)
+    } else {
+      gr <- 1:n*0
+      for (i in 1:n) {
+        if (etahat[i] > 100) {
+          gr[i] <- w[i] * (1 - y[i])
+        } else {gr[i] <- w[i] * (exp(etahat[i]) / (1 + exp(etahat[i])) - y[i])}
+      }
+    }
+  }
+  if (fml == "Gamma") {
+    gr <- w * (1 - y * exp(-etahat))
+  }
+  gr
+}
 
+#---------------------------------------------
+#2nd deriv of hessian for binomial, poisson,etc
+#---------------------------------------------
+wt.fun <- function(y, etahat = NULL, n = NULL, weights = NULL, fml = object$family){
+  if (is.null(weights)) {
+    weights <- 1:n*0 + 1
+  }
+  w <- weights
+  if (fml == "poisson") {
+    wt <-  w * exp(etahat)
+  }
+  if (fml == "binomial") {
+    if (all(etahat == 0)){
+      #wt <- 1:n*0 + 1/4
+      wt <- w * (1:n*0 + 1/4)
+    } else {
+      wt <- 1:n*0
+      for (i in 1:n) {
+        if (etahat[i] > 100) {
+          wt[i] <- 0
+        } else {
+          wt[i] <- w[i] * exp(etahat[i]) / ((1 + exp(etahat[i]))^2)
+        }
+      }
+    }
+  }
+  if (fml == "gaussian") {
+    wt <- w # (1:n*0 + 1) / w
+  }
+  if (fml == "Gamma") {
+    wt <-  w * y * exp(-etahat)
+  }
+  wt <- as.vector(wt)
+  wt
+}
+
+llh.fun <- function(y, muhat = NULL, etahat = NULL, phihat = NULL, n = NULL, weights = NULL, fml = object$family){
+  sm <- 1e-7
+  #sm <- 1e-5
+  if (is.null(weights)) {
+    weights <- 1:n*0 + 1
+  }
+  w <- weights
+  #new: avoid Inf
+  if (fml == "poisson") {
+    llh <- 2 * sum(w[w!=0] * (muhat[w!=0] - y[w!=0] * etahat[w!=0])) / n
+  }
+  if (fml == "binomial") {
+    llh <- 0
+    if (all(0 <= y) & all(y <= 1)) {
+      for (i in 1:n) {
+        if (muhat[i] > 0 & muhat[i] < 1) {
+          llh <- llh + w[i] * (y[i] * log(muhat[i]) + (1 - y[i]) * log(1 - muhat[i]))
+        }
+      }
+      llh <- (-2/n) * llh
+    } else {
+      stop ("y values must be 0 <= y <= 1!")
+    }
+  }
+  if (fml == "gaussian") {
+    if (all(w == 1)) {
+      llh <- log(sum((y - etahat)^2))
+    } else {
+      llh <- log(sum(w[w!=0] * (y[w!=0] - etahat[w!=0])^2)) - sum(log(w[w!=0])) / n
+    }
+  }
+  if (fml == "Gamma") {
+    vuhat <- 1 / phihat
+    #print (vuhat)
+    #llh <- 2 * sum(w[w!=0] * (etahat[w!=0] + y[w!=0] * exp(-etahat[w!=0]))) / n
+    llh <- 2 / n * (vuhat * sum(w[w!=0] * (etahat[w!=0] + y[w!=0] * exp(-etahat[w!=0]))) + n * (log(gamma(vuhat)) - vuhat * log(vuhat)) - (vuhat-1) * sum(log(y)))
+    #print (llh)
+  }
+  llh
+}
+
+#different from cgam, used to simulate y when computing mixture-beta dist
+ysim.fun <- function(n, mu0 = NULL, fml = object$family, shp0 = NULL, sd = NULL, phi = NULL) {
+  if (fml == "binomial") {
+    #ysim <- 1:n*0
+    #ysim[runif(n) < .5] <- 1
+    ysim <- rbinom(n, size = 1, prob = mu0)
+  }
+  if (fml == "poisson") {
+    if (!is.null(mu0)) {
+      ysim <- rpois(n, mu0)
+    }
+  }
+  if (fml == "gaussian") {
+    if(!is.null(phi)){
+      ysim <- mu0 + arima.sim(n = n, list(ar = phi), sd = sd)
+    }else{
+      ysim <- mu0 + rnorm(n, sd = sd)
+    }
+  }
+  if (fml == "Gamma") {
+    ysim <- rgamma(n, shape=1)
+  }
+  ysim
+}
