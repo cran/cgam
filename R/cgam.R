@@ -299,7 +299,7 @@ cgam <- function(formula, cic = FALSE, nsim = 100, family = gaussian, cpar = 1.5
   			             ms0 = ans$ms2, phihat = ans$phihat, pvs = ans$pvs,
   			             s.edf = ans$s.edf, bstats = ans$bstats, pvsz = ans$pvsz,
   			             z.edf = ans$z.edf, fstats = ans$fstats, vh = ans$vh, kts.var = ans$kts.var,
-  			             sc = ans$sc, sc_y = sc_y)
+  			             sc = ans$sc, sc_y = sc_y, varlist = ans$varlist)
   			rslt$call <- cl
   			class(rslt) <- "cgam"
 		} else if (any(grepl("warp", labels, fixed = TRUE)) & !any(grepl("tri", labels, fixed = TRUE))) {
@@ -1208,6 +1208,8 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
 		rslt$ucoefs <- ucoefs
 		rslt$tcoefs <- tcoefs
 		rslt$dfmean <- dfmean
+		#new: need this in plot.cgam
+		rslt$varlist <- varlist
 		#rslt$llh <- llh
 		#if (nsim > 0) {
 		if (!is.null(dfmean)) {
@@ -4248,7 +4250,9 @@ predict.cgam = function(object, newdata, interval = c("none", "confidence", "pre
       #first column shows sector; second column shows times
       for (iloop in 1:nloop) {
         ysim = muhat0 + rnorm(n)*sighat
-        ysim = ysim * sqrt(prior.w)
+        #ysim = ysim * sqrt(prior.w)
+        #new: fixed the bug:
+        ysim = ysim * sqrt(wvec)
         ans = coneB(ysim, t(spl), zmat, face = face)
         cf = round(ans$coefs[(nv+1):(m_acc+nv)], 10)
         sec = 1:m_acc*0
@@ -5561,6 +5565,214 @@ makedelta_tri = function(x1, x2, m1 = 0, m2 = 0, k1 = NULL, k2 = NULL, trimat = 
     }
     delta = cbind(delta, dmat)
     return (delta)
+}
+
+###########################################
+#new 2025: plot etacomps                  #
+###########################################
+plot.cgam <- function(x,...)
+{
+  object <- x
+  layout_for_cgam <- function(n_plots, pages = 1) {
+    ppp <- ceiling(n_plots / max(pages, 1L))
+    nr  <- floor(sqrt(ppp))
+    nc  <- ceiling(ppp / nr)
+    return (c(nr, nc))
+  }
+  #need varlst from cgam
+  np <- object$d0
+  zmat <- object$zmat
+  capk <- NCOL(zmat) # exclude 1
+  varlist <- object$varlist
+  dd <- t(object$bigmat)
+  #dd <- dd[, -1] # exclude 1
+  xmat <- object$xmat_add
+  etacomps <- object$etacomps
+  shps <- object$shapes
+  xnms <- object$xnms
+  # if(onlySelect){
+  #   kept <- !shps %in% c(0, 17)
+  #   xmat <- xmat[, kept, drop = FALSE]
+  #   etacomps <- etacomps[kept, ,drop = FALSE]
+  #   shps <- shps[kept]
+  #   xnms <- xnms[kept]
+  # }
+  p <- ncol(xmat)
+  extras <- list(...)
+  if(!exists("pages", where = extras)){
+    pages <- p
+  } else {
+    pages <- extras$pages
+  }
+  if(pages == 1){
+    oldpar <- par(mfrow = layout_for_cgam(n_plots = p, pages = pages))
+  }
+  
+  #if(ci){
+  cov_beta <- vcov(object)
+  #np >= 1 because always have 1 vector
+  #if(is.numeric(np) & np > 0){
+  #  cov_beta <- cov_beta[-c(1:np), -c(1:np)]
+  #}
+  #} else {
+  #  cov_beta <- NULL
+  #}
+  
+  ncon <- 1 #use to index conv/conc
+  for (k in 1:p) {
+    shp_k_char <- ShapeToChar_Classo(shps[k])
+    shp_k <- shps[k]
+    eta_k <- etacomps[k, ]
+    ps_k <- which(varlist == k)
+    #if(capk > 0){
+    ps_k <- ps_k + np
+    #}
+    if(!is.null(cov_beta)){
+      if(shps[k] > 2 & shps[k] < 5 | shps[k] > 10 & shps[k] < 13){
+        ps_k <- c(1 + capk + ncon, ps_k)
+        ncon <- ncon + 1
+      }
+      cov_k <- cov_beta[ps_k, ps_k]
+      dd_k <- dd[, ps_k, drop = FALSE]
+      sd_eta_k <- diag(dd_k %*% cov_k %*% t(dd_k))^.5
+      lwr_eta_k <- eta_k - 2 * sd_eta_k 
+      upp_eta_k <- eta_k + 2 * sd_eta_k 
+      range_eta <- range(lwr_eta_k, upp_eta_k, na.rm = TRUE)
+    } else {
+      range_eta <- range(eta_k, na.rm = TRUE)
+    }
+    padding <- 0.05 * diff(range_eta)
+    ylim_use <- c(range_eta[1] - padding, range_eta[2] + padding)
+    #--------------------------
+    #vis each component 
+    x_k <- xmat[, k]
+    ord_k <- order(x_k)
+    xnm_k <- xnms[k]
+    plot(x_k[ord_k], eta_k[ord_k], xlab = bquote(~ .(xnm_k)), 
+         ylab = bquote(hat(eta)[.(k)]), ylim = ylim_use, 
+         #main = bquote(~ hat(eta)[.(k)] ~ "vs" ~ .(xnm_k) ~ "(" * .(shp_k_char) * ")"),
+         #cex.main = .85,
+         main = bquote(~ .(shp_k_char)),
+         type = "l", lwd = 1)
+    
+    if(!exists("rug", where = extras)){
+      rug <- TRUE
+    } else {
+      rug <- extras$rug
+    }
+    
+    if(rug){
+      rug(x_k, ticksize = 0.03, side = 1)
+    }
+    
+    if(!is.null(cov_beta)){
+      lines(x_k[ord_k], lwr_eta_k[ord_k], col = 1, lty = 2)
+      lines(x_k[ord_k], upp_eta_k[ord_k], col = 1, lty = 2)
+    }
+    if(pages > 1){
+      readline("Press <Enter> to continue...")
+    }
+  }
+  if(pages == 1){
+    on.exit(par(oldpar))  # restores original settings
+  }
+}
+
+###########################################
+#new 2025: vcov for cgam coefs            #
+###########################################
+vcov.cgam <- function(object,...)
+{
+  dd <- t(object$bigmat)
+  n <- nrow(dd)
+  m <- ncol(dd)
+  np <- object$d0 #dim of null space
+  w <- object$wt
+  family <- object$family
+  y <- object$y
+  muhat0 <- object$muhat
+  bh <- coef(object)
+  etahat <- object$etahat
+  muhat <- object$muhat
+  wt.iter <- TRUE
+  sighat <- NULL
+  if(family$family == "gaussian"){
+    wt.iter <- FALSE
+    yw <- y * sqrt(w)
+    muhatw <- muhat * sqrt(w)
+    #diff from cgam, use 1.2 here
+    sighat <- sqrt(sum((yw - muhatw)^2) / (n - 1.2*object$edf)) 
+  }
+  amat <- diag(m - np)
+  zerom <- matrix(0, nrow = nrow(amat), ncol = np)
+  amat <- cbind(zerom, amat)
+  nsim <- 100
+  #cmat is for beta
+  imat <- diag(m)
+  extras <- list(...)
+  if(exists("parallel", where = extras)){
+    parallel <- extras$parallel
+  }else{
+    parallel <- FALSE
+  }
+  if(parallel){
+    tot_cores <- parallel::detectCores() - 2
+    cmat_lst <- parallel::mclapply(1:nsim, .compute_vcov_cgam, dd=dd, w=w, 
+                                   amat=amat, bh=bh, etahat=etahat, muhat=muhat, 
+                                   imat=imat, sighat=sighat,
+                                   wt.iter=wt.iter, mc.cores=tot_cores)
+  } else {
+    cmat_lst <- lapply(1:nsim, .compute_vcov_cgam, dd=dd, w=w, 
+                       amat=amat, bh=bh, etahat=etahat, muhat=muhat, 
+                       imat=imat, sighat=sighat, wt.iter=wt.iter)
+  }
+  cmat <- Reduce(`+`, cmat_lst) / nsim
+  if(!wt.iter){
+    cmat <- cmat * sighat^2
+  }
+  return (cmat)
+}
+
+.compute_vcov_cgam <- function(isim, dd, w, amat, bh, etahat, muhat, imat, sighat=NULL, wt.iter=FALSE)
+{
+  n <- nrow(dd)
+  m <- ncol(dd)
+  # for(i in 1:m){
+  #   dd[, i] <- dd[, i] * sqrt(w)
+  # }
+  if(!is.null(w)){
+    dd <- sweep(dd, MARGIN = 1, sqrt(w), FUN = '*')
+  }
+  umat <- chol(crossprod(dd))
+  uinv <- solve(umat)
+  atil <- amat %*% uinv
+  if(!wt.iter){
+    zsim <- muhat + rnorm(n, sd = sighat)
+    if(!is.null(w)){
+      zsim <- zsim * sqrt(w)
+    }
+  } else {
+    thhat <- dd %*% bh #dd includes weights
+    shat <- 1 
+    zsim <- thhat + rnorm(n)*shat
+  }
+  zsimtil <- t(uinv) %*% t(dd) %*% zsim
+  asim <- coneA(zsimtil, atil)
+  face <- asim$face
+  ## get the matrix wm: cols span row space orthogonal to rows of A_J^c
+  rw <- round(atil %*% asim$thetahat, 6) == 0
+  if(sum(rw) == 0){
+    #if(!any(rw)){
+    pjmat <- imat
+  } else {
+    ajc <- atil[rw, , drop = FALSE]
+    aqr <- qr(t(ajc))
+    wm <- qr.Q(aqr)[, 1:aqr$rank, drop = FALSE]
+    pjmat <- imat - tcrossprod(wm)
+  }
+  #cmat <- cmat + uinv %*% pjmat %*% t(uinv)/nloop
+  cmat_i <- uinv %*% pjmat %*% t(uinv)
+  return (cmat_i)
 }
 
 ###########################################
@@ -11174,6 +11386,64 @@ rslt$GA = FALSE
 rslt$vzcat = vzcat
 #class(rslt) = "cgam"
 return (rslt)
+}
+
+##############################
+#tranform shapes back to char
+##############################
+ShapeToChar_Classo = function(shp, tag = "x") {
+  #if (max(shp) > 16 | min(shp) < 0) {
+  #	stop ('No such a shape! A shape value must be between 0 and 16.')
+  #}
+  if (tag == "x") {
+    if (shp == 0) {
+      #shp = 18
+      shp = 19 #this should include z too...need to add tag later
+    }
+    switch(shp,
+           #cs1 = {ch = 'incr'},
+           #need to change later:
+           cs1 = {ch = 'in the model'},
+           cs2 = {ch = 'decreasing'},
+           cs3 = {ch = 'convex'},
+           cs4 = {ch = 'concave'},
+           cs5 = {ch = 'increasing convex'},
+           cs6 = {ch = 'decreasing convex'},
+           cs7 = {ch = 'increasing concave'},
+           cs8 = {ch = 'decreasing concave'},
+           cs9 = {ch = 'smooth increasing'},
+           cs10 = {ch = 'smooth deceasing'},
+           cs11 = {ch = 'smooth convex'},
+           cs12 = {ch = 'smooth concave'},
+           cs13 = {ch = 'smooth increasing convex'},
+           cs14 = {ch = 'smooth increasing concave'},
+           cs15 = {ch = 'smooth decreasing convex'},
+           cs16 = {ch = 'smooth decreasing concave'},
+           #cs17 = {ch = 's'},
+           cs17 = {ch = 'flat'},
+           cs18 = {ch = 'linear'},
+           cs19 = {ch = 'out of the model'} 
+           #{print ('No such a shape')}
+    )
+  } else if (tag == "z") {
+    if (shp == 0) {
+      shp = 2
+    }
+    switch(shp,
+           cs1 = {ch = 'in'},
+           cs2 = {ch = 'out'}
+    )
+  } else if (tag == "tree") {
+    if (shp == 0) {
+      shp = 3
+    }
+    switch(shp,
+           cs1 = {ch = 'tree'},
+           cs2 = {ch = 'unordered'},
+           cs3 = {ch = 'out'}
+    )
+  }
+  return (ch)
 }
 
 ##############################
