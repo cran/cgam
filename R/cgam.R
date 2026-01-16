@@ -889,7 +889,7 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
                         if (any(shapes >= 9 & shapes <= 17)) {
                             for (i in 1:capl) {
                               if (shapes[i] >= 1 & shapes[i] <= 17 ){
-                                  ansi <- cgam.pv(y=y, xmat=xmat, zmat=zmat, shapes=shapes, delta=delta, np=np, capms=capms, numknotsuse=numknotsuse, varlist=varlist, family=family, weights=weights, test_id=i, nsims=100)
+                                  ansi <- cgam.pv(y=y, xmat=xmat, zmat=zmat, shapes=shapes, delta=delta, np=np, capms=capms, numknotsuse=numknotsuse, varlist=varlist, family=family, weights=weights, test_id=i, nsims=100, skip=FALSE)
                                   pvi <- ansi$pv
                                   edfi <- 1.5*sum(xcoefs[varlist == i] > 1e-8)
                                   bstati <- ansi$bstat
@@ -1577,11 +1577,11 @@ CicFamily <- function(object) {
       if(!is.null(phi)){
         ysim <- mu0 + arima.sim(n = n, list(ar = phi), sd = sd)
       }else{
-        if(is.null(mu0)){
+        #if(is.null(mu0)){
           ysim <- rnorm(n)
-        } else {
-          ysim <- mu0 + rnorm(n)
-        }
+        #} else {
+        #  ysim <- mu0 + rnorm(n)
+        #}
       }
     }
     if (fml == "Gamma") {
@@ -2126,18 +2126,18 @@ tree.fun <- function(x, pl = NULL)
 {
   #if (pl %in% x) {
   if (is.null(pl)) {
-	if (is.numeric(x)) {
-		if (0%in%x) {
-			pl <- 0
-		} else {pl <- min(x)}
-	} else {
-		xu <- unique(x)
-		pl <- xu[1]
-	}
+  	if (is.numeric(x)) {
+  		if (0%in%x) {
+  			pl <- 0
+  		} else {pl <- min(x)}
+  	} else {
+  		xu <- unique(x)
+  		pl <- xu[1]
+  	}
   } else {
-	if (!(pl%in%x)) {
-		stop ("placebo level is not a level of the tree variable!")
-	}
+  	if (!(pl%in%x)) {
+  		stop ("placebo level is not a level of the tree variable!")
+  	}
   }
   pos <- x %in% pl
   xu <- unique(x)
@@ -2145,8 +2145,8 @@ tree.fun <- function(x, pl = NULL)
   delta <- matrix(0, nrow = (length(xu) - 1), ncol = length(x))
   for (i in 1:nrow(delta)) {
   	xi = nx[i]
-	delta[i, !pos & x %in% xi] <- 1
-	pos <- pos | x %in% xi
+	  delta[i, !pos & x %in% xi] <- 1
+	  pos <- pos | x %in% xi
   }
   #} else {stop ("placebo level is not a level of the tree variable!")}
   attr(delta, "shape") <- "tree"
@@ -2600,376 +2600,427 @@ umbrella.fun <- function(x)
 #find delta for a specific predictor x and a shape#
 ###################################################
 makedelta = function(x, sh, numknots = 0, knots = 0, space = "E", suppre = FALSE, interp = FALSE) {
-#if (!interp) {
-#x = (x - min(x)) / (max(x) - min(x))
-#}
-	n = length(x)
-# find unique x values
-#round(x,8) will make 0 edge in amat!
-	#xu = sort(unique(round(x, 8)))
-#new: center and scale to avoid numerical instabillity
-	xu = sort(unique(x))
-	n1 = length(xu)
-	sm = 1e-7
-	ms = NULL
-#  increasing or decreasing
-	if (sh < 3) {
-		amat = matrix(0, nrow = n1 - 1, ncol = n)
-		for (i in 1: (n1 - 1)) {
-			amat[i, x > xu[i]] = 1
-		}
-		if (sh == 2) {amat = -amat}
-		if (!interp) {
-			for (i in 1:(n1 - 1)) {
-#new: use ms in predict.cgam
-				ms = c(ms, mean(amat[i, ]))
-				amat[i, ] = amat[i, ] - mean(amat[i, ])
-			}
-		}
-	} else if (sh == 3 | sh == 4) {
-#  convex or concave
-		amat = matrix(0, nrow = n1 - 2 ,ncol = n)
-		#for (i in 1: (n1 - 2)) {
-		#	amat[i, x > xu[i]] = x[x > xu[i]] - xu[i]
-		#}
-		for (i in 1: (n1 - 2)) {
-			amat[i, x > xu[i+1]] = x[x > xu[i+1]] - xu[i+1]
-		}
-		if (sh == 4) {amat = -amat}
-		xm = cbind(1:n*0+1,x)
-		xpx = solve(t(xm) %*% xm)
-		pm = xm %*% xpx %*% t(xm)
-#new: use ms in predict.cgam
-		if (!interp) {
-			ms = amat %*% t(pm)
-			#amat = amat - amat %*% t(pm)
-			amat = amat - ms
-		}
-	} else if (sh > 4 & sh < 9) {
-		amat = matrix(0, nrow = n1 - 1, ncol = n)
-		if (sh == 5) { ### increasing convex
-			for (i in 1:(n1 - 1)) {
-				amat[i, x > xu[i]] = (x[x > xu[i]] - xu[i]) / (max(x) - xu[i])
-			}
-			if (!interp) {
-				for (i in 1:(n1 - 1)) {
-					ms = c(ms, mean(amat[i, ]))
-					amat[i,] = amat[i,] - mean(amat[i,])
-				}
-			}
-		} else if (sh == 6) {  ## decreasing convex
-			for (i in 1:(n1 - 1)) {
-				amat[i, x < xu[i + 1]] = (x[x < xu[i + 1]] - xu[i + 1]) / (min(x) - xu[i + 1])
-			}
-			if (!interp) {
-				for (i in 1:(n1 - 1)) {
-					ms = c(ms, mean(amat[i, ]))
-					amat[i,] = amat[i,] - mean(amat[i, ])
-				}
-			}
-#print (ms)
-		} else if (sh == 7) { ## increasing concave
-			for (i in 1:(n1 - 1)) {
-				amat[i, x < xu[i + 1]] = (x[x < xu[i + 1]] - xu[i + 1]) / (min(x) - xu[i + 1])
-			}
-			if (!interp) {
-				for (i in 1:(n1 - 1)) {
-					ms = c(ms, mean(amat[i, ]))
-					amat[i,] = -amat[i,] + mean(amat[i,])
-				}
-			}
-		} else if (sh == 8) {## decreasing concave
-			for (i in 1:(n1 - 1)) {
-				amat[i, x > xu[i]] = (x[x > xu[i]] - xu[i]) / (max(x) - xu[i])
-			}
-			if (!interp) {
-				for (i in 1:(n1 - 1)) {
-					ms = c(ms, mean(amat[i, ]))
-					amat[i,] = -amat[i,] + mean(amat[i,])
-				}
-			}
-		}
-	} else if (sh > 8 & sh < 18) {
-        #new: add two knots
-		#if (all(knots == 0) & numknots == 0) {
-		if (length(knots) < 2 & numknots == 0) {
-			if (sh == 9 | sh == 10) {#1 2
-                #k = trunc(n1^(1/5)) + 4
-                if (n1 <= 50) {
-                    k = 5
-                } else if (n1>50 && n1<100) {
-                    k = 6
-                } else if (n1>= 100 && n1<200) {
-                    k = 7
-                } else {
-                    k = trunc(n1^(1/5)) + 6
-                }
-			} else {
-                #k = trunc(n1^(1/7) + 4)
-                if (n1 <= 50) {
-                    k = 5
-                } else if (n1>50 && n1<100) {
-                    k = 6
-                } else if (n1>= 100 && n1<200) {
-                    k = 7
-                } else {
-                    k = trunc(n1^(1/7)) + 6
-                }
-            }
-			if (space == "Q") {
-				t = quantile(xu, probs = seq(0, 1, length = k), names = FALSE)
-			}
-			if (space == "E") {
-				#t = 0:k / k * (max(x) - min(x)) + min(x)
-				t = 0:(k-1) / (k-1) * (max(x) - min(x)) + min(x)
-			}
-		#} else if (any(knots != 0) & numknots == 0) {
-		} else if (length(knots) >= 2 & numknots == 0) {
-			t = knots
-		#} else if (all(knots == 0) & numknots != 0) {
-		} else if (length(knots) < 2 & numknots != 0) {
-			if (space == "Q") {
-				t = quantile(xu, probs = seq(0, 1, length = numknots), names = FALSE)
-			}
-			if (space == "E") {
-				#k = numknots
-#new: numknots should be the # of all knots
-				k = numknots - 1
-				#if (sh == 9 | sh == 10) {#1 2
-				#	k = trunc(n1^(1/5)) + 4
-				#} else {k = trunc(n1^(1/7) + 4)}
-				t = 0:k / k * (max(x) - min(x)) + min(x)
-			}
-		#} else if (any(knots != 0) & numknots != 0) {
-		} else if (length(knots) >= 2 & numknots != 0) {
-			#t0 = quantile(xu, probs = seq(0, 1, length = numknots), names = FALSE)
-			t = knots
-			if (!suppre) {
-				print("'knots' is used! 'numknots' is not used!")
-			}
-			#print ("'knots' is used!")
-			#if (numknots != length(knots)) {
-			#	if (!suppre) {
-			#		print("length(knots) is not equal to 'numknots'! 'knots' is used!")
-			#	}
-			#} else if (any(t0 != knots)) {
-			#	if (!suppre) {
-			#		print("equal x-quantiles knots != 'knots'! 'knots' is used! ")
-			#	}
-			#}
-		}
-		if (sh == 9) {#1
-			#amat_ans = monincr(x, t, interp)
-			#amat = amat_ans$sigma
-			#ms = amat_ans$ms
-			
-			nt = length(t)
-			amat = iSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
-			# #cat('use splines2!', '\n')
-			ms = colMeans(amat)
-			      
-			#make the basis orthogonal to 1
-			if(!interp){
-			  for(i in 1:ncol(amat)){
-			     amat[,i] = amat[,i] - ms[i]
-			  }
-			}
-
-			#if(shpselect) {
-			   amat = t(amat)
-			#}
-		} else if (sh == 10) {#2
-			#amat_ans = mondecr(x, t, interp)
-			#amat = amat_ans$sigma
-			#ms = amat_ans$ms
-			
-		  nt = length(t)
-		  amat = -iSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
-		  #cat('use splines2!', '\n')
-		  ms = colMeans(amat)
-
-		  #make the basis orthogonal to 1
-		  if(!interp){
-		    for(i in 1:ncol(amat)){
-		      amat[,i] = amat[,i] - ms[i]
-		    }
-		  }
-
-		  #if(shpselect) {
-		    amat = t(amat)
-		  #}
-		} else if (sh == 11) {#3
-			#amat_ans = convex(x, t, interp)
-			#amat = amat_ans$sigma
-			#ms = amat_ans$ms
-			
-		  nt = length(t)
-		  amat = cSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
-		  #cat('use splines2!', '\n')
-		  ms = colMeans(amat)
-
-		  if(!interp){
-		    xm = cbind(1, x)
-		    pm = xm %*% solve(crossprod(xm), t(xm))
-		    amat = amat - pm %*% amat
-		  }
-
-		  #if(shpselect) {
-		    amat = t(amat)
-		  #}
-		} else if (sh == 12) {#4
-			#amat_ans = concave(x, t, interp)
-			#amat = amat_ans$sigma
-			#ms = amat_ans$ms
-			
-		  nt = length(t)
-		  amat = -cSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
-		  #cat('use splines2!', '\n')
-		  ms = colMeans(amat)
-		  
-		  if(!interp){
-		    xm = cbind(1, x)
-		    pm = xm %*% solve(crossprod(xm), t(xm))
-		    amat = amat - pm %*% amat
-		  }
-		  
-		  #if(shpselect) {
-		    amat = t(amat)
-		  #}
-		} else if (sh == 13) {#5
-			#amat_ans = incconvex(x, t, interp)
-			#amat = amat_ans$sigma
-			#ms = amat_ans$ms
-			
-			nt = length(t)
-			amat = cSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
-			#will give NaN when predicting for a single data point!
-			#x_sc = (x - min(x)) / (max(x) - min(x))
-			x_sc = x
-			amat = cbind(amat, x_sc)
-			#cat('use splines2!', '\n')
-			ms = colMeans(amat)
-			
-			if(!interp){
-			  for(i in 1:ncol(amat)){
-			    amat[,i] = amat[,i] - ms[i]
-			  }
-			}
-			
-			#if(shpselect) {
-			  amat = t(amat)
-			#}
-		} else if (sh == 14) {#6
-			#amat_ans = incconcave(x, t, interp)
-			#amat = amat_ans$sigma
-			#ms = amat_ans$ms
-			
-		  nt = length(t)
-		  amat = -cSpline(-x, knots = -rev(t[-c(1, nt)]), Boundary.knots = -c(t[nt], t[1]), degree = 1) 
-		  #wrong!
-		  #x_sc = (-x - min(-x)) / (max(-x) - min(-x))
-		  x_sc = -x
-		  amat = cbind(-x_sc, amat)
-		  #cat('use splines2!', '\n')
-		  ms = colMeans(amat)
-		  
-		  if(!interp){
-		    for(i in 1:ncol(amat)){
-		      amat[,i] = amat[,i] - ms[i]
-		    }
-		  }
-		  
-		  #if(shpselect) {
-		    amat = t(amat)
-		  #}
-		} else if (sh == 15) {#7
-			##amat_ans = -incconcave(x, t, interp)
-			#amat_ans = incconcave(x, t, interp)
-			#amat = -amat_ans$sigma
-			#if (!interp) {
-			#	ms = -amat_ans$ms
-			#}
-		  
-		  nt = length(t)
-		  amat = cSpline(-x, knots = -rev(t[-c(1, nt)]), Boundary.knots = -c(t[nt], t[1]), degree = 1) 
-		  #wrong!
-		  #x_sc = (-x - min(-x)) / (max(-x) - min(-x))
-		  x_sc = -x
-		  amat = cbind(x_sc, amat)
-		  #cat('use splines2!', '\n')
-		  ms = colMeans(amat)
-		  
-		  if(!interp){
-		    for(i in 1:ncol(amat)){
-		      amat[,i] = amat[,i] - ms[i]
-		    }
-		  }
-		  
-		  #if(shpselect) {
-		    amat = t(amat)
-		  #}
-		} else if (sh == 16) {#8
-			##amat_ans = -incconvex(x, t, interp)
-			#amat_ans = incconvex(x, t, interp)
-			#amat = -amat_ans$sigma
-			#if (!interp) {
-			#	ms = -amat_ans$ms
-			#}
-		  
-		  nt = length(t)
-		  amat = -cSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
-		  #wrong!
-		  #x_sc = (x - min(x)) / (max(x) - min(x))
-		  x_sc = x
-		  amat = cbind(amat, -x_sc)
-		  #cat('use splines2!', '\n')
-		  #if (!interp) {
-		  ms = colMeans(amat) 
-		  #}
-		  
-		  if(!interp){
-		    for(i in 1:ncol(amat)){
-		      amat[,i] = amat[,i] - ms[i]
-		    }
-		  }
-		  
-		  #if(shpselect) {
-		    amat = t(amat)
-		  #}
-		  
-		} else if (sh == 17) {#unconstrained
-			#amat_ans = incconvex(x, t, interp)
-			#amat = amat_ans$sigma
-			#ms = amat_ans$ms
-		
-		  nt = length(t)
-		  amat = cSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1)
-		  #wrong!
-		  #x_sc = (x - min(x)) / (max(x) - min(x))
-		  x_sc = x
-		  amat = cbind(amat, x_sc)
-		  #cat('use splines2!', '\n')
-		  ms = colMeans(amat)
-		  
-		  if(!interp){
-		    for(i in 1:ncol(amat)){
-		      amat[,i] = amat[,i] - ms[i]
-		    }
-		  }
-		  
-		  #if(shpselect) {
-		    amat = t(amat)
-		  #}
-		}
-	}
-	#if (sh < 9) {
-	#	rslt = list(amat = amat, knots = 0, ms = ms)
-	#} else {
-	#	rslt = list(amat = amat, knots = t, ms = ms)
-	#}
-	if (sh < 9) {t = 0}
-	rslt = list(amat = amat, knots = t, ms = ms)
-	rslt
+  #if (!interp) {
+  #x = (x - min(x)) / (max(x) - min(x))
+  #}
+  n = length(x)
+  # find unique x values
+  #round(x,8) will make 0 edge in amat!
+  #xu = sort(unique(round(x, 8)))
+  #new: center and scale to avoid numerical instabillity
+  xu = sort(unique(x))
+  n1 = length(xu)
+  sm = 1e-7
+  ms = NULL
+  #  increasing or decreasing
+  if (sh < 3) {
+    amat = matrix(0, nrow = n1 - 1, ncol = n)
+    for (i in 1: (n1 - 1)) {
+      amat[i, x > xu[i]] = 1
+    }
+    if (sh == 2) {amat = -amat}
+    if (!interp) {
+      for (i in 1:(n1 - 1)) {
+        #new: use ms in predict.cgam
+        ms = c(ms, mean(amat[i, ]))
+        amat[i, ] = amat[i, ] - mean(amat[i, ])
+      }
+    }
+  } else if (sh == 3 | sh == 4) {
+    #  convex or concave
+    amat = matrix(0, nrow = n1 - 2 ,ncol = n)
+    #for (i in 1: (n1 - 2)) {
+    #	amat[i, x > xu[i]] = x[x > xu[i]] - xu[i]
+    #}
+    for (i in 1: (n1 - 2)) {
+      amat[i, x > xu[i+1]] = x[x > xu[i+1]] - xu[i+1]
+    }
+    if (sh == 4) {amat = -amat}
+    xm = cbind(1:n*0+1,x)
+    xpx = solve(t(xm) %*% xm)
+    pm = xm %*% xpx %*% t(xm)
+    #new: use ms in predict.cgam
+    if (!interp) {
+      ms = amat %*% t(pm)
+      #amat = amat - amat %*% t(pm)
+      amat = amat - ms
+    }
+  } else if (sh > 4 & sh < 9) {
+    amat = matrix(0, nrow = n1 - 1, ncol = n)
+    if (sh == 5) { ### increasing convex
+      for (i in 1:(n1 - 1)) {
+        amat[i, x > xu[i]] = (x[x > xu[i]] - xu[i]) / (max(x) - xu[i])
+      }
+      if (!interp) {
+        for (i in 1:(n1 - 1)) {
+          ms = c(ms, mean(amat[i, ]))
+          amat[i,] = amat[i,] - mean(amat[i,])
+        }
+      }
+    } else if (sh == 6) {  ## decreasing convex
+      for (i in 1:(n1 - 1)) {
+        amat[i, x < xu[i + 1]] = (x[x < xu[i + 1]] - xu[i + 1]) / (min(x) - xu[i + 1])
+      }
+      if (!interp) {
+        for (i in 1:(n1 - 1)) {
+          ms = c(ms, mean(amat[i, ]))
+          amat[i,] = amat[i,] - mean(amat[i, ])
+        }
+      }
+      #print (ms)
+    } else if (sh == 7) { ## increasing concave
+      for (i in 1:(n1 - 1)) {
+        amat[i, x < xu[i + 1]] = (x[x < xu[i + 1]] - xu[i + 1]) / (min(x) - xu[i + 1])
+      }
+      if (!interp) {
+        for (i in 1:(n1 - 1)) {
+          ms = c(ms, mean(amat[i, ]))
+          amat[i,] = -amat[i,] + mean(amat[i,])
+        }
+      }
+    } else if (sh == 8) {## decreasing concave
+      for (i in 1:(n1 - 1)) {
+        amat[i, x > xu[i]] = (x[x > xu[i]] - xu[i]) / (max(x) - xu[i])
+      }
+      if (!interp) {
+        for (i in 1:(n1 - 1)) {
+          ms = c(ms, mean(amat[i, ]))
+          amat[i,] = -amat[i,] + mean(amat[i,])
+        }
+      }
+    }
+  } else if (sh > 8 & sh < 18) {
+    #new: add two knots
+    #if (all(knots == 0) & numknots == 0) {
+    if (length(knots) < 2 & numknots == 0) {
+      if (sh == 9 | sh == 10) {#1 2
+        #k = trunc(n1^(1/5)) + 4
+        if (n1 <= 50) {
+          k = 5
+        } else if (n1>50 && n1<100) {
+          k = 6
+        } else if (n1>= 100 && n1<200) {
+          k = 7
+        } else {
+          #k = trunc(n1^(1/5)) + 6
+          #new: 2026; follow the convergence rate in the paper
+          k = trunc(n1^(1/7)) + 6
+          #print (n1)
+          #print (k)
+        }
+      } else {
+        #k = trunc(n1^(1/7) + 4)
+        if (n1 <= 50) {
+          k = 5
+        } else if (n1>50 && n1<100) {
+          k = 6
+        } else if (n1>= 100 && n1<200) {
+          k = 7
+        } else {
+          #k = trunc(n1^(1/7)) + 6
+          #new: 2026; follow the convergence rate in the paper
+          k = trunc(n1^(1/9)) + 6
+        }
+      }
+      if (space == "Q") {
+        t = quantile(xu, probs = seq(0, 1, length = k), names = FALSE)
+      }
+      if (space == "E") {
+        #t = 0:k / k * (max(x) - min(x)) + min(x)
+        #t = 0:(k-1) / (k-1) * (max(x) - min(x)) + min(x)
+        t = seq.int(min(x), max(x), length.out = k)
+      }
+      #} else if (any(knots != 0) & numknots == 0) {
+    } else if (length(knots) >= 2 & numknots == 0) {
+      t = knots
+      #} else if (all(knots == 0) & numknots != 0) {
+    } else if (length(knots) < 2 & numknots != 0) {
+      if (space == "Q") {
+        t = quantile(xu, probs = seq(0, 1, length = numknots), names = FALSE)
+      }
+      if (space == "E") {
+        #k = numknots
+        #new: numknots should be the # of all knots
+        k = numknots - 1
+        #if (sh == 9 | sh == 10) {#1 2
+        #	k = trunc(n1^(1/5)) + 4
+        #} else {k = trunc(n1^(1/7) + 4)}
+        #t = 0:k / k * (max(x) - min(x)) + min(x)
+        t = seq.int(min(x), max(x), length.out = numknots)
+      }
+      #} else if (any(knots != 0) & numknots != 0) {
+    } else if (length(knots) >= 2 & numknots != 0) {
+      #t0 = quantile(xu, probs = seq(0, 1, length = numknots), names = FALSE)
+      t = knots
+      if (!suppre) {
+        print("'knots' is used! 'numknots' is not used!")
+      }
+      #print ("'knots' is used!")
+      #if (numknots != length(knots)) {
+      #	if (!suppre) {
+      #		print("length(knots) is not equal to 'numknots'! 'knots' is used!")
+      #	}
+      #} else if (any(t0 != knots)) {
+      #	if (!suppre) {
+      #		print("equal x-quantiles knots != 'knots'! 'knots' is used! ")
+      #	}
+      #}
+    }
+    if (sh == 9) {#1
+      #amat_ans = monincr(x, t, interp)
+      #amat = amat_ans$sigma
+      #ms = amat_ans$ms
+      
+      nt = length(t)
+      amat = iSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1, scale=FALSE)
+      # #cat('use splines2!', '\n')
+      #test!
+      amat = unclass(amat)
+      #ms = colMeans(amat)
+      
+      #make the basis orthogonal to 1
+      ms = NULL
+      if(!interp){
+        ms = colMeans(amat)
+        for(i in 1:ncol(amat)){
+          amat[,i] = amat[,i] - ms[i]
+        }
+      }
+      
+      # ms = apply(sigma, 1, mean)
+      # for (i in 1:m) {
+      #   sigma[i,] = sigma[i,] - mean(sigma[i,])
+      #   sigma[i,] = sigma[i, rank(xs)]
+      # }
+      
+      #if(shpselect) {
+      amat = t(amat)
+      #}
+    } else if (sh == 10) {#2
+      #amat_ans = mondecr(x, t, interp)
+      #amat = amat_ans$sigma
+      #ms = amat_ans$ms
+      
+      nt = length(t)
+      amat = -iSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1, scale=FALSE)
+      #cat('use splines2!', '\n')
+      #test!
+      amat = unclass(amat)
+      #ms = colMeans(amat)
+      
+      #make the basis orthogonal to 1
+      ms = NULL
+      if(!interp){
+        ms = colMeans(amat)
+        for(i in 1:ncol(amat)){
+          amat[,i] = amat[,i] - ms[i]
+        }
+      }
+      
+      #if(shpselect) {
+      amat = t(amat)
+      #}
+    } else if (sh == 11) {#3
+      #amat_ans = convex(x, t, interp)
+      #amat = amat_ans$sigma
+      #ms = amat_ans$ms
+      
+      nt = length(t)
+      amat = cSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1, scale = FALSE)
+      #cat('use splines2!', '\n')
+      #test
+      amat = unclass(amat)
+      #ms = colMeans(amat) #wrong, it should be a matrix
+      
+      ms = NULL
+      if(!interp){
+        #xm = cbind(1, x)
+        #pm = xm %*% solve(crossprod(xm), t(xm))
+        xm = cbind(1, x)
+        pm = xm %*% solve(crossprod(xm), t(xm))
+        ms = pm %*% amat
+        amat = amat - ms
+      }
+      
+      #if(shpselect) {
+      amat = t(amat)
+      #}
+    } else if (sh == 12) {#4
+      #amat_ans = concave(x, t, interp) # a little off; it should be the same as -convex
+      #amat = amat_ans$sigma
+      #ms = amat_ans$ms
+      
+      nt = length(t)
+      amat = -cSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1, scale = FALSE)
+      #cat('use splines2!', '\n')
+      #test
+      amat = unclass(amat)
+      #ms = colMeans(amat)
+      
+      ms = NULL
+      if(!interp){
+        #xm = cbind(1, x)
+        #pm = xm %*% solve(crossprod(xm), t(xm))
+        xm = cbind(1, x)
+        pm = xm %*% solve(crossprod(xm), t(xm))
+        ms = pm %*% amat
+        amat = amat - ms
+      }
+      
+      #if(shpselect) {
+      amat = t(amat)
+      #}
+    } else if (sh == 13) {#5
+      #amat_ans = incconvex(x, t, interp)
+      #amat = amat_ans$sigma
+      #ms = amat_ans$ms
+      
+      nt = length(t)
+      amat = cSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1, scale = FALSE)
+      #test
+      amat = unclass(amat)
+      #will give NaN when predicting for a single data point!
+      #x_sc = (x - min(x)) / (max(x) - min(x))
+      x_sc = x
+      amat = cbind(amat, x)
+      #cat('use splines2!', '\n')
+      #ms = colMeans(amat)
+      
+      ms = NULL
+      if(!interp){
+        ms = colMeans(amat)
+        for(i in 1:ncol(amat)){
+          amat[,i] = amat[,i] - ms[i]
+        }
+      }
+      
+      #if(shpselect) {
+      amat = t(amat)
+      #}
+    } else if (sh == 14) {#6
+      #amat_ans = incconcave(x, t, interp) #a little off
+      #amat = amat_ans$sigma
+      #ms = amat_ans$ms
+      
+      nt = length(t)
+      amat = -cSpline(-x, knots = -rev(t[-c(1, nt)]), Boundary.knots = -c(t[nt], t[1]), degree = 1, scale = FALSE) 
+      #test
+      amat = unclass(amat)
+      #wrong!
+      #x_sc = (-x - min(-x)) / (max(-x) - min(-x))
+      #x_sc = -x
+      #amat = cbind(-x_sc, amat)
+      amat = cbind(amat, x)
+      #cat('use splines2!', '\n')
+      #ms = colMeans(amat)
+      
+      ms = NULL
+      if(!interp){
+        ms = colMeans(amat)
+        for(i in 1:ncol(amat)){
+          amat[,i] = amat[,i] - ms[i]
+        }
+      }
+      
+      #if(shpselect) {
+      amat = t(amat)
+      #}
+    } else if (sh == 15) {#7
+      ##amat_ans = -incconcave(x, t, interp) # a little off
+      #amat_ans = incconcave(x, t, interp)
+      #amat = -amat_ans$sigma
+      #if (!interp) {
+      #	ms = -amat_ans$ms
+      #}
+      
+      nt = length(t)
+      amat = cSpline(-x, knots = -rev(t[-c(1, nt)]), Boundary.knots = -c(t[nt], t[1]), degree = 1, scale = FALSE) 
+      #test
+      amat = unclass(amat)
+      #wrong!
+      #x_sc = (-x - min(-x)) / (max(-x) - min(-x))
+      #x_sc = -x
+      #amat = cbind(x_sc, amat)
+      amat = cbind(amat, -x)
+      #cat('use splines2!', '\n')
+      #ms = colMeans(amat)
+      
+      ms = NULL
+      if(!interp){
+        ms = colMeans(amat)
+        for(i in 1:ncol(amat)){
+          amat[,i] = amat[,i] - ms[i]
+        }
+      }
+      
+      #if(shpselect) {
+      amat = t(amat)
+      #}
+    } else if (sh == 16) {#8
+      ##amat_ans = -incconvex(x, t, interp)
+      #amat_ans = incconvex(x, t, interp)
+      #amat = -amat_ans$sigma
+      #if (!interp) {
+      #	ms = -amat_ans$ms
+      #}
+      
+      nt = length(t)
+      amat = -cSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1, scale = FALSE)
+      amat = unclass(amat)
+      #wrong!
+      #x_sc = (x - min(x)) / (max(x) - min(x))
+      #x_sc = x
+      amat = cbind(amat, -x)
+      #cat('use splines2!', '\n')
+      #if (!interp) {
+      #ms = colMeans(amat) 
+      #}
+      
+      ms = NULL
+      if(!interp){
+        ms = colMeans(amat)
+        for(i in 1:ncol(amat)){
+          amat[,i] = amat[,i] - ms[i]
+        }
+      }
+      
+      #if(shpselect) {
+      amat = t(amat)
+      #}
+      
+    } else if (sh == 17) {#unconstrained
+      #amat_ans = incconvex(x, t, interp)
+      #amat = amat_ans$sigma
+      #ms = amat_ans$ms
+      
+      nt = length(t)
+      amat = cSpline(x, knots = t[-c(1, nt)], Boundary.knots = c(t[1], t[nt]), degree = 1, scale = FALSE)
+      #wrong!
+      #x_sc = (x - min(x)) / (max(x) - min(x))
+      x_sc = x
+      amat = cbind(amat, x_sc)
+      #cat('use splines2!', '\n')
+      ms = colMeans(amat)
+      
+      if(!interp){
+        for(i in 1:ncol(amat)){
+          amat[,i] = amat[,i] - ms[i]
+        }
+      }
+      
+      #if(shpselect) {
+      amat = t(amat)
+      #}
+    }
+  }
+  #if (sh < 9) {
+  #	rslt = list(amat = amat, knots = 0, ms = ms)
+  #} else {
+  #	rslt = list(amat = amat, knots = t, ms = ms)
+  #}
+  if (sh < 9) {t = 0}
+  rslt = list(amat = amat, knots = t, ms = ms)
+  rslt
 }
 
 #####
@@ -3508,7 +3559,8 @@ summary.cgam <- function(object,...) {
                     if(inherits(object, "cgamm")){
                       rownames(rslt2) <- rev(rev((attributes(tms)$term.labels))[-1])
                     } else {
-                      rownames(rslt2) <- (attributes(tms)$term.labels)
+                      #rownames(rslt2) <- (attributes(tms)$term.labels)
+                      rownames(rslt2) <- (attributes(tms)$term.labels[1:nrow(rslt2)])
                     }
                     #if (any(object$shapes < 9) & length(pvs) < length(object$shapes)) {
                     #if (any(object$shapes < 9)) {
@@ -3956,6 +4008,8 @@ predict.cgam = function(object, newdata, interval = c("none", "confidence", "pre
       deli_ans = makedelta(nxi, sh[i], numknots[i], knots[[i]], space = sps[i], suppre = TRUE, interp = TRUE)
       deli = deli_ans$amat
       if (sh[i] > 10 & sh[i] < 13) {
+        #new:2026: makedelta creates a ms that is the transpose of the old ms
+        msi <- t(msi)
         #x = xmat_s[,i]
         xs = sort(xi)
         ord = order(xi)
@@ -4600,7 +4654,7 @@ pred_del = function(x, sh, xp, ms) {
 #######################
 #local helper function#
 #######################
-	my_line = function(xp = NULL, y, x, end, start) {
+  my_line = function(xp = NULL, y, x, end, start) {
 		slope = NULL
 		intercept = NULL
 		yp = NULL
@@ -4612,7 +4666,7 @@ pred_del = function(x, sh, xp, ms) {
 		ans$intercept = intercept
 		ans$yp = yp
 		ans
-	}
+  }
 #  increasing or decreasing
 	if (sh < 3) {
 		sigma = matrix(0, nrow = n1 - 1, ncol = n)
@@ -4623,6 +4677,8 @@ pred_del = function(x, sh, xp, ms) {
 		for (i in 1:(n1 - 1)) {sigma[i, ] = sigma[i, ] - ms[i]}
 	}
 	if (sh == 3 | sh == 4) {
+	  #new: 2026
+	  ms <- t(ms)
 #  convex or concave
 		sigma = matrix(0, nrow = n1 - 2, ncol = n)
 		#for (i in 1: (n1 - 2)) {
@@ -14483,6 +14539,7 @@ getbin = function(num, capl) {
 cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
                    numknotsuse=NULL, varlist=NULL, family=gaussian(),
                    weights=NULL, test_id=1, nsims=1000, skip=TRUE) {
+  #print (nsims)
   n = length(y)
   cicfamily <- CicFamily(family)
   llh.fun <- cicfamily$llh.fun
@@ -14496,7 +14553,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
   ysim.fun <- cicfamily$ysim.fun
   deriv.fun <- cicfamily$deriv.fun
   dev.fun <- cicfamily$dev.fun
-
+  
   capl = length(xmat) / n
   if (capl < 1) {capl = 0}
   capk = length(zmat) / n
@@ -14510,7 +14567,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
     numknots <- rep(0, capl)
     knots <- list(); for (i in 1:capl) knots[[i]] <- 0
     space <- rep('E',capl)
-
+    
     delta <- NULL
     varlist <- NULL
     xid1 <- NULL; xid2 <- NULL; xpos2 <- 0
@@ -14519,7 +14576,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
     #new:
     capm <- 0
     capms <- 0
-
+    
     del1_ans <- makedelta(xmat[, 1], shapes[1], numknots[1], knots[[1]], space = space[1])
     del1 <- del1_ans$amat
     knotsuse[[1]] <- del1_ans$knots
@@ -14569,10 +14626,24 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
       }
     }
   }
+  
   umbrella.delta = tree.delta = NULL
   #ignore ut for now
   delta_ut = NULL; caput = 0
   if (!is.null(umbrella.delta) | !is.null(tree.delta)) {
+    #new: 2026, test more
+    if(is.matrix(w)){
+      if(!is.null(umbrella.delta)){
+        dd_u_tmp <- t(umbrella.delta)
+        dd_u_temp <- w %*% dd_u_temp
+        umbrella.delta <- t(dd_u_tmp)
+      }
+      if(!is.null(tree.delta)){
+        dd_t_tmp <- t(tree.delta)
+        dd_t_temp <- w %*% dd_t_temp
+        tree.delta <- t(dd_t_tmp)
+      }
+    }
     delta_ut = rbind(umbrella.delta, tree.delta)
     caput = nrow(delta_ut)
   }
@@ -14581,26 +14652,62 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
   if (sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13) > 0 & capk > 0) {
     del0 = cbind(t(delta[varlist != test_id, ]), one, zmat, xmat[, shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13])
     del = cbind(t(delta), one, zmat, xmat[, shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13])
-    np = 1 + capk + sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13)  + capms
+    #new: 2026, vmat, ignored shp=17, i.e., delta for capms, unconstrained
+    vmat = cbind(one, zmat, xmat[, shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13])
+    np = 1 + capk + sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13) + capms
   } else if (sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13) > 0 & capk == 0) {
     del0 = cbind(t(delta[varlist != test_id, ]), one, xmat[, shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13])
     del = cbind(t(delta), one, xmat[, shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13])
+    #new: 2026
+    vmat = cbind(one, xmat[, shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13])
     np = 1 + sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13) + capms
   } else if (sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13) == 0 & capk > 0) {
     del0 = cbind(t(delta[varlist != test_id, ]), one, zmat)
     del = cbind(t(delta), one, zmat)
+    #new: 2026
+    vmat = cbind(one, zmat)
     np = 1 + capk + capms
   } else if (sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13) == 0 & capk == 0) {
     del0 = cbind(t(delta[varlist != test_id, ]), one)
     del = cbind(t(delta), one)
+    #new: 2026
+    vmat = cbind(one)
     np = 1 + capms
   } else {
     print ("error in capk, shapes!")
   }
-
+  
+  #new: 2026, test more
+  #for cgamm
+  if (is.null(weights)) {
+    weights = 1:n*0 + 1
+  }
+  w = weights
+  if(is.matrix(w)){
+    dd_temp <- t(delta)
+    dd_temp <- w %*% dd_temp
+    delta <- t(dd_temp)
+    
+    y <- w %*% y
+    del0 <- w %*% del0 #the one excluding the one being tested, with vmat
+    del1 <- w %*% del1 #the one being tested
+    del <- w %*% del #everything
+    vmat <- w %*% vmat #vmat
+  }
+  
+  vtv <- crossprod(vmat)
+  # ev <- eigen(vtv, only.values = TRUE)$values
+  # check if the smallest eigenvalue is too close to zero or negative
+  # if (min(ev) < 1e-8) {
+  #  diag(vtv) <- diag(vtv) + 1e-8
+  #}
+  pvmat = -vmat %*% solve(vtv, t(vmat))
+  for(i in 1:n){pvmat[i,i] = 1+pvmat[i,i]}
+  del1 = pvmat %*% del1
+  
   m0 = dim(del0)[2]
   m = dim(del)[2]
-
+  
   #nkts is the col number of edges for each component
   nkts = numknotsuse
   id_add = which(shapes >= 13 & shapes <= 17)
@@ -14611,7 +14718,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
   nc = nr + np
   amat = matrix(0, nrow=nr, ncol=nc)
   for(i in 1:nr){amat[i,i]=1}
-
+  
   #if (capl>1) {
   nr0 = sum(nkts) - nkts[test_id]
   #} else {nr0 = sum(nkts)}
@@ -14623,7 +14730,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
     nc0 = nr0 + np
   }
   amat0 = matrix(0, nrow=nr0, ncol=nc0)
-
+  
   #when there is only one component, flat vs s.incr
   if (nr0 > 0) {
     for(i in 1:nr0){amat0[i,i]=1}
@@ -14633,21 +14740,23 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
     wt.iter = TRUE
   }
   if (!wt.iter) {
-    if (is.null(weights)) {
-      weights = 1:n*0 + 1
-    }
+    #if (is.null(weights)) {
+    #  weights = 1:n*0 + 1
+    #}
+    #new: 2026, weigh all edges in previous steps for cgamm
+    weights = 1:n*0 + 1
     w = weights
     #new: to check if w is a matrix or not to include the mixed-effect case
     ### null hyp fit
-    if(!is.matrix(w)){
-      ytil = y*sqrt(w)
-      deltil = del0
-      for(i in 1:m0){deltil[,i] = deltil[,i]*sqrt(w)}
-    } else {
-      #w is uinv_mat
-      ytil = w %*% y
-      deltil = w %*% del0
-    }
+    #if(!is.matrix(w)){
+    ytil = y*sqrt(w)
+    deltil = del0
+    for(i in 1:m0){deltil[,i] = deltil[,i]*sqrt(w)}
+    #} else {
+    ##w is uinv_mat
+    #  ytil = w %*% y
+    #  deltil = w %*% del0
+    #}
     #print (m0)
     #print (np)
     #print (head(del0))
@@ -14656,7 +14765,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
       uinv = solve(umat)
       ytiltil = t(uinv) %*% crossprod(deltil, ytil)
       atil = amat0 %*% uinv
-
+      
       ans = coneA(ytiltil, atil)
       chat = uinv %*% ans$thetahat
       mu1 = del0 %*% chat
@@ -14666,10 +14775,14 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
       chat = solve(crossprod(deltil), cvec)
       mu1 = del0 %*% chat
     }
-
+    
     if (m0 > np) {
       d0 = t(delta[varlist != test_id, ])
-      pr0 = -d0 %*% solve(crossprod(d0), t(d0))
+      #pr0 = -d0 %*% solve(crossprod(d0), t(d0))
+      #new: 2026, pr0 should be for the d0 orthogonal to vmat
+      #test more!
+      d02 = pvmat %*% d0
+      pr0 = -d02 %*% solve(crossprod(d02), t(d02))
       for(i in 1:n){pr0[i,i] = 1+pr0[i,i]}
       d1tr = pr0 %*% del1
       #} else {
@@ -14679,34 +14792,37 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
       d1trw = d1tr
       nk1 = nkts[test_id]
       #new
-      if(!is.matrix(w)){
-        for(i in 1:nk1){d1trw[,i] = d1tr[,i]*sqrt(w)}
-      } else {
-        d1trw = w %*% d1trw
-      }
+      #if(!is.matrix(w)){
+      for(i in 1:nk1){d1trw[,i] = d1tr[,i]*sqrt(w)}
+      #} else {
+      #  d1trw = w %*% d1trw
+      #}
       ans1 = coneB(ytil, d1trw)
       num = sum((d1trw%*%ans1$coef)^2)
-
+      
       ## do weighted projection of xi=z, weights w, onto big cone
       delw = del
       #new
-      if(!is.matrix(w)){
-        for(i in 1:m){delw[,i] = del[,i]*sqrt(w)}
-      } else {
-        delw = w %*% delw
-      }
-
+      #if(!is.matrix(w)){
+      for(i in 1:m){delw[,i] = del[,i]*sqrt(w)}
+      #} else {
+      #  delw = w %*% delw
+      #}
+      
       ans2 = coneB(ytil,delw[,1:(m-np)],delw[,(m-np+1):m])
       coef0 = ans2$coef
       coef = coef0
       coef[1:(m-np)] = coef0[(np+1):m]
       coef[(m-np+1):m] = coef0[1:np]
-      ss2 = sum((ytil-delw%*%coef)^2)
+      #ss2 = sum((ytil-delw%*%coef)^2)
+      #new: 2026
+      ss2 = sum((ytil-ans2$yhat)^2)
       #ss2 = sum((ytil-delw[,1:(m-np)]%*%ans2$coef[(np+1):m]-delw[,(m-np+1):m]*ans2$coef[1:np])^2)
       df2 = n-sum(abs(ans2$coef)>1e-8)
       #df2 = n - m
       bstat = num/(num+ss2)
       ## get mixing distn
+      ## sapply is not faster
       mdist = 0:nk1*0
       for(isims in 1:nsims){
         ysim = rnorm(n)
@@ -14715,7 +14831,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
         mdist[d+1] = mdist[d+1]+1
       }
       mdist = mdist/nsims
-
+      
       pval = mdist[1]
       for(i in 1:nk1){
         pval = pval+pbeta(bstat,i/2,df2/2)*mdist[i+1]
@@ -14725,20 +14841,22 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
       #print (dim(del))
       del2 = del
       #new
-      if(!is.matrix(w)){
-        for(i in 1:m){del2[,i] = del2[,i] * sqrt(w)}
-      } else {
-        del2 = w %*% del2
-      }
+      #if(!is.matrix(w)){
+      for(i in 1:m){del2[,i] = del2[,i] * sqrt(w)}
+      #} else {
+      #  del2 = w %*% del2
+      #}
       nk = ncol(del1)
       ans2 = coneB(ytil, del2[,1:nk], deltil)
       chat2 = ans2$coefs
       #nd = np?
       nd = ncol(deltil)
-      that1 = deltil%*%chat2[1:nd]+del2[,1:nk]%*%chat2[(nd+1):m]
+      #that1 = deltil%*%chat2[1:nd]+del2[,1:nk]%*%chat2[(nd+1):m]
+      #new: 2026
+      that1 = ans2$yhat
       ss1 = sum((ytil-that1)^2)
       ss0 = sum((ytil-deltil%*%chat)^2)
-
+      
       bstat = (ss0-ss1)/ss0
       ## get mixing distribution
       mdist = 0:nk*0
@@ -14754,7 +14872,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
         if(d < 3){zkeep=ysim}
       }
       mdist = mdist/nsims
-
+      
       pval = mdist[1]
       for(i in 1:nk) {
         pval = pval + pbeta(bstat,i/2,(n-np-i)/2)*mdist[i+1]
@@ -14774,7 +14892,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
     }
     prior.w = weights
     end = FALSE; nrep = 0; face = NULL
-    while (!end & nrep < 100) {
+    while (!end & nrep < 5) {
       nrep = nrep+1
       if (family$famil == "binomial") {
         ch = mu0>1e-5 & mu0<1-1e-5
@@ -14844,8 +14962,13 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
       #to make sure edges are orthogonal:
       m0a = dim(d0)[2]
       d0w = d0
-      for(i in 1:m0a){d0w[,i] = d0[,i]*sqrt(w)}
-      pr0 = -d0w %*% solve(t(d0w) %*% d0w) %*% t(d0w)
+      #for(i in 1:m0a){d0w[,i] = d0[,i]*sqrt(w)}
+      #pr0 = -d0w %*% solve(t(d0w) %*% d0w) %*% t(d0w)
+      #new: 2026, pr0 should be for the d0 orthogonal to vmat
+      #test more!
+      d0w2 = pvmat %*% d0
+      for(i in 1:m0a){d0w2[,i] = d0w2[,i]*sqrt(w)}
+      pr0 = -d0w2 %*% solve(crossprod(d0w2), t(d0w2))
       for(i in 1:n){pr0[i,i]=1+pr0[i,i]}
       #}
       del1w = del1
@@ -14857,11 +14980,11 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
       #d1trw = del1w
       ans1 = coneB(ztil, d1trw)
       num = sum((d1trw %*% ans1$coef)^2)
-
+      
       ## do weighted projection of xi=z, weights w, onto big cone
       delw = del
       for(i in 1:m){delw[,i] = del[,i]*sqrt(w)}
-
+      
       ans2 = coneB(ztil,delw[,1:(m-np)],delw[,(m-np+1):m])
       coef0 = ans2$coef
       coef = coef0
@@ -14869,8 +14992,9 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
       coef[(m-np+1):m] = coef0[1:np]
       #ss2 = sum((ztil-delw[,1:(m-np)]%*%ans2$coef[(np+1):m]-delw[,(m-np+1):m]*ans2$coef[1:np])^2)
       ss2 = sum((ztil-delw%*%coef)^2)
-      #df2=n-sum(abs(ans2$coef)>1e-8)
-      df2 = n - m
+      #new: 2026 test df2!
+      df2 = n-sum(abs(ans2$coef)>1e-8)
+      #df2 = n - m #seems to be wrong? not the same as the paper
       bstat = num/(num+ss2)
       #print (bstat)
       #print (dim(amat))
@@ -14883,7 +15007,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
         mdist[d+1] = mdist[d+1]+1
       }
       mdist = mdist/nsims
-
+      
       pval = mdist[1]
       for(i in 1:nk1){
         pval = pval+pbeta(bstat,i/2,df2/2)*mdist[i+1]
@@ -14909,8 +15033,10 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
       #print (chat2)
       #nd = np?
       nd = ncol(deltil)
-      that1 = deltil%*%chat2[1:nd]+del2[,1:nk]%*%chat2[(nd+1):m]
-
+      #that1 = deltil%*%chat2[1:nd]+del2[,1:nk]%*%chat2[(nd+1):m]
+      #new: 2026
+      that1 = ans2$yhat
+      
       ss1 = sum((ztil - that1)^2)
       ss0 = sum((ztil - deltil %*% chat)^2)
       #print (ss0)
@@ -14932,7 +15058,7 @@ cgam.pv = function(y, xmat, zmat, shapes, delta=NULL, np=NULL, capms=NULL,
         if(d < 3){zkeep=zsim}
       }
       mdist = mdist/nsims
-
+      
       pval = mdist[1]
       for(i in 1:nk) {
         pval = pval + pbeta(bstat,i/2,(n-np-i)/2)*mdist[i+1]
@@ -14965,13 +15091,22 @@ cgam.pvz = function(y, bigmat, df_obs, sse1 = NULL, np = 1, zid = 1, zid1 = 1, z
   ysim.fun = cicfamily$ysim.fun
   deriv.fun = cicfamily$deriv.fun
   dev.fun = cicfamily$dev.fun
-
+  
   m = nrow(bigmat)
   df_full = min(m, 1.2*df_obs)
   if (is.null(weights)) {
     weights = 1:n*0 + 1
   }
   prior.w = weights
+  
+  #new:2026, weigh y and bigmat first
+  if(!is.null(uinv_mat)){
+    y <- uinv_mat %*% y
+    dd_tmp <- t(bigmat)
+    dd_tmp <- uinv_mat %*% dd_tmp 
+    bigmat <- t(dd_tmp)
+  }
+  
   #n = ncol(bigmat)
   lz = length(zid)
   #we only need to get ssers in the following code
@@ -14995,18 +15130,18 @@ cgam.pvz = function(y, bigmat, df_obs, sse1 = NULL, np = 1, zid = 1, zid1 = 1, z
       wt = wt.fun(y, etahat, n, weights, fml = family$family)
       cvec = wt * etahat - gr
     } else {wt = wt.fun(y, etahat, n, weights, fml = family$family)}
-
+    
     #new:
-    if(is.null(uinv_mat)){
-      zvec = zvec.fun(cvec, wt, y, fml = family$family)
-      gmat = t(bigmat0)
-      for (i in 1:n) {gmat[i,] = bigmat0[,i] * sqrt(wt[i])}
-    } else {
-      #only used for gaussian
-      zvec = uinv_mat %*% y
-      gmat = t(bigmat0)
-      gmat = uinv_mat %*% gmat
-    }
+    #if(is.null(uinv_mat)){
+    zvec = zvec.fun(cvec, wt, y, fml = family$family)
+    gmat = t(bigmat0)
+    for (i in 1:n) {gmat[i,] = bigmat0[,i] * sqrt(wt[i])}
+    #} else {
+    ##only used for gaussian
+    #  zvec = uinv_mat %*% y
+    #  gmat = t(bigmat0)
+    #  gmat = uinv_mat %*% gmat
+    #}
     dsend = gmat[, -c(1:np0), drop = FALSE]
     zsend = gmat[,1:np0 , drop = FALSE]
     ans = coneB(zvec, dsend, zsend)
@@ -15015,11 +15150,11 @@ cgam.pvz = function(y, bigmat, df_obs, sse1 = NULL, np = 1, zid = 1, zid1 = 1, z
     #coefs = ans$coefs
     #muhat = t(bigmat0) %*% coefs
     muhat = etahat
-    if(is.null(uinv_mat)){
-      sse_r = sum(prior.w * (y - muhat)^2)
-    }else {
-      sse_r = sum(uinv_mat %*% (y - muhat)^2)
-    }
+    #if(is.null(uinv_mat)){
+    sse_r = sum(prior.w * (y - muhat)^2)
+    #}else {
+    #  sse_r = sum(uinv_mat %*% (y - muhat)^2)
+    #}
     sse_f = sse1
     fstati = (sse_r - sse_f) / lvs / sse_f*(n-df_full)
     #print (sse_r)
@@ -15080,7 +15215,7 @@ cgam.pvz = function(y, bigmat, df_obs, sse1 = NULL, np = 1, zid = 1, zid1 = 1, z
       m0 = nrow(bigmat0)
       for(i in 1:m0){deltil[,i] = deltil[,i]*sqrt(w)}
       sse_r = sum((ztil - deltil %*% ans$coefs)^2)
-
+      
       deltil = t(bigmat)
       m = nrow(bigmat)
       for(i in 1:m){deltil[,i] = deltil[,i]*sqrt(w)}

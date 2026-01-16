@@ -436,7 +436,8 @@ testpar.fit = function(X, y, zmat = NULL, family = gaussian(link="identity"),
       if(parametric == "cubic" & type == "convex"){#otherwise give a warning
         use_constreg = TRUE
       }
-      nkts = mult * switch(type, monotone = trunc(n1^(1/5)) + 6, convex = trunc(n1^(1/7)) + 6)
+      #nkts = mult * switch(type, monotone = trunc(n1^(1/5)) + 6, convex = trunc(n1^(1/7)) + 6)
+      nkts = mult * switch(type, monotone = trunc(n1^(1/7)) + 6, convex = trunc(n1^(1/9)) + 6)
       if(space == "Q"){
         kts = quantile(xu, probs = seq(0, 1, length = nkts), names = FALSE)
       }
@@ -2087,7 +2088,8 @@ makedmat_1D = function(m, q = 2) {
   # first order
   if (q == 1) {
     for (i in 2:m) {
-      dmat[i-1, i-1] = 1; dmat[i-1, i] = -1
+      #dmat[i-1, i-1] = 1; dmat[i-1, i] = -1
+      dmat[i-1, i-1] = -1; dmat[i-1, i] = 1
     }
     #id1 = 1:(m-1)
     #id2 = 2:m
@@ -2963,43 +2965,62 @@ fit.hypo = function(p = 0, dd, y, amat, bvec = NULL, dv = NULL,
   #----------------------------------------------------------------------------
   #umat = chol(qv)
   #uinv = solve(umat)
-  
+  #new: 2025/9
   umat = chol(qv)
-  iumat = diag(ncol(umat))
-  uinv = backsolve(umat, iumat)
-  
+  uinv = backsolve(umat, diag(ncol(qv)))
   atil = amat %*% uinv
-  xw_uinv = dd %*% uinv
+  qvinv = tcrossprod(uinv)
+  #new term
+  dtd = crossprod(dd)
+  bigp_base = qvinv %*% dtd
+  edf_base = sum(diag(bigp_base))
+  
+  #umat = chol(qv)
+  #iumat = diag(ncol(umat))
+  #uinv = backsolve(umat, iumat)
+  #atil = amat %*% uinv
+  #xw_uinv = dd %*% uinv
   
   nc_am = NCOL(amat)
   imat = diag(nc_am)
   if (all(face == 0) | length(face) == 0) {
     #if(length(face) == 0) {
     pmat = imat
+    edf = edf_base
   } else {
     dp = -t(atil)
     smat = dp[, face, drop = FALSE]
     #new: avoid solve error
     qr_smat = qr(smat)
+    #already orthonormal here!
     smat = qr.Q(qr_smat)[, 1:(qr_smat$rank), drop = FALSE]
-    for(ic in 1:NCOL(smat)){
-      ic_norm = crossprod(smat[,ic])
-      smat[,ic] = smat[,ic]/sqrt(ic_norm[1,1])
-    }
-    pmat_polar = smat %*% solve(crossprod(smat), t(smat))
+    # for(ic in 1:NCOL(smat)){
+    #   ic_norm = crossprod(smat[,ic])
+    #   smat[,ic] = smat[,ic]/sqrt(ic_norm[1,1])
+    # }
+    #pmat_polar = smat %*% solve(crossprod(smat), t(smat))
+    pmat_polar = tcrossprod(smat)
     pmat = (imat - pmat_polar)
+    bigp_trace_polor = uinv %*% tcrossprod(pmat_polar, uinv) %*% dtd
+    edf = edf_base - sum(diag(bigp_trace_polor))
   }
   if(is.null(covmat_inv)){
-    bigp = xw_uinv %*% tcrossprod(pmat, xw_uinv)
-    edf = sum(diag(bigp))
+    #bigp = xw_uinv %*% tcrossprod(pmat, xw_uinv)
+    #edf = sum(diag(bigp))
+  
     if(!wt.iter){
       sig2hat = dev / (n - 1 * edf)
     }
   } else {
     #arp will have an extra covmat_inv
-    bigp = xw_uinv %*% tcrossprod(pmat, xw_uinv) %*% covmat_inv
-    #bigp = uinv_keep %*% xw_uinv %*% tcrossprod(pmat, xw_uinv) %*% covmat_inv
-    edf = sum(diag(bigp))
+    #bigp = xw_uinv %*% tcrossprod(pmat, xw_uinv) %*% covmat_inv
+    if (all(face == 0) | length(face) == 0){
+      bigp_trace = qvinv %*% crossprod(dd, covmat_inv) %*% dd
+    } else {
+      bigp_trace = (qvinv - uinv %*% tcrossprod(pmat_polar, uinv)) %*% crossprod(dd, covmat_inv) %*% dd
+    }
+    edf = sum(diag(bigp_trace))
+    #edf = sum(diag(bigp))
     #no use:
     #sig2hat = dev / (n - 1 * edf)
     #sig2hat = dev0/(n-edf)
@@ -3007,7 +3028,7 @@ fit.hypo = function(p = 0, dd, y, amat, bvec = NULL, dv = NULL,
   }
   
   edfs = edf
-  gcv =  dev / (1 - edf / n)^2
+  gcv = dev / (1 - edf / n)^2
   gcvs = gcv
   
   #edfu: check more...
@@ -3017,10 +3038,12 @@ fit.hypo = function(p = 0, dd, y, amat, bvec = NULL, dv = NULL,
   if(!is.null(dv)){
     #bigp_un = dd %*% solve(qv0 + ps * dv, t(dd))
     if(is.null(covmat_inv)){
-      bigp_un = dd %*% solve(qv, t(dd))
+      #bigp_un = dd %*% solve(qv, t(dd))
+      bigp_un = qvinv %*% dtd #not the projection matrix, just to make it faster to get the trace
     } else {
       #for arp qv0 is t(dd) * Rinv * dd
-      bigp_un = dd %*% solve(qv, t(dd)) %*% covmat_inv
+      #bigp_un = dd %*% solve(qv, t(dd)) %*% covmat_inv
+      bigp_un = qvinv %*% crossprod(dd, covmat_inv) %*% dd
     }
   } else {
     if(is.null(covmat_inv)){
@@ -3073,10 +3096,16 @@ fit.hypo = function(p = 0, dd, y, amat, bvec = NULL, dv = NULL,
 .search_ps = function(pen, qv0, dv, dd, edfu, covmat_inv=NULL)
 {
   #if(is.null(covmat_inv)){
-  qv = qv0 + pen * dv
+  #qv = qv0 + pen * dv
   #val = sum(diag(dd %*% ginv(qv, t(dd)))) - edfu * (.85)
   #val = sum(diag(dd %*% solve(qv, t(dd)))) - edfu #edfu * (.8)
-  val = sum(diag(dd %*% solve(qv, t(dd)))) - edfu * (.85)
+  #val = sum(diag(dd %*% solve(qv, t(dd)))) - edfu * (.85)
+  
+  qv = qv0 + pen * dv
+  umat = chol(qv)
+  qvinv = chol2inv(umat)
+  val = sum(diag(qvinv %*% crossprod(dd))) - edfu * (.85)
+
   #cat('uniroot: ', val, '\n')
   #val = sum(diag(dd %*% solve(qv) %*% t(dd))) - edfu
   #}else{

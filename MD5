@@ -1,10 +1,10 @@
-d294191ec3e3ef78c4b5da4b9dd223d3 *ChangeLog
-bd3f63550e93a1d5980bbb8d1620dd24 *DESCRIPTION
-a3c73d8ecd23c2528177f4b4782dc25f *NAMESPACE
-aac4f1270098ba35342d828d52fa9f6f *R/cgam.R
-e884837caf9e90449a96f69379d59e15 *R/cgamm.R
-f8cf7b4731372cf1f802fd14e50ff741 *R/globals.R
-c6126f466d0c891c69de8809d22f8b93 *R/testpar.R
+61394d05dca320f4515578efb2a44f80 *ChangeLog
+5c9cf2e7e94b5c929f68725b4d6b7133 *DESCRIPTION
+38c3d2d83184f69f321b41b5e2dfef98 *NAMESPACE
+1562c425d531b953150f4242310740ed *R/cgam.R
+2e81a046a6295a8eaa432e50cf154c25 *R/cgamm.R
+29ab600096f6d742781e21b1fc54c8f8 *R/globals.R
+93214bea0a5eb5a1c245e2ab07633842 *R/testpar.R
 30371bbfb1b09c61689e34133389c96b *data/COforest.rda
 a0db33d4a416d9f938daadefe0e246d8 *data/cubic.rda
 38989ead0193c484041448d86a606c2e *data/mental.rda
@@ -15,7 +15,7 @@ a0db33d4a416d9f938daadefe0e246d8 *data/cubic.rda
 fc02edd7fa2d530a5d429ff9bdf3450e *man/ShapeSelect.Rd
 80c9e0cb3b89e26792645fa9ce67e795 *man/best.fit.Rd
 cee0ca2a8ef9904421d3d2eef2f2879a *man/cgam.Rd
-b7f634558ad42b820a6aaa0013dbd333 *man/cgamm.Rd
+9a274c36ccafc23e2768de712d545358 *man/cgamm.Rd
 02dfead6a50ea3d987075cdfc314332d *man/conc.Rd
 49444d5af949917f6772fa3025d26e0c *man/conv.Rd
 6c2f09d25de34e3aeee15a6970ef91fe *man/cubic.Rd

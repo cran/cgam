@@ -10,7 +10,8 @@
 
 \usage{
 cgamm(formula, nsim = 0, family = gaussian(), cpar = 1.2, data = NULL, weights = NULL,
-sc_x = FALSE, sc_y = FALSE, bisect = TRUE, reml = TRUE, nAGQ = 1L)
+sc_x = FALSE, sc_y = FALSE, bisect = TRUE, reml = TRUE, 
+multicore = getOption("cgam.parallel"), CIC = FALSE, nAGQ = 1L)
 }
 
 \arguments{
@@ -24,6 +25,12 @@ sc_x = FALSE, sc_y = FALSE, bisect = TRUE, reml = TRUE, nAGQ = 1L)
   \item{sc_y}{Logical flag indicating if or not the response variable is normalized. The default is sc_y = FALSE.}
   \item{bisect}{If bisect = TRUE, a 95 percent confidence interval will be found for the variance ratio parameter by a bisection method.}
   \item{reml}{If reml = TRUE, restricted maximum likelihood (REML) method will be used to find estimates instead of maximum likelihood estimation (MLE).}
+  \item{multicore}{
+A parameter retrieving the current global option for "csurvey.multicore" and assigns its value to the multicore variable, allowing the function to respect a user-defined setting for parallel processing behavior across the package.
+}
+\item{CIC}{
+Logical flag indicating if or not cic is computed. 
+}
   \item{nAGQ}{Integer scalar - the number of points per axis for evaluating the adaptive Gauss-Hermite approximation to the log-likelihood. Defaults to 1, corresponding to the Laplace approximation. Values greater than 1 produce greater accuracy in the evaluation of the log-likelihood at the expense of speed.}
 }
 

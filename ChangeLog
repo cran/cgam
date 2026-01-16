@@ -89,3 +89,10 @@
 
 1.29
 * add vcov.cgam and plot.cgam for components plot (only plot smooth terms)
+
+1.30
+* change the knot placement strategy: following the convergence rate in the variable selection paper
+* update cgamm with binomial option
+* cgam.pv: del1 is orthogonal to vmat; pr0 is based on d0 orthogonal to vmat; bases are weighted first before computing the test statistic
+* cgam.pv: for !wt.iter cases, df2 is observed df
+* use cgam.pvz when family == "binomial" for cgam and cgamm. Use the working response at the last iteration and set wt.iter = FALSE, family = "gaussian". 
