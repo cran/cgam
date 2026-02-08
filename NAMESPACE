@@ -24,6 +24,7 @@ importFrom("quadprog", "solve.QP")
 importFrom("MASS", "ginv")
 
 S3method(vcov, cgam)
+S3method(vcov, cgamm)
 S3method(plot, cgam)
 S3method(plot, cgamm)
 S3method(summary, cgam)

@@ -48,11 +48,11 @@ It is provided by Forest Inventory Analysis (FIA) National Program.
   #re-grouping classes of CCLCD:
   #combine dominant (2) and co-dominant (3)
   #combine intermediate (4) and overtopped (5)
-  COforest = COforest %>% mutate(CCLCD = replace(CCLCD, CCLCD == 2, 3)) %>%
+  COforest = COforest |> mutate(CCLCD = replace(CCLCD, CCLCD == 2, 3)) |>
     mutate(CCLCD = replace(CCLCD, CCLCD == 5, 4))
 
   #make a list of species, each element is a small data frame for one species
-  species = COforest %>% group_by(SPCD) %>% nest()
+  species = COforest |> group_by(SPCD) |> nest()
 
   #get the subset for quaking aspen, which is the 4th element in the species list
   sub = species$data[[4]]

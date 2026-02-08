@@ -889,7 +889,8 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
                         if (any(shapes >= 9 & shapes <= 17)) {
                             for (i in 1:capl) {
                               if (shapes[i] >= 1 & shapes[i] <= 17 ){
-                                  ansi <- cgam.pv(y=y, xmat=xmat, zmat=zmat, shapes=shapes, delta=delta, np=np, capms=capms, numknotsuse=numknotsuse, varlist=varlist, family=family, weights=weights, test_id=i, nsims=100, skip=FALSE)
+                                  ansi <- cgam.pv(y=y, xmat=xmat, zmat=zmat, shapes=shapes, delta=delta, np=np, capms=capms, numknotsuse=numknotsuse, varlist=varlist, family=family, weights=weights, test_id=i, 
+                                                  nsims=1000, skip=FALSE)
                                   pvi <- ansi$pv
                                   edfi <- 1.5*sum(xcoefs[varlist == i] > 1e-8)
                                   bstati <- ansi$bstat
@@ -915,7 +916,35 @@ cgam.fit <- function(y, xmat, zmat, shapes, numknots, knots, space, nsim, family
                             prior.w <- weights
                             if (capk > 0) {
                                 sse1 <- sum(prior.w * (y - muhatkeep)^2)
-                                ansi <- cgam.pvz(y=y, bigmat=bigmat, df_obs=df_obs, sse1=sse1, np=np, zid=zid, zid1=zid1, zid2=zid2, muhat = muhatkeep, etahat = etakeep, coefskeep = coefskeep, wt.iter=wt.iter, family=family, weights=weights)
+                                #new: 2026, use working response and pretend family is gaussian when family is bin
+                                #test more 
+                                if(!wt.iter){
+                                  ansi <- cgam.pvz(y=y, bigmat=bigmat, df_obs=df_obs, sse1=sse1, np=np, zid=zid, zid1=zid1, 
+                                                   zid2=zid2, muhat = muhatkeep, etahat = etakeep, coefskeep = coefskeep, 
+                                                   wt.iter=wt.iter, family=family, weights=weights)
+                                } else {
+                                  #test more!
+                                  #wtkeep
+                                  ch = muhatkeep > 1e-5 & muhatkeep < 1-(1e-5)
+                                  z = rep(0, length(y))
+                                  z[ch] = etakeep[ch] + (y[ch]-muhatkeep[ch])/muhatkeep[ch]/(1-muhatkeep[ch])
+                                  z[!ch] = etakeep[!ch]
+                                  
+                                  deltil = t(bigmat)
+                                  m = ncol(deltil)
+                                  for(i in 1:m){deltil[,i]=deltil[,i]*sqrt(wtkeep)}
+                                  ztil = z*sqrt(wtkeep)
+                                  
+                                  sse1_til = sum((ztil - deltil%*%coefskeep)^2)
+                                  
+                                  ansi <- cgam.pvz(y=ztil, bigmat=t(deltil), df_obs=df_obs, sse1=sse1_til, 
+                                                   np=np, 
+                                                   zid=zid, zid1=zid1, 
+                                                   zid2=zid2, muhat=NULL, etahat=NULL, coefskeep=NULL, 
+                                                   wt.iter=FALSE, family=gaussian(link="identity"), weights=weights)
+                                  
+                                }
+                                #ansi <- cgam.pvz(y=y, bigmat=bigmat, df_obs=df_obs, sse1=sse1, np=np, zid=zid, zid1=zid1, zid2=zid2, muhat = muhatkeep, etahat = etakeep, coefskeep = coefskeep, wt.iter=wt.iter, family=family, weights=weights)
                                 pvsz <- ansi$pvs
                                 z.edf <- ansi$edfs
                                 fstats <- ansi$fstats

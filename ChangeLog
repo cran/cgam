@@ -96,3 +96,8 @@
 * cgam.pv: del1 is orthogonal to vmat; pr0 is based on d0 orthogonal to vmat; bases are weighted first before computing the test statistic
 * cgam.pv: for !wt.iter cases, df2 is observed df
 * use cgam.pvz when family == "binomial" for cgam and cgamm. Use the working response at the last iteration and set wt.iter = FALSE, family = "gaussian". 
+
+1.31
+* change nsim to be 100 as the default in cgam and cgamm. nsim is only used for simulating cic values.
+* In cgam.pv, nsims is set to be 1000 for better accuracy.
+* plot.cgamm is debugged. 

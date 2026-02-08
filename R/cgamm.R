@@ -1,4 +1,4 @@
-cgamm = function(formula, nsim = 0, family = gaussian(), cpar = 1.2, data = NULL,
+cgamm = function(formula, nsim = 100, family = gaussian(), cpar = 1.2, data = NULL,
                  weights = NULL, sc_x = FALSE, sc_y = FALSE, bisect = TRUE, reml = TRUE,
                  multicore = getOption("cgam.parallel"), CIC = FALSE, nAGQ = 1L) {
   cl <- match.call()
@@ -4349,6 +4349,178 @@ print.summary.cgamm <- function(x,...) {
 }
 
 ###########################################
+#new: vcov
+###########################################
+vcov.cgamm <- function(object,...)
+{
+  dd <- t(object$bigmat)
+  n <- nrow(dd)
+  m <- ncol(dd)
+  np <- object$d0 #dim of null space
+  m_acc <- m - np #ncol of smooth components
+  family <- object$family
+  szs <- object$szs
+  ncl <- length(szs)
+  balanced <- FALSE
+  if (length(unique(szs)) == 1) {balanced <- TRUE}
+  nloop <- 100
+  if(family$family == "gaussian"){
+    wt.iter <- FALSE
+    ones <- object$ones
+    sig2hat <- object$sig2hat
+    siga2hat <- object$siga2hat
+    thhat <- object$thhat
+    ahat <- object$ahat
+    #edges <- dd
+    muhat <- object$muhat
+    if (balanced) {
+      oneMat <- ones[[1]]
+      sz <- szs[1]
+    } else {
+      sz <- max(szs)
+      pos <- which(szs == sz)[1]
+      oneMat <- ones[[pos]]
+    }
+    wi <- 1*(diag(sz) + thhat*oneMat)
+    covi <- wi
+    umat <- t(chol(covi))
+    #uinv0 is used for unbalanced
+    uinv0 <- uinv <- solve(umat)
+    #new:
+    nd <- ncol(dd)
+    #test:
+    prior.w <- 1:n*0 + 1
+    if (round(thhat, 6) != 0) {
+      etil <- NULL
+      st <- 1
+      ed <- 0
+      for (icl in 1:ncl) {
+        sz <- szs[icl]
+        ed <- ed + sz
+        if (!balanced) {
+          uinv <- uinv0[1:sz, 1:sz, drop=FALSE]
+        }
+        emati <- dd[st:ed, ,drop=F]
+        etil <- rbind(etil, uinv %*% emati)
+        st <- ed + 1
+      }
+      dsend <- etil[, -(1:np)]
+      zsend <- etil[, 1:np]
+    } else {
+      #prior.w = 1:n*0 + 1
+      dsend <- dd[, (np+1):(m_acc+np)]
+      zsend <- dd[, 1:np]
+    }
+    
+    extras <- list(muhat=muhat, n=n, np=np, m_acc=m_acc, szs=szs, balanced=balanced, 
+                   uinv0=uinv0, thhat=thhat, prior.w=prior.w, siga2hat=siga2hat, sig2hat=sig2hat,
+                   edges=dd, wt.iter=wt.iter)
+    common_args <- list(X = 1:nloop, FUN = .compute_mixture_cgamm)
+    mixture_rslt <- do.call(lapply, c(common_args, extras))
+    mixture_rslt <- do.call(rbind, mixture_rslt) 
+    mixture_rslt <- as.data.frame(mixture_rslt)
+    bsec <- stats::aggregate(list(freq = rep(1, nrow(mixture_rslt))), mixture_rslt, length)
+    bsec$prob <- bsec$freq / nloop
+    other_cols <- colnames(bsec)[!colnames(bsec) %in% c('freq', 'prob')]
+    bsec <- bsec[, c("freq", "prob", other_cols)]
+    sector <- bsec[, -c(1, 2), drop = FALSE]
+    ns <- nrow(bsec)
+    # nv and np are the dim of vmat
+    nv <- np
+    zmat <- zsend
+    spl <- t(dsend)
+    ### calculate the mixture cov(alpha) matrix:
+    obs <- 1:m_acc;oobs = 1:(m_acc+nv)
+    acov <- matrix(0, nrow = m_acc+nv, ncol = m_acc+nv)
+    for (is in 1:ns) {
+      if (bsec[is,2] > 0) {
+        # if(round(thhat, 10) == 0){
+        #   jvec = getbin(bsec[is,1], m_acc)
+        # } else {
+        jvec <- sector[is, ]
+        #}
+        if (sum(jvec) == 1) {
+          smat <- cbind(zmat, t(spl[which(jvec==1),,drop=F]))
+        } else if (sum(jvec) == 0) {
+          smat <- zmat
+        } else {
+          smat <- cbind(zmat, t(spl[which(jvec==1),,drop=F]))
+        }
+        acov1 <- bsec[is,2]*solve(t(smat)%*%smat)
+        acov2 <- matrix(0,nrow=m_acc+nv,ncol=m_acc+nv)
+        jobs <- 1:(m_acc+nv)>0
+        jm <- 1:m_acc>0
+        jm[obs[jvec==0]] <- FALSE
+        jobs[(nv+1):(m_acc+nv)] <- jm
+        nobs <- oobs[jobs==TRUE]
+        for (i in 1:sum(jobs)) {
+          acov2[nobs[i],jobs] <- acov1[i,]
+        }
+        acov <- acov + acov2
+      }
+    }
+    acov <- acov*sig2hat
+  } else {
+    wt.iter <- TRUE
+    amat <- diag(m-np)
+    zerom <- matrix(0, nrow=nrow(amat), ncol=np)
+    amat <- cbind(zerom, amat)
+    z <- 1:n*0
+    ## get the dimension of the face
+    #deltil <- t(bigmat)
+    deltil <- dd
+    uinvkeep <- object$uinvkeep
+    y <- object$y
+    w <- object$wt
+    oneMat <- object$oneMat
+    siga2hat <- object$siga2hat
+    thhat <- object$thhat
+    shat <- siga2hat / thhat
+    vm <- diag(1/w) + c(siga2hat)*oneMat
+    #new: 2025 Nov
+    shat <- 1
+    umat_vm <- t(chol(vm))
+    uinv_vm <- solve(umat_vm)
+    etahat <- object$etahat
+    muhat <- fitted(object) #include fixed + random
+    ahat <- object$ahat
+    #new: include ahat when defining z
+    muhatkeep_all <- object$muhat #fixed + random effect
+    deltil <- uinvkeep %*% deltil
+    umat <- chol(crossprod(deltil))
+    uinv <- solve(umat)
+    atil <- amat %*% uinv
+    bh <- object$coefs
+    
+    etahatkeep_all <- family$linkfun(muhatkeep_all)
+    z <- etahatkeep_all + (y - muhatkeep_all) / family$variance(muhatkeep_all)
+    ztil <- uinvkeep %*% z
+    
+    rw <- round(amat%*% bh, 6) == 0
+    if(sum(rw) == 0){
+      raj <- 0
+      edf <- m
+    } else {
+      ajc <- atil[rw,]
+      raj <- rankMatrix(t(ajc))[1]
+      edf <- min(m, 1.2*(m-raj))
+    }
+    ## thhat is final cone projection
+    thhat_mu <- deltil %*% bh
+    cmat <- matrix(0, nrow = m, ncol = m)
+    imat <- diag(m)
+    shat <- 1
+    
+    extras <- list(thhat_mu=thhat_mu, n=n, m=m, uinv=uinv, deltil=deltil, atil=atil, imat=imat, shat=shat, wt.iter=wt.iter)
+    common_args <- list(X = 1:nloop, FUN = .compute_mixture_cgamm)
+    cmat_lst <- do.call(lapply, c(common_args, extras))
+    cmat <- Reduce(`+`, cmat_lst) / nloop
+    acov <- cmat*shat
+  }
+  return (acov)
+}
+
+###########################################
 #new: smooth component plot
 ###########################################
 #plot.cgamm <- function(object, ci=TRUE, cov_beta=NULL, true_etas=NULL, use_ggplot=FALSE, dynamic=FALSE,...)
@@ -4412,9 +4584,10 @@ plot.cgamm <- function(x,...)
   }
 
   if(is.null(cov_beta) & ci){
-    df_vars <- object$df_vars
-    pans <- predict.cgamm(object, newdata = df_vars, interval = 'confidence', type = 'link')
-    cov_beta <- pans$acov
+    #df_vars <- object$df_vars
+    #pans <- predict.cgamm(object, newdata = df_vars, interval = 'confidence', type = 'link')
+    #cov_beta <- pans$acov
+    cov_beta <- vcov.cgamm(object)
     if(nz > 0){
       cov_beta <- cov_beta[-c(1:nz), -c(1:nz)]
     }
@@ -4431,9 +4604,9 @@ plot.cgamm <- function(x,...)
   k <- 1 #index of dd_k: spline bases
 
   #temp
-  if(use_ggplot){
-    dynamic <- TRUE
-  }
+  #if(use_ggplot){
+  #  dynamic <- TRUE
+  #}
   if(!use_ggplot & !dynamic){
     #oldpar <- par(mfrow = c(1, p))
     if(!exists("pages", where = extras)){
@@ -4496,8 +4669,9 @@ plot.cgamm <- function(x,...)
           geom_line(aes(y = upp), color = "red", linewidth = 0.3)
       }
       
-      print(pic + theme_use)
+      #print(pic + theme_use)
       if(dynamic){
+        print(pic + theme_use)
         if(p > 1){
           readline("Press <Enter> to continue...")
         }
@@ -4536,6 +4710,25 @@ plot.cgamm <- function(x,...)
   #if(use_ggplot){
   #  dynamic <- TRUE
   #}
+  # if(!use_ggplot & !dynamic){
+  #   on.exit(par(oldpar))  # restores original settings
+  # }
+  if(use_ggplot & !dynamic){
+    #library(patchwork)
+    #pic_all <- Reduce(`+`, pic_lst) + plot_layout(nrow = 1)
+    #print (pic_all)
+    if (!requireNamespace("patchwork", quietly = TRUE)) {
+      stop(
+        "Combining ggplots requires the 'patchwork' package. ",
+        "Please install it with install.packages('patchwork').",
+        call. = FALSE
+      )
+    }
+    # Load namespace so patchwork registers ggplot_add methods
+    asNamespace("patchwork")
+    pic_all <- Reduce(`+`, pic_lst) + patchwork::plot_layout(nrow = 1)
+    print(pic_all)
+  }
   if(!use_ggplot & !dynamic){
     on.exit(par(oldpar))  # restores original settings
   }

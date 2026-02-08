@@ -9,7 +9,7 @@
 }
 
 \usage{
-cgamm(formula, nsim = 0, family = gaussian(), cpar = 1.2, data = NULL, weights = NULL,
+cgamm(formula, nsim = 100, family = gaussian(), cpar = 1.2, data = NULL, weights = NULL,
 sc_x = FALSE, sc_y = FALSE, bisect = TRUE, reml = TRUE, 
 multicore = getOption("cgam.parallel"), CIC = FALSE, nAGQ = 1L)
 }
