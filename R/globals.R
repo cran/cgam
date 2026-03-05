@@ -2,6 +2,8 @@
 #' @keywords internal
 #' @name cgam-globalVariables
 utils::globalVariables(c("object", "sse1", "etahat", "ahatc", "face", "qv", "edf", "edfs", "gcv", "gcvs", 
-                         "sighat", "edfu_use", "covmat", "covmat_inv", "phi1", "mat1", "eta", "lwr", "upp", "ylim", "aes"))
+                         "sighat", "edfu_use", "covmat", "covmat_inv", "phi1", "mat1", "eta", "lwr", "upp", "ylim", 
+                         "aes", "axis", "capture.output", "ci", "dfmean_old", "dfmeanmax_old", "makedmat_1D_ic", "mn",
+                         "mu", "pages", "penalty_old"))
 `%||%` <- function(a, b) if (!is.null(a)) a else b
 

@@ -1472,13 +1472,13 @@ CicFamily <- function(object) {
        if (all(etahat == 0)) {
          gr <- w * (1/2 - y)
        } else {
-	   gr <- 1:n*0
-	   for (i in 1:n) {
-	     if (etahat[i] > 100) {
-		 gr[i] <- w[i] * (1 - y[i])
-	     } else {gr[i] <- w[i] * (exp(etahat[i]) / (1 + exp(etahat[i])) - y[i])}
-           }
-         }
+    	   gr <- 1:n*0
+    	   for (i in 1:n) {
+    	     if (etahat[i] > 100) {
+    		    gr[i] <- w[i] * (1 - y[i])
+    	     } else {gr[i] <- w[i] * (exp(etahat[i]) / (1 + exp(etahat[i])) - y[i])}
+          }
+        }
     }
     if (fml == "Gamma") {
     	gr <- w * (1 - y * exp(-etahat))
@@ -1488,7 +1488,7 @@ CicFamily <- function(object) {
 
   wt.fun <- function(y, etahat = NULL, n = NULL, weights = NULL, fml = object$family){
     if (is.null(weights)) {
-	weights <- 1:n*0 + 1
+	    weights <- 1:n*0 + 1
     }
     w <- weights
     if (fml == "poisson") {
@@ -1497,9 +1497,9 @@ CicFamily <- function(object) {
     if (fml == "binomial") {
       if (all(etahat == 0)){
         #wt <- 1:n*0 + 1/4
-	wt <- w * (1:n*0 + 1/4)
+	      wt <- w * (1:n*0 + 1/4)
       } else {
-	  wt <- 1:n*0
+	        wt <- 1:n*0
           for (i in 1:n) {
             if (etahat[i] > 100) {
               wt[i] <- 0
@@ -3695,7 +3695,7 @@ summary.wps <- function(object,...) {
 #####################
 #print.cgam #
 #####################
-print.cgam = function (x, ...)
+print.cgam = function(x,...)
 {
     print(x$family)
     cat("Call:\n")
@@ -4025,9 +4025,9 @@ predict.cgam = function(object, newdata, interval = c("none", "confidence", "pre
     for (i in 1:ks) {
       xi = xmat_s[,i]
       nxi = newx_s[,i]
-      if (any(nxi > max(xi)) | any(nxi < min(xi))) {
-        stop ("No extrapolation is allowed in cgam prediction!")
-      }
+      # if (any(nxi > max(xi)) | any(nxi < min(xi))) {
+      #   stop ("No extrapolation is allowed in cgam prediction!")
+      # }
       #new: scale accordingly
       #nxi = (nxi - min(xi)) / (max(xi) - min(xi))
       pos1 = xid1_s[i] - (1 + capk + sum(shapes > 2 & shapes < 5 | shapes > 10 & shapes < 13))
@@ -4761,8 +4761,6 @@ pred_del = function(x, sh, xp, ms) {
 	}
 	return (sigma)
 }
-
-
 
 ##############
 #predict.wps#
@@ -9002,311 +9000,279 @@ fitted.cgam.polr <- function(object,...) {
 #############################
 #get(x = "s", pos = "package:cgam")
 #new: add npop; per.mutate
-ShapeSelect <- function(formula, family = gaussian, cpar = 2, data = NULL, weights = NULL, npop = 200, per.mutate = 0.05, genetic = FALSE) {
-	#if (exists("s", parent.frame()) & class(get("s", envir = parent.frame())) == "function") {
-  if (exists("s", parent.frame()) & inherits(get("s", envir = parent.frame()), "function")) {
-		if (!identical(get("s", envir = parent.frame()), cgam::s)) {
-			assign("s", cgam::s, envir = parent.frame())
-		}
-	}
-	cl <- match.call()
-	if (is.character(family))
-		family <- get(family, mode = "function", envir = parent.frame())
-	if (is.function(family))
-		family <- family()
-	if (is.null(family$family))
-		stop("'family' not recognized!")
-	mf <- match.call(expand.dots = FALSE)
-	m <- match(c("formula", "data"), names(mf), 0L)
-	mf <- mf[c(1L, m)]
-  	mf[[1L]] <- as.name("model.frame")
-  	mf <- eval(mf, parent.frame())
-  	ynm <- names(mf)[1]
-  	mt <- attr(mf, "terms")
-  	y <- model.response(mf, "any")
-  	if (family$family == "binomial") {
-		#if (class(y) == "factor") {
-  	if(inherits(y, "factor")){
-			y <- ifelse(y == levels(y)[1], 0, 1)
-		}
-#new: test
-		#if (class(y) == "character") {
-		if(inherits(y, "character")){
-			y <- ifelse(factor(y) == levels(factor(y))[1], 0, 1)
-		}
-  	}
-#print (head(y))
-  	shpsx <- list(); shpsz <- list(); shpst <- list(); shpsvx <- NULL
-	ix <- 1; iz <- 1; itr <- 1; sel <- FALSE
-  	xmat <- NULL; xnms <- NULL
-	vxmat <- NULL; vxnms <- NULL
-  	zmat <- NULL; znms <- NULL; zfacs <- NULL
-	vzmat <- NULL; vznms <- NULL; vzfacs <- NULL
-	trmat <- NULL; trnms <- NULL; vtrmat <- NULL; vtrnms <- NULL
-	for (i in 2:ncol(mf)) {
-		if (!is.null(attributes(mf[, i])$type)) {
-			if (attributes(mf[, i])$type == "fac" | attributes(mf[, i])$type == "lin") {
-				if (attributes(mf[, i])$type == "fac") {
-					zfacs <- c(zfacs, TRUE)
-				} else {
-					#if (is.character(mf[,i])) {
-						#mf[,i] = ifelse(factor(mf[,i]) == levels(factor(mf[,i]))[1], 0, 1)
-					#	nm <- attributes(mf[,i])$nm
-					#	mf[,i] <- ifelse(factor(mf[,i]) == levels(factor(mf[,i]))[1], 0, 1)
-					#	attr(mf[,i], "type") <- "lin"
-					#	attr(mf[,i], "shape") <- c(0, 1)
-					#	attr(mf[,i], "nm") <- nm
-					#	zfacs <- c(zfacs, TRUE)
-					#} else {
-						zfacs <- c(zfacs, FALSE)
-					#}
-				}
-				zmat <- cbind(zmat, mf[, i])
-       			znms <- c(znms, attributes(mf[, i])$nm)
-				shpsz[[iz]] <- attributes(mf[, i])$shape
-				iz <- iz + 1
-				sel <- TRUE
-			}
-			#if (attributes(mf[, i])$type == "lin") {
-			#	zfacs <- c(zfacs, FALSE)
-			#	zmat <- cbind(zmat, mf[, i])
-#temp
-       				#znms <- c(znms, names(mf)[i])
-			#	znms <- c(znms, attributes(mf[, i])$nm)
-			#	shpsz[[iz]] <- c(0, 1)
-			#	iz <- iz + 1
-			#}
-			if (attributes(mf[, i])$type == "nparam") {
-  				xmat <- cbind(xmat, mf[, i])
-       				xnms <- c(xnms, attributes(mf[, i])$nm)
-				shpsx[[ix]] <- attributes(mf[, i])$shape
-				ix <- ix + 1
-				sel <- TRUE
-			}
-			#if (attributes(mf[, i])$type == "ord.tree") {
-			if (attributes(mf[, i])$type == "tree") {
-				trmat <- cbind(trmat, mf[, i])
-       				trnms <- c(trnms, attributes(mf[, i])$nm)
-				shpst[[itr]] <- attributes(mf[, i])$shape
-				itr <- itr + 1
-				sel <- TRUE
-			}
-		} else {
-			if (is.numeric(attributes(mf[, i])$shape)) {
-				shpsvx <- c(shpsvx, attributes(mf[, i])$shape)
-				vxmat <- cbind(vxmat, mf[, i])
-        			vxnms <- c(vxnms, attributes(mf[, i])$nm)
-			} else if (is.character(attributes(mf[, i])$shape)) {
-				if (attributes(mf[, i])$shape == "tree") {
-					vtrmat <- cbind(vtrmat, mf[, i])
-					vtrnms <- c(vtrnms, attributes(mf[, i])$nm)
-				}
-			} else {
-				if (is.factor(mf[, i])) {
-					vzfacs <- c(vzfacs, TRUE)
-				} else {
-					vzfacs <- c(vzfacs, FALSE)
-				}
-				vzmat <- cbind(vzmat, mf[, i])
-#temp
-       				vznms <- c(vznms, names(mf)[i])
-			}
-		}
-	}
-	if (!sel) {
-		stop ("No variable to be selected! Use cgam instead!")
-	}
-	if (!is.null(xmat)) {
-		capl <- ncol(xmat)
-		bx <- sapply(shpsx, function(x) length(x))
-		xnum <- rev(cumprod(bx))[1]
-	} else {capl <- 0; xnum <- 1}
-	if (!is.null(zmat)) {
-		capk <- ncol(zmat)
-		znum <- 2^capk
-	} else {capk <- 0; znum <- 1}
-	if (!is.null(trmat)) {
-		capt <- ncol(trmat)
-		trnum <- 3^capt
-	} else {capt <- 0; trnum <- 1}
-	nmod <- xnum * znum * trnum
-	tm <- 0
-	if (genetic) {
-# call GA
-		print ("Go genetic algorithm!")
-		ptm <- proc.time()
-		ans <- ConstrGA(y, xmat, zmat, trmat, family = family, shpsx = shpsx, shpsvx = shpsvx, shpsz = shpsz, shpst = shpst, cpar = cpar, nmod = nmod, zfacs = zfacs, weights = weights, vzmat = vzmat, vzfacs = vzfacs, vxmat = vxmat, vtrmat = vtrmat, npop = npop, per.mutate = per.mutate)
-		tm <- proc.time() - ptm
-	} else {
-		if (nmod <= 5e+2) {
-			print ("Go through models one by one!")
-			Sys.sleep(1)
-			ptm <- proc.time()
-			ans <- ConstrALL(y, xmat, zmat, trmat, family = family, shpsx = shpsx, shpsvx = shpsvx, shpsz = shpsz, shpst = shpst, cpar = cpar, zfacs = zfacs, weights = weights, vzmat = vzmat, vzfacs = vzfacs, vxmat = vxmat, vtrmat = vtrmat)
-			tm <- tm + proc.time() - ptm
-#could go one-by-one, but will suggest genetic
-		} else if (nmod > 5e+2 & nmod <= 1e+6) {
-			print ("Estimating the time of one fit!")
-			ptm <- proc.time()
-			invisible(ConstrGA(y, xmat, zmat, trmat, family = family, shpsx = shpsx, shpsvx = shpsvx, shpsz = shpsz, shpst = shpst, cpar = cpar, nmod = nmod, zfacs = zfacs, time.est = TRUE, weights = weights, vzmat = vzmat, vzfacs = vzfacs, vxmat = vxmat, vtrmat = vtrmat, npop = npop, per.mutate = per.mutate))
-			tm <- proc.time() - ptm
-			print (paste("Total time of one fit is roughly", round(tm[3], 1), "seconds"))
-			if (round(tm[3] * nmod/60^2) > 1) {
-				tm2 <- paste(round(tm[3] * nmod/60^2), "hours")
-			} else {tm2 <- paste(round(tm[3] * nmod/60), "minutes")}
-			msg <- paste("Number of all models is", nmod, "and the time for all fits is roughly", tm2, ". Go one by one?")
-			res <- dlgMessage(msg, "yesno")$res
-			if (res == "yes") {
-				print ("Go one by one!")
-				ptm <- proc.time()
-				ans <- ConstrALL(y, xmat, zmat, trmat, family = family, shpsx = shpsx, shpsvx = shpsvx, shpsz = shpsz, shpst = shpst, cpar = cpar, zfacs = zfacs, weights = weights, vzmat = vzmat, vzfacs = vzfacs, vxmat = vxmat, vtrmat = vtrmat)
-				tm <- proc.time() - ptm
-			} else {
-				print ("Go genetic!")
-				ptm <- proc.time()
-				ans <- ConstrGA(y, xmat, zmat, trmat, family = family, shpsx = shpsx, shpsvx = shpsvx, shpsz = shpsz, shpst = shpst, cpar = cpar, nmod = nmod, zfacs = zfacs, weights = weights, vzmat = vzmat, vzfacs = vzfacs, vxmat = vxmat, vtrmat = vtrmat, npop = npop, per.mutate = per.mutate)
-				tm <- proc.time() - ptm
-			}
-#too many models or memory problem
-		} else {
-			print ("Go genetic! Too many models!")
-			ptm <- proc.time()
-			ans <- ConstrGA(y, xmat, zmat, trmat, family = family, shpsx = shpsx, shpsvx = shpsvx, shpsz = shpsz, shpst = shpst, cpar = cpar, nmod = nmod, zfacs = zfacs, weights = weights, vzmat = vzmat, vzfacs = vzfacs, vxmat = vxmat, vtrmat = vtrmat, npop = npop, per.mutate = per.mutate)
-			tm <- tm + proc.time() - ptm
-		}
-	}
-#print (vznms)
-	colnames(ans$pop2)[1:(capl+capk+capt)] = c(xnms, znms, trnms)
-	rslt <- list(pop = ans$pop2, top = ans$pop2[1,], fitness = ans$fitness, tm = tm, xnms = xnms, znms = znms, trnms = trnms, zfacs = zfacs, mxf = ans$mxf, mnf = ans$mnf, GA = ans$GA, vzcat = ans$vzcat, vzmat = vzmat, shpsx = shpsx, vxnms = vxnms, vznms = vznms, vtrnms = vtrnms)
-	form <- make_form(pvec = ans$pop2[1, 1:(capl+capk+capt)], pnms = colnames(ans$pop2)[1:(capl+capk+capt)], ynm = ynm, zfacs = zfacs, vznms = vznms, vxnms = vxnms, shpsvx = shpsvx, vtrnms = vtrnms)
-	fm <- form$fm
-#print (fm)
-	zps <- form$zps
-	if (is.null(fm)) {
-		print ('No predictor is chosen')
-		best.fit <- NULL
-	} else {
-		best.fit <- cgam(formula = fm, nsim = 0, family = family, cpar = cpar, data = data, weights = weights)
-		rslt$best.fit <- best.fit
-		rslt$fm <- fm
-		id_noflat <- which(ans$pop[1, 1:capl, drop = FALSE] != 0)
-		if (length(id_noflat) > 1) {
-			msg <- paste("A perspective plot of the best fit?")
-			res <- dlgMessage(msg, "yesno")$res
-			if (res == "yes") {
-				if (is.null(zps)) {
-					plotpersp(best.fit)
-				} else {plotpersp(best.fit, categ = zps[1])}
-			}
-		}
-	}
-    rslt$best.fit <- best.fit
-	rslt$call <- cl
-	class(rslt) <- "shapeselect"
-	return (rslt)
-}
+# ShapeSelect <- function(formula, family = gaussian, cpar = 2, data = NULL, weights = NULL, npop = 200, per.mutate = 0.05, genetic = FALSE) {
+# 	#if (exists("s", parent.frame()) & class(get("s", envir = parent.frame())) == "function") {
+#   if (exists("s", parent.frame()) & inherits(get("s", envir = parent.frame()), "function")) {
+# 		if (!identical(get("s", envir = parent.frame()), cgam::s)) {
+# 			assign("s", cgam::s, envir = parent.frame())
+# 		}
+# 	}
+# 	cl <- match.call()
+# 	if (is.character(family))
+# 		family <- get(family, mode = "function", envir = parent.frame())
+# 	if (is.function(family))
+# 		family <- family()
+# 	if (is.null(family$family))
+# 		stop("'family' not recognized!")
+# 	mf <- match.call(expand.dots = FALSE)
+# 	m <- match(c("formula", "data"), names(mf), 0L)
+# 	mf <- mf[c(1L, m)]
+#   	mf[[1L]] <- as.name("model.frame")
+#   	mf <- eval(mf, parent.frame())
+#   	ynm <- names(mf)[1]
+#   	mt <- attr(mf, "terms")
+#   	y <- model.response(mf, "any")
+#   	if (family$family == "binomial") {
+# 		#if (class(y) == "factor") {
+#   	if(inherits(y, "factor")){
+# 			y <- ifelse(y == levels(y)[1], 0, 1)
+# 		}
+# #new: test
+# 		#if (class(y) == "character") {
+# 		if(inherits(y, "character")){
+# 			y <- ifelse(factor(y) == levels(factor(y))[1], 0, 1)
+# 		}
+#   	}
+# #print (head(y))
+#   	shpsx <- list(); shpsz <- list(); shpst <- list(); shpsvx <- NULL
+# 	ix <- 1; iz <- 1; itr <- 1; sel <- FALSE
+#   	xmat <- NULL; xnms <- NULL
+# 	vxmat <- NULL; vxnms <- NULL
+#   	zmat <- NULL; znms <- NULL; zfacs <- NULL
+# 	vzmat <- NULL; vznms <- NULL; vzfacs <- NULL
+# 	trmat <- NULL; trnms <- NULL; vtrmat <- NULL; vtrnms <- NULL
+# 	for (i in 2:ncol(mf)) {
+# 		if (!is.null(attributes(mf[, i])$type)) {
+# 			if (attributes(mf[, i])$type == "fac" | attributes(mf[, i])$type == "lin") {
+# 				if (attributes(mf[, i])$type == "fac") {
+# 					zfacs <- c(zfacs, TRUE)
+# 				} else {
+# 					#if (is.character(mf[,i])) {
+# 						#mf[,i] = ifelse(factor(mf[,i]) == levels(factor(mf[,i]))[1], 0, 1)
+# 					#	nm <- attributes(mf[,i])$nm
+# 					#	mf[,i] <- ifelse(factor(mf[,i]) == levels(factor(mf[,i]))[1], 0, 1)
+# 					#	attr(mf[,i], "type") <- "lin"
+# 					#	attr(mf[,i], "shape") <- c(0, 1)
+# 					#	attr(mf[,i], "nm") <- nm
+# 					#	zfacs <- c(zfacs, TRUE)
+# 					#} else {
+# 						zfacs <- c(zfacs, FALSE)
+# 					#}
+# 				}
+# 				zmat <- cbind(zmat, mf[, i])
+#        			znms <- c(znms, attributes(mf[, i])$nm)
+# 				shpsz[[iz]] <- attributes(mf[, i])$shape
+# 				iz <- iz + 1
+# 				sel <- TRUE
+# 			}
+# 			#if (attributes(mf[, i])$type == "lin") {
+# 			#	zfacs <- c(zfacs, FALSE)
+# 			#	zmat <- cbind(zmat, mf[, i])
+# #temp
+#        				#znms <- c(znms, names(mf)[i])
+# 			#	znms <- c(znms, attributes(mf[, i])$nm)
+# 			#	shpsz[[iz]] <- c(0, 1)
+# 			#	iz <- iz + 1
+# 			#}
+# 			if (attributes(mf[, i])$type == "nparam") {
+#   				xmat <- cbind(xmat, mf[, i])
+#        				xnms <- c(xnms, attributes(mf[, i])$nm)
+# 				shpsx[[ix]] <- attributes(mf[, i])$shape
+# 				ix <- ix + 1
+# 				sel <- TRUE
+# 			}
+# 			#if (attributes(mf[, i])$type == "ord.tree") {
+# 			if (attributes(mf[, i])$type == "tree") {
+# 				trmat <- cbind(trmat, mf[, i])
+#        				trnms <- c(trnms, attributes(mf[, i])$nm)
+# 				shpst[[itr]] <- attributes(mf[, i])$shape
+# 				itr <- itr + 1
+# 				sel <- TRUE
+# 			}
+# 		} else {
+# 			if (is.numeric(attributes(mf[, i])$shape)) {
+# 				shpsvx <- c(shpsvx, attributes(mf[, i])$shape)
+# 				vxmat <- cbind(vxmat, mf[, i])
+#         			vxnms <- c(vxnms, attributes(mf[, i])$nm)
+# 			} else if (is.character(attributes(mf[, i])$shape)) {
+# 				if (attributes(mf[, i])$shape == "tree") {
+# 					vtrmat <- cbind(vtrmat, mf[, i])
+# 					vtrnms <- c(vtrnms, attributes(mf[, i])$nm)
+# 				}
+# 			} else {
+# 				if (is.factor(mf[, i])) {
+# 					vzfacs <- c(vzfacs, TRUE)
+# 				} else {
+# 					vzfacs <- c(vzfacs, FALSE)
+# 				}
+# 				vzmat <- cbind(vzmat, mf[, i])
+# #temp
+#        				vznms <- c(vznms, names(mf)[i])
+# 			}
+# 		}
+# 	}
+# 	if (!sel) {
+# 		stop ("No variable to be selected! Use cgam instead!")
+# 	}
+# 	if (!is.null(xmat)) {
+# 		capl <- ncol(xmat)
+# 		bx <- sapply(shpsx, function(x) length(x))
+# 		xnum <- rev(cumprod(bx))[1]
+# 	} else {capl <- 0; xnum <- 1}
+# 	if (!is.null(zmat)) {
+# 		capk <- ncol(zmat)
+# 		znum <- 2^capk
+# 	} else {capk <- 0; znum <- 1}
+# 	if (!is.null(trmat)) {
+# 		capt <- ncol(trmat)
+# 		trnum <- 3^capt
+# 	} else {capt <- 0; trnum <- 1}
+# 	nmod <- xnum * znum * trnum
+# 	tm <- 0
+# 	if (genetic) {
+# # call GA
+# 		print ("Go genetic algorithm!")
+# 		ptm <- proc.time()
+# 		ans <- ConstrGA(y, xmat, zmat, trmat, family = family, shpsx = shpsx, shpsvx = shpsvx, shpsz = shpsz, shpst = shpst, cpar = cpar, nmod = nmod, zfacs = zfacs, weights = weights, vzmat = vzmat, vzfacs = vzfacs, vxmat = vxmat, vtrmat = vtrmat, npop = npop, per.mutate = per.mutate)
+# 		tm <- proc.time() - ptm
+# 	} else {
+# 		if (nmod <= 5e+2) {
+# 			print ("Go through models one by one!")
+# 			Sys.sleep(1)
+# 			ptm <- proc.time()
+# 			ans <- ConstrALL(y, xmat, zmat, trmat, family = family, shpsx = shpsx, shpsvx = shpsvx, shpsz = shpsz, shpst = shpst, cpar = cpar, zfacs = zfacs, weights = weights, vzmat = vzmat, vzfacs = vzfacs, vxmat = vxmat, vtrmat = vtrmat)
+# 			tm <- tm + proc.time() - ptm
+# #could go one-by-one, but will suggest genetic
+# 		} else if (nmod > 5e+2 & nmod <= 1e+6) {
+# 			print ("Estimating the time of one fit!")
+# 			ptm <- proc.time()
+# 			invisible(ConstrGA(y, xmat, zmat, trmat, family = family, shpsx = shpsx, shpsvx = shpsvx, shpsz = shpsz, shpst = shpst, cpar = cpar, nmod = nmod, zfacs = zfacs, time.est = TRUE, weights = weights, vzmat = vzmat, vzfacs = vzfacs, vxmat = vxmat, vtrmat = vtrmat, npop = npop, per.mutate = per.mutate))
+# 			tm <- proc.time() - ptm
+# 			print (paste("Total time of one fit is roughly", round(tm[3], 1), "seconds"))
+# 			if (round(tm[3] * nmod/60^2) > 1) {
+# 				tm2 <- paste(round(tm[3] * nmod/60^2), "hours")
+# 			} else {tm2 <- paste(round(tm[3] * nmod/60), "minutes")}
+# 			msg <- paste("Number of all models is", nmod, "and the time for all fits is roughly", tm2, ". Go one by one?")
+# 			res <- dlgMessage(msg, "yesno")$res
+# 			if (res == "yes") {
+# 				print ("Go one by one!")
+# 				ptm <- proc.time()
+# 				ans <- ConstrALL(y, xmat, zmat, trmat, family = family, shpsx = shpsx, shpsvx = shpsvx, shpsz = shpsz, shpst = shpst, cpar = cpar, zfacs = zfacs, weights = weights, vzmat = vzmat, vzfacs = vzfacs, vxmat = vxmat, vtrmat = vtrmat)
+# 				tm <- proc.time() - ptm
+# 			} else {
+# 				print ("Go genetic!")
+# 				ptm <- proc.time()
+# 				ans <- ConstrGA(y, xmat, zmat, trmat, family = family, shpsx = shpsx, shpsvx = shpsvx, shpsz = shpsz, shpst = shpst, cpar = cpar, nmod = nmod, zfacs = zfacs, weights = weights, vzmat = vzmat, vzfacs = vzfacs, vxmat = vxmat, vtrmat = vtrmat, npop = npop, per.mutate = per.mutate)
+# 				tm <- proc.time() - ptm
+# 			}
+# #too many models or memory problem
+# 		} else {
+# 			print ("Go genetic! Too many models!")
+# 			ptm <- proc.time()
+# 			ans <- ConstrGA(y, xmat, zmat, trmat, family = family, shpsx = shpsx, shpsvx = shpsvx, shpsz = shpsz, shpst = shpst, cpar = cpar, nmod = nmod, zfacs = zfacs, weights = weights, vzmat = vzmat, vzfacs = vzfacs, vxmat = vxmat, vtrmat = vtrmat, npop = npop, per.mutate = per.mutate)
+# 			tm <- tm + proc.time() - ptm
+# 		}
+# 	}
+# #print (vznms)
+# 	colnames(ans$pop2)[1:(capl+capk+capt)] = c(xnms, znms, trnms)
+# 	rslt <- list(pop = ans$pop2, top = ans$pop2[1,], fitness = ans$fitness, tm = tm, xnms = xnms, znms = znms, trnms = trnms, zfacs = zfacs, mxf = ans$mxf, mnf = ans$mnf, GA = ans$GA, vzcat = ans$vzcat, vzmat = vzmat, shpsx = shpsx, vxnms = vxnms, vznms = vznms, vtrnms = vtrnms)
+# 	form <- make_form(pvec = ans$pop2[1, 1:(capl+capk+capt)], pnms = colnames(ans$pop2)[1:(capl+capk+capt)], ynm = ynm, zfacs = zfacs, vznms = vznms, vxnms = vxnms, shpsvx = shpsvx, vtrnms = vtrnms)
+# 	fm <- form$fm
+# #print (fm)
+# 	zps <- form$zps
+# 	if (is.null(fm)) {
+# 		print ('No predictor is chosen')
+# 		best.fit <- NULL
+# 	} else {
+# 		best.fit <- cgam(formula = fm, nsim = 0, family = family, cpar = cpar, data = data, weights = weights)
+# 		rslt$best.fit <- best.fit
+# 		rslt$fm <- fm
+# 		id_noflat <- which(ans$pop[1, 1:capl, drop = FALSE] != 0)
+# 		if (length(id_noflat) > 1) {
+# 			msg <- paste("A perspective plot of the best fit?")
+# 			res <- dlgMessage(msg, "yesno")$res
+# 			if (res == "yes") {
+# 				if (is.null(zps)) {
+# 					plotpersp(best.fit)
+# 				} else {plotpersp(best.fit, categ = zps[1])}
+# 			}
+# 		}
+# 	}
+#     rslt$best.fit <- best.fit
+# 	rslt$call <- cl
+# 	class(rslt) <- "shapeselect"
+# 	return (rslt)
+# }
 
 ######################
 #extract the best fit#
 ######################
-#' Extract the Best Fit Returned by the ShapeSelect Routine
-#'
-#' This is a subroutine that only works for the `ShapeSelect` routine.
-#' It returns an object of the `cgam` class given the variables and their shapes
-#' chosen by the `ShapeSelect` routine.
-#'
-#' @param x An object of the `ShapeSelect` class.
-#'
-#' @return The best fit returned by the `ShapeSelect` routine, which is an object of class `cgam`.
-#'
-#' @author Xiyue Liao
-#'
-#' @examples
-#' \dontrun{
-#' library(MASS)
-#' data(Rubber)
-#'
-#' # Perform variable and shape selection with four possible shapes:
-#' # increasing, decreasing, convex, and concave
-#' ans <- ShapeSelect(loss ~ shapes(hard, set = c("incr", "decr", "conv", "conc")) +
-#'                    shapes(tens, set = c("incr", "decr", "conv", "conc")),
-#'                    data = Rubber, genetic = TRUE)
-#'
-#' # Extract the best fit (a cgam object)
-#' bf <- best.fit(ans)
-#' class(bf)
-#' plotpersp(bf)
-#' }
-#'
-#' @seealso \code{\link{cgam}}, \code{\link{ShapeSelect}}
-#' @keywords best fit of the ShapeSelect routine
-#' @export
-best.fit <- function(x) {
-	if (!inherits(x, "shapeselect")) {
-	        stop("best.fit only works for an object of the ShapeSelect routine!")
-        }
-	object <- x$best.fit
-	return (object)
-}
+# best.fit <- function(x) {
+# 	if (!inherits(x, "shapeselect")) {
+# 	        stop("best.fit only works for an object of the ShapeSelect routine!")
+#         }
+# 	object <- x$best.fit
+# 	return (object)
+# }
 
 ##########################################
 #new symbolic routine                   #
 #s(): shape-restricted for genetic only #
 #keep all 17 one shape routines for cgam#
 #########################################
-shapes <- function(x, set = "s.9")
-{
-    cl <- match.call()
-    pars <- match.call()[-1]
-    attr(x, "nm") <- deparse(pars$x)
-    if (is.numeric(set)) {
-	if (min(set) >= 0 & max(set) <= 16) {
-		#shps <- c(0, set)
-		shps <- set
-		shps <- unique(sort(shps))
-		#attr(x, "char") <- NULL
-	} else {stop ("Shape values for shape-restricted variables can only be between 0 and 16!")}
-	attr(x, "type") <- "nparam"
-    } else {
-		attr(x, "type") <- "nparam"
-		if (identical(set, "s.5")) {
-			shps <- c(0, 9:12)
-    	} else if (identical(set, "s.9")) {
-			shps <- c(0, 9:16)
-    	} else if (identical(set, "ord.5")) {
-			shps <- c(0, 1:4)
-    	} else if (identical(set, "ord.9")) {
-			shps <- c(0, 1:8)
-#print (shps)
-    	} else if (identical(set, "tree")) {
-			#shps <- c(0, "tree", "unordered")
-			shps <- c(0, 1, 2)
-		attr(x, "type") <- "tree"
-    	} else {
-			lshps <- length(set)
-			shps <- unique(sort(unname(sapply(set, CharToShape))))
-		}
-    }
-    attr(x, "nm") <- deparse(pars$x)
-    attr(x, "shape") <- shps
-    x
-}
+# shapes <- function(x, set = "s.9")
+# {
+#     cl <- match.call()
+#     pars <- match.call()[-1]
+#     attr(x, "nm") <- deparse(pars$x)
+#     if (is.numeric(set)) {
+# 	if (min(set) >= 0 & max(set) <= 16) {
+# 		#shps <- c(0, set)
+# 		shps <- set
+# 		shps <- unique(sort(shps))
+# 		#attr(x, "char") <- NULL
+# 	} else {stop ("Shape values for shape-restricted variables can only be between 0 and 16!")}
+# 	attr(x, "type") <- "nparam"
+#     } else {
+# 		attr(x, "type") <- "nparam"
+# 		if (identical(set, "s.5")) {
+# 			shps <- c(0, 9:12)
+#     	} else if (identical(set, "s.9")) {
+# 			shps <- c(0, 9:16)
+#     	} else if (identical(set, "ord.5")) {
+# 			shps <- c(0, 1:4)
+#     	} else if (identical(set, "ord.9")) {
+# 			shps <- c(0, 1:8)
+# #print (shps)
+#     	} else if (identical(set, "tree")) {
+# 			#shps <- c(0, "tree", "unordered")
+# 			shps <- c(0, 1, 2)
+# 		attr(x, "type") <- "tree"
+#     	} else {
+# 			lshps <- length(set)
+# 			shps <- unique(sort(unname(sapply(set, CharToShape))))
+# 		}
+#     }
+#     attr(x, "nm") <- deparse(pars$x)
+#     attr(x, "shape") <- shps
+#     x
+# }
 
 ######################
 #choose z as factors
 ######################
-in.or.out <- function(z)
-{
-    cl <- match.call()
-    pars <- match.call()[-1]
-    attr(z, "nm") <- deparse(pars$z)
-	if (is.factor(z)) {
-    	attr(z, "type") <- "fac"
-	} else {attr(z, "type") <- "lin"}
-    #shps <- c(0, 1)
-    attr(z, "shape") <- c(0, 1)
-    z
-}
+# in.or.out <- function(z)
+# {
+#     cl <- match.call()
+#     pars <- match.call()[-1]
+#     attr(z, "nm") <- deparse(pars$z)
+# 	if (is.factor(z)) {
+#     	attr(z, "type") <- "fac"
+# 	} else {attr(z, "type") <- "lin"}
+#     #shps <- c(0, 1)
+#     attr(z, "shape") <- c(0, 1)
+#     z
+# }
 
 #####################
 #make a cgam formula#

@@ -381,6 +381,19 @@ testpar.fit = function(X, y, zmat = NULL, family = gaussian(link="identity"),
                        GCV = FALSE, lams = NULL, 
                        arp = FALSE, p = NULL, space = "E",...)
 {
+  cicfamily <- CicFamily(family)
+  llh.fun <- cicfamily$llh.fun
+  #new: use log link in gamma
+  #linkfun <- cicfamily$linkfun
+  #etahat.fun <- cicfamily$etahat.fun
+  gr.fun <- cicfamily$gr.fun
+  wt.fun <- cicfamily$wt.fun
+  #zvec.fun <- cicfamily$zvec.fun
+  #muhat.fun <- cicfamily$muhat.fun
+  #ysim.fun <- cicfamily$ysim.fun
+  #deriv.fun <- cicfamily$deriv.fun
+  #dev.fun <- cicfamily$dev.fun
+  
   wt.iter = ifelse(family$family == "gaussian", FALSE, TRUE)
   extras = list(...)
   #new:
@@ -1687,20 +1700,20 @@ summary.testpar <- function(object,...) {
 #####################################################################
 #for parallel
 #####################################################################
-.onLoad <- function(libname, pkgname) {
-  op <- options()
-  op.cgam <- list(
-    cgam.parallel = FALSE,
-    cgam.cores = max(1, parallel::detectCores(logical = FALSE) - 1)
-  )
-  toset <- !(names(op.cgam) %in% names(op))
-  if (any(toset)) options(op.cgam[toset])
-  invisible()
-}
-
-.get_cgam_option <- function(name, default = NULL) {
-  getOption(paste0("cgam.", name), default)
-}
+# .onLoad <- function(libname, pkgname) {
+#   op <- options()
+#   op.cgam <- list(
+#     cgam.parallel = FALSE,
+#     cgam.cores = max(1, parallel::detectCores(logical = FALSE) - 1)
+#   )
+#   toset <- !(names(op.cgam) %in% names(op))
+#   if (any(toset)) options(op.cgam[toset])
+#   invisible()
+# }
+# 
+# .get_cgam_option <- function(name, default = NULL) {
+#   getOption(paste0("cgam.", name), default)
+# }
 
 #####################################################################
 #make the 1st derivative of the basis(edge) of the quadratic bspline at any point xi in the support of the predictor x
@@ -2659,6 +2672,29 @@ makeamat_nonadd = function(k1, k2, shp_pr){
   if(family$family != "gaussian"){
     muhat0 = family$linkinv(etahat0)
   }
+  ysim.fun <- function(n, mu0 = NULL, fml = object$family, shp0 = NULL, sd = NULL, phi = NULL) {
+    if (fml == "binomial") {
+      #ysim <- 1:n*0
+      #ysim[runif(n) < .5] <- 1
+      ysim <- rbinom(n, size = 1, prob = mu0)
+    }
+    if (fml == "poisson") {
+      if (!is.null(mu0)) {
+        ysim <- rpois(n, mu0)
+      }
+    }
+    if (fml == "gaussian") {
+      if(!is.null(phi)){
+        ysim <- mu0 + arima.sim(n = n, list(ar = phi), sd = sd)
+      }else{
+        ysim <- mu0 + rnorm(n, sd = sd)
+      }
+    }
+    if (fml == "Gamma") {
+      ysim <- rgamma(n, shape=1)
+    }
+    ysim
+  }
   ysim = ysim.fun(n, mu0 = muhat0, fml = family$family, phi = phi, sd = sighat)
   #----------
   #H0 fit
@@ -2753,6 +2789,19 @@ fuinv = function(n, phi, sig2hat = 1){
 fit.hypo = function(p = 0, dd, y, amat, bvec = NULL, dv = NULL, 
                     wmat=NULL, family = gaussian(link='identity'), 
                     ps = 0, arp = FALSE,...){
+  cicfamily <- CicFamily(family)
+  llh.fun <- cicfamily$llh.fun
+  #new: use log link in gamma
+  #linkfun <- cicfamily$linkfun
+  #etahat.fun <- cicfamily$etahat.fun
+  gr.fun <- cicfamily$gr.fun
+  wt.fun <- cicfamily$wt.fun
+  #zvec.fun <- cicfamily$zvec.fun
+  #muhat.fun <- cicfamily$muhat.fun
+  #ysim.fun <- cicfamily$ysim.fun
+  #deriv.fun <- cicfamily$deriv.fun
+  #dev.fun <- cicfamily$dev.fun
+  
   wt.iter = ifelse(family$family == "gaussian", FALSE, TRUE)
   covmat = covmat_inv = phi = gamma = sigma2 = sighat = sig2hat_z = xtil = aic = pval.ts = NULL
   n = length(y)
@@ -3119,139 +3168,139 @@ fit.hypo = function(p = 0, dd, y, amat, bvec = NULL, dv = NULL,
 #---------------------------------------------
 #gradient of hessian for binomial, poisson,etc
 #---------------------------------------------
-gr.fun <- function(y, etahat = NULL, weights = NULL, fml = object$family){
-  n <- length(y)
-  if (is.null(weights)) {
-    weights <- 1:n*0 + 1
-  }
-  w <- weights
-  if (fml == "poisson") {
-    #cut_id = etahat > 5
-    #if(sum(cut_id) == 0){
-    gr <- w * (exp(etahat) -  y)
-    #} else {
-    #  gr <- 1:n*0
-    #  gr[!cut_id] <- w[!cut_id] * (exp(etahat[!cut_id]) -  y[!cut_id])
-    #  gr[cut_id] <- w[cut_id] * (exp(5) -  y[cut_id])
-    #}
-    #gr <- w * (exp(etahat) -  y)
-  }
-  if (fml == "binomial") {
-    if (all(etahat == 0)) {
-      gr <- w * (1/2 - y)
-    } else {
-      gr <- 1:n*0
-      for (i in 1:n) {
-        if (etahat[i] > 100) {
-          gr[i] <- w[i] * (1 - y[i])
-        } else {gr[i] <- w[i] * (exp(etahat[i]) / (1 + exp(etahat[i])) - y[i])}
-      }
-    }
-  }
-  if (fml == "Gamma") {
-    gr <- w * (1 - y * exp(-etahat))
-  }
-  gr
-}
+# gr.fun <- function(y, etahat = NULL, weights = NULL, fml = object$family){
+#   n <- length(y)
+#   if (is.null(weights)) {
+#     weights <- 1:n*0 + 1
+#   }
+#   w <- weights
+#   if (fml == "poisson") {
+#     #cut_id = etahat > 5
+#     #if(sum(cut_id) == 0){
+#     gr <- w * (exp(etahat) -  y)
+#     #} else {
+#     #  gr <- 1:n*0
+#     #  gr[!cut_id] <- w[!cut_id] * (exp(etahat[!cut_id]) -  y[!cut_id])
+#     #  gr[cut_id] <- w[cut_id] * (exp(5) -  y[cut_id])
+#     #}
+#     #gr <- w * (exp(etahat) -  y)
+#   }
+#   if (fml == "binomial") {
+#     if (all(etahat == 0)) {
+#       gr <- w * (1/2 - y)
+#     } else {
+#       gr <- 1:n*0
+#       for (i in 1:n) {
+#         if (etahat[i] > 100) {
+#           gr[i] <- w[i] * (1 - y[i])
+#         } else {gr[i] <- w[i] * (exp(etahat[i]) / (1 + exp(etahat[i])) - y[i])}
+#       }
+#     }
+#   }
+#   if (fml == "Gamma") {
+#     gr <- w * (1 - y * exp(-etahat))
+#   }
+#   gr
+# }
 
 #---------------------------------------------
 #2nd deriv of hessian for binomial, poisson,etc
 #---------------------------------------------
-wt.fun <- function(y, etahat = NULL, n = NULL, weights = NULL, fml = object$family){
-  if (is.null(weights)) {
-    weights <- 1:n*0 + 1
-  }
-  w <- weights
-  if (fml == "poisson") {
-    wt <-  w * exp(etahat)
-  }
-  if (fml == "binomial") {
-    if (all(etahat == 0)){
-      #wt <- 1:n*0 + 1/4
-      wt <- w * (1:n*0 + 1/4)
-    } else {
-      wt <- 1:n*0
-      for (i in 1:n) {
-        if (etahat[i] > 100) {
-          wt[i] <- 0
-        } else {
-          wt[i] <- w[i] * exp(etahat[i]) / ((1 + exp(etahat[i]))^2)
-        }
-      }
-    }
-  }
-  if (fml == "gaussian") {
-    wt <- w # (1:n*0 + 1) / w
-  }
-  if (fml == "Gamma") {
-    wt <-  w * y * exp(-etahat)
-  }
-  wt <- as.vector(wt)
-  wt
-}
+# wt.fun <- function(y, etahat = NULL, n = NULL, weights = NULL, fml = object$family){
+#   if (is.null(weights)) {
+#     weights <- 1:n*0 + 1
+#   }
+#   w <- weights
+#   if (fml == "poisson") {
+#     wt <-  w * exp(etahat)
+#   }
+#   if (fml == "binomial") {
+#     if (all(etahat == 0)){
+#       #wt <- 1:n*0 + 1/4
+#       wt <- w * (1:n*0 + 1/4)
+#     } else {
+#       wt <- 1:n*0
+#       for (i in 1:n) {
+#         if (etahat[i] > 100) {
+#           wt[i] <- 0
+#         } else {
+#           wt[i] <- w[i] * exp(etahat[i]) / ((1 + exp(etahat[i]))^2)
+#         }
+#       }
+#     }
+#   }
+#   if (fml == "gaussian") {
+#     wt <- w # (1:n*0 + 1) / w
+#   }
+#   if (fml == "Gamma") {
+#     wt <-  w * y * exp(-etahat)
+#   }
+#   wt <- as.vector(wt)
+#   wt
+# }
 
-llh.fun <- function(y, muhat = NULL, etahat = NULL, phihat = NULL, n = NULL, weights = NULL, fml = object$family){
-  sm <- 1e-7
-  #sm <- 1e-5
-  if (is.null(weights)) {
-    weights <- 1:n*0 + 1
-  }
-  w <- weights
-  #new: avoid Inf
-  if (fml == "poisson") {
-    llh <- 2 * sum(w[w!=0] * (muhat[w!=0] - y[w!=0] * etahat[w!=0])) / n
-  }
-  if (fml == "binomial") {
-    llh <- 0
-    if (all(0 <= y) & all(y <= 1)) {
-      for (i in 1:n) {
-        if (muhat[i] > 0 & muhat[i] < 1) {
-          llh <- llh + w[i] * (y[i] * log(muhat[i]) + (1 - y[i]) * log(1 - muhat[i]))
-        }
-      }
-      llh <- (-2/n) * llh
-    } else {
-      stop ("y values must be 0 <= y <= 1!")
-    }
-  }
-  if (fml == "gaussian") {
-    if (all(w == 1)) {
-      llh <- log(sum((y - etahat)^2))
-    } else {
-      llh <- log(sum(w[w!=0] * (y[w!=0] - etahat[w!=0])^2)) - sum(log(w[w!=0])) / n
-    }
-  }
-  if (fml == "Gamma") {
-    vuhat <- 1 / phihat
-    #print (vuhat)
-    #llh <- 2 * sum(w[w!=0] * (etahat[w!=0] + y[w!=0] * exp(-etahat[w!=0]))) / n
-    llh <- 2 / n * (vuhat * sum(w[w!=0] * (etahat[w!=0] + y[w!=0] * exp(-etahat[w!=0]))) + n * (log(gamma(vuhat)) - vuhat * log(vuhat)) - (vuhat-1) * sum(log(y)))
-    #print (llh)
-  }
-  llh
-}
+# llh.fun <- function(y, muhat = NULL, etahat = NULL, phihat = NULL, n = NULL, weights = NULL, fml = object$family){
+#   sm <- 1e-7
+#   #sm <- 1e-5
+#   if (is.null(weights)) {
+#     weights <- 1:n*0 + 1
+#   }
+#   w <- weights
+#   #new: avoid Inf
+#   if (fml == "poisson") {
+#     llh <- 2 * sum(w[w!=0] * (muhat[w!=0] - y[w!=0] * etahat[w!=0])) / n
+#   }
+#   if (fml == "binomial") {
+#     llh <- 0
+#     if (all(0 <= y) & all(y <= 1)) {
+#       for (i in 1:n) {
+#         if (muhat[i] > 0 & muhat[i] < 1) {
+#           llh <- llh + w[i] * (y[i] * log(muhat[i]) + (1 - y[i]) * log(1 - muhat[i]))
+#         }
+#       }
+#       llh <- (-2/n) * llh
+#     } else {
+#       stop ("y values must be 0 <= y <= 1!")
+#     }
+#   }
+#   if (fml == "gaussian") {
+#     if (all(w == 1)) {
+#       llh <- log(sum((y - etahat)^2))
+#     } else {
+#       llh <- log(sum(w[w!=0] * (y[w!=0] - etahat[w!=0])^2)) - sum(log(w[w!=0])) / n
+#     }
+#   }
+#   if (fml == "Gamma") {
+#     vuhat <- 1 / phihat
+#     #print (vuhat)
+#     #llh <- 2 * sum(w[w!=0] * (etahat[w!=0] + y[w!=0] * exp(-etahat[w!=0]))) / n
+#     llh <- 2 / n * (vuhat * sum(w[w!=0] * (etahat[w!=0] + y[w!=0] * exp(-etahat[w!=0]))) + n * (log(gamma(vuhat)) - vuhat * log(vuhat)) - (vuhat-1) * sum(log(y)))
+#     #print (llh)
+#   }
+#   llh
+# }
 
 #different from cgam, used to simulate y when computing mixture-beta dist
-ysim.fun <- function(n, mu0 = NULL, fml = object$family, shp0 = NULL, sd = NULL, phi = NULL) {
-  if (fml == "binomial") {
-    #ysim <- 1:n*0
-    #ysim[runif(n) < .5] <- 1
-    ysim <- rbinom(n, size = 1, prob = mu0)
-  }
-  if (fml == "poisson") {
-    if (!is.null(mu0)) {
-      ysim <- rpois(n, mu0)
-    }
-  }
-  if (fml == "gaussian") {
-    if(!is.null(phi)){
-      ysim <- mu0 + arima.sim(n = n, list(ar = phi), sd = sd)
-    }else{
-      ysim <- mu0 + rnorm(n, sd = sd)
-    }
-  }
-  if (fml == "Gamma") {
-    ysim <- rgamma(n, shape=1)
-  }
-  ysim
-}
+# ysim.fun <- function(n, mu0 = NULL, fml = object$family, shp0 = NULL, sd = NULL, phi = NULL) {
+#   if (fml == "binomial") {
+#     #ysim <- 1:n*0
+#     #ysim[runif(n) < .5] <- 1
+#     ysim <- rbinom(n, size = 1, prob = mu0)
+#   }
+#   if (fml == "poisson") {
+#     if (!is.null(mu0)) {
+#       ysim <- rpois(n, mu0)
+#     }
+#   }
+#   if (fml == "gaussian") {
+#     if(!is.null(phi)){
+#       ysim <- mu0 + arima.sim(n = n, list(ar = phi), sd = sd)
+#     }else{
+#       ysim <- mu0 + rnorm(n, sd = sd)
+#     }
+#   }
+#   if (fml == "Gamma") {
+#     ysim <- rgamma(n, shape=1)
+#   }
+#   ysim
+# }

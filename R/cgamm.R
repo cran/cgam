@@ -3232,9 +3232,9 @@ predict.cgamm = function(object, newdata, interval = c("none", "confidence", "pr
     ki = knots0[[i]]
     xi = xmat0[,i]
     xipr = newx0[,i]
-    if (any(xipr > max(xi)) | any(xipr < min(xi))) {
-      stop ("No extrapolation is allowed in cgamm prediction!")
-    }
+    #if (any(xipr > max(xi)) | any(xipr < min(xi))) {
+      #stop ("No extrapolation is allowed in cgamm prediction!")
+    #}
     deli = makedelta(xi, shpi, knots = ki)
     #print (i)
     #if (i == 2) {
@@ -4072,93 +4072,93 @@ getbin = function(num, capl){
 #############################
 #predict delta for ordinal x#
 #############################
-pred_del = function(x, sh, xp, ms) {
-  n = length(xp)
-  #x = (x - min(x)) / (max(x) - min(x))
-  xu = sort(unique(x))
-  n1 = length(xu)
-  sigma = NULL
-  #######################
-  #local helper function#
-  #######################
-  my_line = function(xp = NULL, y, x, end, start) {
-    slope = NULL
-    intercept = NULL
-    yp = NULL
-    slope = (y[end] - y[start]) / (x[end] - x[start])
-    intercept = y[end] - slope * x[end]
-    yp = intercept + slope * xp
-    ans = new.env()
-    ans$slope = slope
-    ans$intercept = intercept
-    ans$yp = yp
-    ans
-  }
-  #  increasing or decreasing
-  if (sh < 3) {
-    sigma = matrix(0, nrow = n1 - 1, ncol = n)
-    for (i in 1: (n1 - 1)) {
-      sigma[i, xp > xu[i]] = 1
-    }
-    if (sh == 2) {sigma = -sigma}
-    for (i in 1:(n1 - 1)) {sigma[i, ] = sigma[i, ] - ms[i]}
-  }
-  if (sh == 3 | sh == 4) {
-    #new: 2026
-    ms <- t(ms)
-    #  convex or concave
-    sigma = matrix(0, nrow = n1 - 2, ncol = n)
-    #for (i in 1: (n1 - 2)) {
-    #	sigma[i, x > xu[i]] = x[x > xu[i]] - xu[i]
-    #}
-    for (i in 1: (n1 - 2)) {
-      sigma[i, xp > xu[i+1]] = xp[xp > xu[i+1]] - xu[i+1]
-    }
-    if (sh == 4) {sigma = -sigma}
-    #xm = cbind(1:n*0+1, xp)
-    #xpx = solve(t(xm) %*% xm)
-    #pm = xm %*% xpx %*% t(xm)
-    #sigma = sigma - sigma %*% t(pm)
-    xs = sort(x)
-    ord = order(x)
-    nx = length(x)
-    obs = 1:nx
-    m = nrow(ms)
-    ms0 = matrix(0, nrow = m, ncol = n)
-    for (i1 in 1:n) {
-      for (i2 in 1:m) {
-        ms0[i2, i1] = my_line(xp = xp[i1], y = ms[i2, ][ord], x = xs, end = nx, start = 1)$yp
-      }
-    }
-    sigma = sigma - ms0
-  }
-  if (sh > 4 & sh < 9) {
-    sigma = matrix(0, nrow = n1 - 1, ncol = n)
-    if (sh == 5) { ### increasing convex
-      for (i in 1:(n1 - 1)) {
-        sigma[i, xp > xu[i]] = (xp[xp > xu[i]] - xu[i]) / (max(x) - xu[i])
-      }
-      for (i in 1:(n1 - 1)) {sigma[i,] = sigma[i,] - ms[i]}
-    } else if (sh == 6) {  ## decreasing convex
-      for (i in 1:(n1 - 1)) {
-        sigma[i, xp < xu[i + 1]] = (xp[xp < xu[i + 1]] - xu[i + 1]) / (min(x) - xu[i + 1])
-      }
-      for (i in 1:(n1 - 1)) {sigma[i,] = sigma[i,] - ms[i]}
-      #print (ms)
-    } else if (sh == 7) { ## increasing concave
-      for (i in 1:(n1 - 1)) {
-        sigma[i, xp < xu[i + 1]] = (xp[xp < xu[i + 1]] - xu[i + 1]) / (min(x) - xu[i + 1])
-      }
-      for (i in 1:(n1 - 1)) {sigma[i,] = -sigma[i,] + ms[i]}
-    } else if (sh == 8) {## decreasing concave
-      for (i in 1:(n1 - 1)) {
-        sigma[i, xp > xu[i]] = (xp[xp > xu[i]] - xu[i]) / (max(x) - xu[i])
-      }
-      for (i in 1:(n1 - 1)) {sigma[i,] = -sigma[i,] + ms[i]}
-    }
-  }
-  return (sigma)
-}
+# pred_del = function(x, sh, xp, ms) {
+#   n = length(xp)
+#   #x = (x - min(x)) / (max(x) - min(x))
+#   xu = sort(unique(x))
+#   n1 = length(xu)
+#   sigma = NULL
+#   #######################
+#   #local helper function#
+#   #######################
+#   my_line = function(xp = NULL, y, x, end, start) {
+#     slope = NULL
+#     intercept = NULL
+#     yp = NULL
+#     slope = (y[end] - y[start]) / (x[end] - x[start])
+#     intercept = y[end] - slope * x[end]
+#     yp = intercept + slope * xp
+#     ans = new.env()
+#     ans$slope = slope
+#     ans$intercept = intercept
+#     ans$yp = yp
+#     ans
+#   }
+#   #  increasing or decreasing
+#   if (sh < 3) {
+#     sigma = matrix(0, nrow = n1 - 1, ncol = n)
+#     for (i in 1: (n1 - 1)) {
+#       sigma[i, xp > xu[i]] = 1
+#     }
+#     if (sh == 2) {sigma = -sigma}
+#     for (i in 1:(n1 - 1)) {sigma[i, ] = sigma[i, ] - ms[i]}
+#   }
+#   if (sh == 3 | sh == 4) {
+#     #new: 2026
+#     ms <- t(ms)
+#     #  convex or concave
+#     sigma = matrix(0, nrow = n1 - 2, ncol = n)
+#     #for (i in 1: (n1 - 2)) {
+#     #	sigma[i, x > xu[i]] = x[x > xu[i]] - xu[i]
+#     #}
+#     for (i in 1: (n1 - 2)) {
+#       sigma[i, xp > xu[i+1]] = xp[xp > xu[i+1]] - xu[i+1]
+#     }
+#     if (sh == 4) {sigma = -sigma}
+#     #xm = cbind(1:n*0+1, xp)
+#     #xpx = solve(t(xm) %*% xm)
+#     #pm = xm %*% xpx %*% t(xm)
+#     #sigma = sigma - sigma %*% t(pm)
+#     xs = sort(x)
+#     ord = order(x)
+#     nx = length(x)
+#     obs = 1:nx
+#     m = nrow(ms)
+#     ms0 = matrix(0, nrow = m, ncol = n)
+#     for (i1 in 1:n) {
+#       for (i2 in 1:m) {
+#         ms0[i2, i1] = my_line(xp = xp[i1], y = ms[i2, ][ord], x = xs, end = nx, start = 1)$yp
+#       }
+#     }
+#     sigma = sigma - ms0
+#   }
+#   if (sh > 4 & sh < 9) {
+#     sigma = matrix(0, nrow = n1 - 1, ncol = n)
+#     if (sh == 5) { ### increasing convex
+#       for (i in 1:(n1 - 1)) {
+#         sigma[i, xp > xu[i]] = (xp[xp > xu[i]] - xu[i]) / (max(x) - xu[i])
+#       }
+#       for (i in 1:(n1 - 1)) {sigma[i,] = sigma[i,] - ms[i]}
+#     } else if (sh == 6) {  ## decreasing convex
+#       for (i in 1:(n1 - 1)) {
+#         sigma[i, xp < xu[i + 1]] = (xp[xp < xu[i + 1]] - xu[i + 1]) / (min(x) - xu[i + 1])
+#       }
+#       for (i in 1:(n1 - 1)) {sigma[i,] = sigma[i,] - ms[i]}
+#       #print (ms)
+#     } else if (sh == 7) { ## increasing concave
+#       for (i in 1:(n1 - 1)) {
+#         sigma[i, xp < xu[i + 1]] = (xp[xp < xu[i + 1]] - xu[i + 1]) / (min(x) - xu[i + 1])
+#       }
+#       for (i in 1:(n1 - 1)) {sigma[i,] = -sigma[i,] + ms[i]}
+#     } else if (sh == 8) {## decreasing concave
+#       for (i in 1:(n1 - 1)) {
+#         sigma[i, xp > xu[i]] = (xp[xp > xu[i]] - xu[i]) / (max(x) - xu[i])
+#       }
+#       for (i in 1:(n1 - 1)) {sigma[i,] = -sigma[i,] + ms[i]}
+#     }
+#   }
+#   return (sigma)
+# }
 
 ####################
 #summary.cgamm

@@ -101,3 +101,8 @@
 * change nsim to be 100 as the default in cgam and cgamm. nsim is only used for simulating cic values.
 * In cgam.pv, nsims is set to be 1000 for better accuracy.
 * plot.cgamm is debugged. 
+
+1.32
+* remove the ShapeSelect function using GA; remove: in.or.out, shapes, best.fit; get ready to add shapeselect function using stepwise method
+* allow extrapolation in predict.cgam and predict.cgamm
+
