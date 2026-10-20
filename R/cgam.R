@@ -3549,14 +3549,14 @@ summary.cgam <- function(object,...) {
                 if (!is.null(zid)) {
                     rownames(rslt2) <- (attributes(tms)$term.labels)[-(zid-1)]
                 } else {
-                    rownames(rslt2) <- (attributes(tms)$term.labels)
+                    #rownames(rslt2) <- (attributes(tms)$term.labels)
                     #if (any(object$shapes < 9) & length(pvs) < length(object$shapes)) {
-                    #if (any(object$shapes < 9)) {
-                    #  rm_id = which(object$shapes < 9)
-                    #  rownames(rslt2) <- (attributes(tms)$term.labels)[-rm_id]
-                    #} else {
-                    #  rownames(rslt2) <- (attributes(tms)$term.labels)
-                    #}
+                    if (any(object$shapes %in% c("tree", "umbrella"))) {
+                     rm_id = which(object$shapes %in% c("tree", "umbrella"))
+                     rownames(rslt2) <- (attributes(tms)$term.labels)[-rm_id]
+                    } else {
+                     rownames(rslt2) <- (attributes(tms)$term.labels)
+                    }
                 }
             }
 
@@ -3589,7 +3589,13 @@ summary.cgam <- function(object,...) {
                       rownames(rslt2) <- rev(rev((attributes(tms)$term.labels))[-1])
                     } else {
                       #rownames(rslt2) <- (attributes(tms)$term.labels)
-                      rownames(rslt2) <- (attributes(tms)$term.labels[1:nrow(rslt2)])
+                      #rownames(rslt2) <- (attributes(tms)$term.labels[1:nrow(rslt2)])
+                      if (any(object$shapes %in% c("tree", "umbrella"))) {
+                        rm_id = which(object$shapes %in% c("tree", "umbrella"))
+                        rownames(rslt2) <- (attributes(tms)$term.labels)[-rm_id]
+                      } else {
+                        rownames(rslt2) <- (attributes(tms)$term.labels[1:nrow(rslt2)])
+                      }
                     }
                     #if (any(object$shapes < 9) & length(pvs) < length(object$shapes)) {
                     #if (any(object$shapes < 9)) {
@@ -4400,8 +4406,11 @@ predict.cgam = function(object, newdata, interval = c("none", "confidence", "pre
       #muhatpr = xmatpr %*% ans1$coefs
       #temp:
       muhatpr = xmatpr %*% object$coefs[1:ncol(xmatpr), ,drop=FALSE]
-      #new: C.I. level
-      mult = qnorm((1 - level)/2, lower.tail=FALSE)
+      ## new: C.I. level
+      # mult = qnorm((1 - level)/2, lower.tail = FALSE)
+      ## new: test 10/19/2026
+      mult = qt((1 - level)/2, n - ncol(xmatpr), lower.tail=FALSE)
+      # print (mult)
       #hl = 2*sqrt(diag(xmatpr%*%acov%*%t(xmatpr)))
       if (interval == "confidence") {
         hl = mult*sqrt(diag(xmatpr%*%acov%*%t(xmatpr)))
@@ -4520,7 +4529,9 @@ predict.cgam = function(object, newdata, interval = c("none", "confidence", "pre
       #muhatpr = 1 - 1/(1+exp(etapr))
       muhatpr = family$linkinv(etapr)
       #new: C.I. level
-      mult = qnorm((1 - level)/2, lower.tail=FALSE)
+      #mult = qnorm((1 - level)/2, lower.tail=FALSE)
+      ## new: 10/19/2026
+      mult = qt((1 - level)/2, n - ncol(xmatpr), lower.tail=FALSE)
       #if (interval == "confidence") {
       uppeta = etapr + mult*sqrt(coveta)
       loweta = etapr - mult*sqrt(coveta)

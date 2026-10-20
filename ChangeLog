@@ -106,3 +106,6 @@
 * remove the ShapeSelect function using GA; remove: in.or.out, shapes, best.fit; get ready to add shapeselect function using stepwise method
 * allow extrapolation in predict.cgam and predict.cgamm
 
+1.33
+* use qt to compute mult in predict.cgam 
+
