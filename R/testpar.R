@@ -10,7 +10,7 @@
 #' @param ps User-defined penalty term. If \code{NULL}, optimal values are estimated.
 #' @param edfu User-defined unconstrained effective degrees of freedom. 
 #' @param nsim Number of simulations to perform to get the mixture distribution of the test statistic. (default is 1000).
-#' @param multicore Logical. Whether to enable parallel computation (default uses global option \code{cgam.parallel}).
+#' @param multicore Logical. Whether to enable parallel computation. The default uses global option \code{cgam.parallel}, which is FALSE.
 #' @param method A character string (default is \code{"testpar.fit"}), currently unused.
 #' @param arp Logical. If \code{TRUE}, uses autoregressive structure estimation.
 #' @param p Integer vector or value specifying AR(p) order. Ignored if \code{arp = FALSE}.

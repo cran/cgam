@@ -2,68 +2,117 @@
 % Please edit documentation in R/shapeselect.R
 \name{shapeselect}
 \alias{shapeselect}
-\title{Shape selection for additive components with shape or order constraints}
+\title{Shape selection for constrained additive models}
 \usage{
 shapeselect(
   xmat,
   y,
   types = NULL,
   direction = c("both", "forward"),
-  type = "stepwise",
-  infocrit = c("CBIC", "CAIC"),
-  family = gaussian,
-  control = list(),
-  ...
+  family = gaussian(link = "identity"),
+  boundary.knots = NULL,
+  nsim = 500,
+  pnt = TRUE,
+  parallel = FALSE,
+  user_edfus = NULL,
+  scale.method = c("minmax", "zscore", "none"),
+  set4 = FALSE,
+  tune = c("cv5", "cv10", "gcv", "none"),
+  cv_seed = 123
 )
 }
 \arguments{
-\item{xmat}{A data frame of predictors. Columns may be numeric or factors.
-Column names are used in output when available. If x is numeric, then the shape options are
-increasing, decreasing, convex, concave or combination of monotonicity and convexity; if x is a
-factor, then it can have monotonic or convex ordering options; if x is a factor, the option can also be "in" or "out-of" the model, or "in", "out-of" the model, or
-following a "tree" ordering, depending on the \code{types} parameter.}
+\item{xmat}{A data frame or matrix of predictors. Numeric predictors should
+be used with \code{types = "num"}, and factor predictors with
+\code{types = "nom"}. Column names are used in the output when available.
+Numeric predictors are fitted using shape-constrained smooth functions,
+whereas nominal predictors are included in or excluded from the model.}
 
-\item{y}{A response vector of length \code{nrow(xmat)}. It can be either numeric or binary.}
+\item{y}{A response vector with length equal to \code{nrow(xmat)}. For a Gaussian
+model, \code{y} should be numeric; for a binomial model, it should be binary.}
 
-\item{types}{Optional character vector of length \code{ncol(xmat)} specifying the predictor type
-for each column of \code{xmat}. This is used to determine which shape set is eligible for each
-predictor. Values used for this parameter include \code{"num"}/\code{"numeric"} (continuous),
-\code{"ord"}/\code{"ordinal"} (ordinal/categorical), \code{"tree"} (categorical),
-and \code{"nom"}/\code{"nominal"} (categorical). Default is \code{NULL}, but the user must provide a value for each column of xmat;
-otherwise the function will throw an error message.}
+\item{types}{A character vector of length \code{ncol(xmat)} specifying the type
+of each predictor. Currently supported values are \code{"num"} for numeric
+predictors and \code{"nom"} for nominal categorical predictors.}
 
-\item{direction}{Direction of the search. \code{"forward"} performs forward selection only.
-\code{"both"} allows backward revisions (stepwise) after additions.}
+\item{direction}{The direction of the model search. \code{"forward"} performs
+forward selection of predictors and their shapes. \code{"both"} performs
+forward selection followed by backward revisions, including the removal
+of predictors. The default is \code{"both"}.}
 
-\item{type}{Search strategy. \code{"stepwise"} adds predictors while allowing backward revisions.
-\code{"classo"} then applies shrinkage/selection (e.g., via cross-validated lasso). The available option
-is \code{"stepwise"} for now.}
+\item{family}{A family object or a character string naming a family
+function. It specifies the error distribution and link function, as in
+\code{glm()}. Currently supported families are Gaussian and binomial.}
 
-\item{infocrit}{Information criterion used to decide adding or removing a predictor, and shape updates. Currently supports
-\code{"CBIC"} and \code{"CAIC"}.}
+\item{boundary.knots}{An optional list of boundary knots for the numeric
+predictors. The default is \code{NULL}. For a numeric predictor, the
+corresponding element should be a numeric vector containing at least two
+finite values, such as the values returned by
+\code{range(x, na.rm = TRUE)}. For a nominal predictor, the corresponding
+element should be \code{NULL}.}
 
-\item{family}{A GLM family. May be a family function or a character string naming one. Available families are \code{gaussian} and \code{binomial}.}
+\item{nsim}{The number of simulations used to estimate the mean effective
+degrees of freedom in the CBIC calculation at each selection step.}
 
-\item{control}{A list of control parameters. Any entries not supplied fall back to
-\code{shapeselect_control()}. Additional named arguments in \code{...} override both defaults and
-\code{control}.}
+\item{pnt}{Logical; if \code{TRUE}, include penalty-related calculations during
+model fitting. The default is \code{TRUE}.}
 
-\item{...}{Additional control parameters (passed as overrides). These are merged into \code{control}
-after defaults, so they take highest priority.}
+\item{parallel}{Logical. Whether to enable parallel computation. The default is FALSE.
+If parallel is TRUE, then the default number of cores = 2.
+To use a different number of cores for example, to use 4 cores, run: options(cgam.cores = 4L)}
+
+\item{user_edfus}{An optional numeric vector of three positive finite
+starting effective degrees of freedom. If \code{NULL}, starting values are
+determined automatically and tuned before variable selection. This
+argument is primarily intended for package maintenance and development.}
+
+\item{scale.method}{The scaling method for numeric predictors. \code{"minmax"}
+scales each predictor to the unit interval, \code{"zscore"} standardizes each
+predictor using its mean and standard deviation, and \code{"none"} performs no
+scaling. The default is \code{"minmax"}.}
+
+\item{set4}{Logical; if \code{TRUE}, consider only the four basic smooth shapes
+for numeric predictors: increasing, decreasing, convex, and concave.
+If \code{FALSE}, also consider combined monotonicity-and-curvature shapes.}
+
+\item{tune}{The method used to tune the effective degrees of freedom of
+selected numeric predictors. Choices are \code{"cv5"}, \code{"cv10"}, \code{"gcv"},
+and \code{"none"}. The default is \code{"cv5"}.}
+
+\item{cv_seed}{An integer random seed used for cross-validation when
+\code{tune} is not \code{"none"}. The default is \code{123}.}
 }
 \value{
-An object of class \code{c("shapeselect","cgam")}, a list containing (among others):
+An object of class \code{"shapeselect"} containing the fitted model and
+the selection results. Important components include:
 \describe{
-\item{mod_tried}{A matrix recording the selection path (chosen shapes, criterion values, adding or removing a predictor).}
-\item{shps}{Numeric shape codes for each predictor (0 indicates excluded/flat).}
-\item{shapes}{Character labels for the selected shapes.}
-\item{etahat}{Fitted linear predictor values.}
-\item{muhat}{Fitted mean response on the data scale (\code{family$linkinv(etahat)}).}
-\item{etacomps}{Matrix of fitted component contributions by predictor (rows).}
-\item{cic_vec}{Criterion values along the path.}
-\item{cvec}{Shrinkage/selection vector (used when \code{type = "classo"}).}
-\item{ddkeep_x_lst, ddkeep_z_lst}{Stored design/basis components for numeric and categorical predictors used for prediction and plotting.}
+\item{shps}{Numeric shape code for each predictor; zero denotes an
+unselected predictor.}
+\item{shapes}{Character labels describing the selected shape for each
+predictor.}
+\item{active}{Indices of the selected predictors.}
+\item{active_shps}{Shape codes for the selected predictors.}
+\item{mod_tried}{Data frame recording the selection path and criterion
+values.}
+\item{etahat}{Fitted linear predictors.}
+\item{muhat}{Fitted mean responses on the response scale.}
+\item{etacomps}{Data frame of fitted component contributions, with one row per original predictor.}
+\item{coefskeep}{Estimated coefficients for the final model.}
 }
+
+For numeric predictors, the shape codes are 9 (smooth increasing), 10
+(smooth decreasing), 11 (smooth convex), 12 (smooth concave), 13 (smooth
+increasing convex), 14 (smooth increasing concave), 15 (smooth decreasing
+convex), 16 (smooth decreasing concave), and 19 (smooth unconstrained).
+When \code{set4 = TRUE}, only codes 9--12 and 19 are considered. Code 0 denotes
+a numeric predictor that is not selected; the corresponding label in
+\code{shapes} is \code{"out of the model"}. Code 17 represents a flat shape when it
+occurs in the fitted object.
+
+For nominal predictors, code 1 denotes that the predictor is included in
+the model, and code 0 denotes that it is not selected. Their corresponding
+labels in \code{shapes} are \code{"in the model"} and \code{"out of the model"},
+respectively.
 }
 \description{
 Fits an additive model by selecting variables with shape or order constraints
@@ -74,30 +123,43 @@ over a set of candidate shapes appropriate to each predictor type.
 \details{
 The algorithm begins with an intercept-only fit, then evaluates each inactive predictor under
 a set of allowable shapes (depending on \code{types}). At each step it selects the predictor/shape
-combination that improves the chosen information criterion. When \code{direction = "both"}, it
-checks non-chosen shapes for already-selected predictors via backward steps.
-
-Shape and order choices in this implementation include
-\enumerate{
-\item smooth effects: monotone increasing/decreasing, convex/concave when \code{set4 = TRUE}, and combinations \code{set4 = FALSE}, if the corresponding value
-in \code{types} is \code{"num"}/\code{"numeric"} (x is continuous).
-\item non-smooth effects: monotone increasing/decreasing and convex/concave (when \code{set4 = TRUE}), or their combinations (when \code{set4 = FALSE}),
-if the corresponding value in \code{types} is \code{"ord"}/\code{"ordinal"} (i.e., x is ordinal, categorical, or numeric but treated as
-discrete with an inherent ordering).
-in \code{types} is \code{"ord"}/\code{"ordinal"} (x is ordinal/categorical/having numeric values but treated as discrete values with ordering).
-\item in or out-of the model, if the corresponding value in \code{types} is \code{"nom"}/\code{"nominal"} (x is categorical)
-\item in, out-of the model or following a tree ordering, if the corresponding value in \code{types} is \code{"tree"} (i.e., x is categorical or numeric but treated as
-discrete with a tree ordering).
-}
+combination that improves the chosen information criterion.
 }
 \examples{
+# Example 1: gaussian response, two numeric predictors, unpenalized
 library(MASS)
 data("Rubber", package = "MASS")
 y <- Rubber[, 1]
 xmat <- Rubber[, -1]
+# the sample size = 30. For a small sample, it is better to use pnt = FALSE
 ans <- shapeselect(xmat, y, types = c("num", "num"), pnt = FALSE)
-
-print (ans$shapes)
-
+# print out the chosen predictors and their shapes
+print (ans)
+# plot chosen components
 plot(ans)
+# make a prediction
+xtest <- data.frame(hard = mean(Rubber$hard), tens = mean(Rubber$tens))
+pfit <- predict(ans, xtest, type = "response")$fit
+
+# Example 2: binomial response, one nominal predictor and six numeric predictors, penalized 
+# each numeric predictor has 4 shape options
+data(Pima.tr, package = "MASS")
+
+df <- Pima.tr |> dplyr::filter(age <= 70) |>
+  dplyr::mutate(npreg_grp = cut(npreg, breaks = c(-Inf, 0, 1, 5, 9, Inf),
+      labels = c("0", "1", "2", "3", "4"), ordered_result = FALSE)) |>
+  dplyr::select(-npreg) |>
+  dplyr::select(npreg_grp, dplyr::everything())
+
+y <- as.integer(df$type == "Yes")
+xmat <- df[, 1:7, drop = FALSE]
+
+# Default nsim = 500
+\dontrun{
+ans <- shapeselect(xmat, y, types = c("nom", rep("num", 6)), family = "binomial",
+  nsim = 200, pnt = TRUE, set4 = TRUE)
+
+print(ans)
+plot(ans)
+}
 }

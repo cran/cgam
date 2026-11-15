@@ -2151,37 +2151,72 @@ tree <- function(x, pl = NULL)
 #  delta
 #}
 
+# tree.fun <- function(x, pl = NULL)
+# {
+#   #if (pl %in% x) {
+#   if (is.null(pl)) {
+#   	if (is.numeric(x)) {
+#   		if (0%in%x) {
+#   			pl <- 0
+#   		} else {pl <- min(x)}
+#   	} else {
+#   		xu <- unique(x)
+#   		pl <- xu[1]
+#   	}
+#   } else {
+#   	if (!(pl%in%x)) {
+#   		stop ("placebo level is not a level of the tree variable!")
+#   	}
+#   }
+#   pos <- x %in% pl
+#   xu <- unique(x)
+#   nx <- xu[xu != pl]
+#   delta <- matrix(0, nrow = (length(xu) - 1), ncol = length(x))
+#   for (i in 1:nrow(delta)) {
+#   	xi = nx[i]
+# 	  delta[i, !pos & x %in% xi] <- 1
+# 	  pos <- pos | x %in% xi
+#   }
+#   #} else {stop ("placebo level is not a level of the tree variable!")}
+#   attr(delta, "shape") <- "tree"
+#   delta
+# }
+
 tree.fun <- function(x, pl = NULL)
 {
+  xu <- unique(x)
   #if (pl %in% x) {
   if (is.null(pl)) {
-  	if (is.numeric(x)) {
-  		if (0%in%x) {
-  			pl <- 0
-  		} else {pl <- min(x)}
-  	} else {
-  		xu <- unique(x)
-  		pl <- xu[1]
-  	}
+    if (is.numeric(x)) {
+      if (0%in%x) {
+        pl <- 0
+      } else {pl <- min(x)}
+    } else if (inherits(x, "factor")) { #this branch is new: use the first level as the placebo level
+      lvls <- levels(x)
+      #xu <- unique(x)
+      pl <- xu[xu == lvls[1]]
+    } else {
+      #xu <- unique(x)
+      pl <- xu[1]
+    }
   } else {
-  	if (!(pl%in%x)) {
-  		stop ("placebo level is not a level of the tree variable!")
-  	}
+    if (!(pl%in%x)) {
+      stop ("placebo level is not a level of the tree variable!")
+    }
   }
   pos <- x %in% pl
-  xu <- unique(x)
+  #xu <- unique(x)
   nx <- xu[xu != pl]
   delta <- matrix(0, nrow = (length(xu) - 1), ncol = length(x))
   for (i in 1:nrow(delta)) {
-  	xi = nx[i]
-	  delta[i, !pos & x %in% xi] <- 1
-	  pos <- pos | x %in% xi
+    xi <- nx[i]
+    delta[i, !pos & x %in% xi] <- 1
+    pos <- pos | x %in% xi
   }
   #} else {stop ("placebo level is not a level of the tree variable!")}
   attr(delta, "shape") <- "tree"
   delta
 }
-
 ##############################################################
 #umbrella function: give the umbrella shape to x and return x#
 ##############################################################
@@ -4410,7 +4445,7 @@ predict.cgam = function(object, newdata, interval = c("none", "confidence", "pre
       # mult = qnorm((1 - level)/2, lower.tail = FALSE)
       ## new: test 10/19/2026
       mult = qt((1 - level)/2, n - ncol(xmatpr), lower.tail=FALSE)
-      # print (mult)
+      #print (mult)
       #hl = 2*sqrt(diag(xmatpr%*%acov%*%t(xmatpr)))
       if (interval == "confidence") {
         hl = mult*sqrt(diag(xmatpr%*%acov%*%t(xmatpr)))
@@ -4718,7 +4753,8 @@ pred_del = function(x, sh, xp, ms) {
 	}
 	if (sh == 3 | sh == 4) {
 	  #new: 2026
-	  ms <- t(ms)
+	  #11/9/2026: seems not correct to do the t(ms) here
+	  #ms <- t(ms)
 #  convex or concave
 		sigma = matrix(0, nrow = n1 - 2, ncol = n)
 		#for (i in 1: (n1 - 2)) {

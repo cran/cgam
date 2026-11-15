@@ -35,7 +35,7 @@ testpar(
 
 \item{nsim}{Number of simulations to perform to get the mixture distribution of the test statistic. (default is 1000).}
 
-\item{multicore}{Logical. Whether to enable parallel computation (default uses global option \code{cgam.parallel}).}
+\item{multicore}{Logical. Whether to enable parallel computation. The default uses global option \code{cgam.parallel}, which is FALSE.}
 
 \item{method}{A character string (default is \code{"testpar.fit"}), currently unused.}
 
